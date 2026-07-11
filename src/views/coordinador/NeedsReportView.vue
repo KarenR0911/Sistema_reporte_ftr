@@ -7,6 +7,7 @@ import BaseSelect from '@/components/ui/BaseSelect.vue'
 import BaseButton from '@/components/ui/BaseButton.vue'
 import BaseTable from '@/components/ui/BaseTable.vue'
 import StatusBadge from '@/components/ui/StatusBadge.vue'
+import { Plus, ArrowLeft } from '@lucide/vue'
 import { useMisionesStore } from '@/stores/misiones'
 import { useNecesidadesStore } from '@/stores/necesidades'
 import type { Necesidad } from '@/types'
@@ -61,7 +62,7 @@ onMounted(async () => {
         <h1 class="page-title">Levantamiento de Necesidades</h1>
         <p v-if="mission" class="mission-info">{{ mission.municipio }}, {{ mission.estado }} - {{ mission.direccion }}</p>
       </div>
-      <BaseButton variant="ghost" @click="router.back()">Volver</BaseButton>
+      <BaseButton variant="ghost" @click="router.back()"><ArrowLeft :size="18" /> Volver</BaseButton>
     </div>
 
     <BaseCard title="Registrar Necesidad">
@@ -82,7 +83,7 @@ onMounted(async () => {
           ]"
         />
       </div>
-      <BaseButton variant="primary" @click="addNecesidad">Agregar Necesidad</BaseButton>
+      <BaseButton variant="primary" @click="addNecesidad"><Plus :size="18" /> Agregar Necesidad</BaseButton>
     </BaseCard>
 
     <BaseCard title="Necesidades Registradas">

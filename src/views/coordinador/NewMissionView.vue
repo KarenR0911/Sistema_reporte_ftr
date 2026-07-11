@@ -6,6 +6,7 @@ import BaseSelect from '@/components/ui/BaseSelect.vue'
 import BaseButton from '@/components/ui/BaseButton.vue'
 import BaseCard from '@/components/ui/BaseCard.vue'
 import BaseTable from '@/components/ui/BaseTable.vue'
+import { MapPin, Truck, Users, Package, Plus, ArrowLeft, Save } from '@lucide/vue'
 import { useMisionesStore } from '@/stores/misiones'
 import { useTransporteStore } from '@/stores/transporte'
 import { usePersonalStore } from '@/stores/personal'
@@ -164,16 +165,16 @@ onMounted(async () => {
 
     <div class="steps">
       <div class="step" :class="{ active: step === 1, done: step > 1 }" @click="step = 1">
-        <span class="step-num">1</span> Zona
+        <span class="step-num"><MapPin :size="16" /></span> Zona
       </div>
       <div class="step" :class="{ active: step === 2, done: step > 2 }" @click="step = 2">
-        <span class="step-num">2</span> Transporte
+        <span class="step-num"><Truck :size="16" /></span> Transporte
       </div>
       <div class="step" :class="{ active: step === 3, done: step > 3 }" @click="step = 3">
-        <span class="step-num">3</span> Personal
+        <span class="step-num"><Users :size="16" /></span> Personal
       </div>
       <div class="step" :class="{ active: step === 4, done: step > 4 }" @click="step = 4">
-        <span class="step-num">4</span> Insumos
+        <span class="step-num"><Package :size="16" /></span> Insumos
       </div>
     </div>
 
@@ -192,7 +193,7 @@ onMounted(async () => {
         <BaseInput v-model="transportForm.numero_placa" label="Número de Placa" />
         <BaseInput v-model="transportForm.nombre_conductor" label="Nombre del Conductor" />
       </div>
-      <BaseButton variant="secondary" @click="addTransporte" class="mb">Agregar Transporte</BaseButton>
+      <BaseButton variant="secondary" @click="addTransporte" class="mb"><Plus :size="18" /> Agregar Transporte</BaseButton>
       <BaseTable
         v-if="transportes.length"
         :columns="[
@@ -208,7 +209,7 @@ onMounted(async () => {
         </template>
       </BaseTable>
       <div class="step-nav">
-        <BaseButton variant="ghost" @click="prevStep">Atrás</BaseButton>
+        <BaseButton variant="ghost" @click="prevStep"><ArrowLeft :size="18" /> Atrás</BaseButton>
         <BaseButton variant="primary" @click="nextStep">Siguiente</BaseButton>
       </div>
     </BaseCard>
@@ -241,7 +242,7 @@ onMounted(async () => {
         </label>
       </div>
       <div class="step-nav">
-        <BaseButton variant="ghost" @click="prevStep">Atrás</BaseButton>
+        <BaseButton variant="ghost" @click="prevStep"><ArrowLeft :size="18" /> Atrás</BaseButton>
         <BaseButton variant="primary" @click="nextStep">Siguiente</BaseButton>
       </div>
     </BaseCard>
@@ -255,7 +256,7 @@ onMounted(async () => {
         <BaseInput v-model="insumoForm.unidad" label="Unidad" placeholder="kg, unidades, litros..." />
         <BaseInput v-model="insumoForm.observaciones" label="Observaciones" />
       </div>
-      <BaseButton variant="secondary" @click="addInsumo" class="mb">Agregar Insumo</BaseButton>
+      <BaseButton variant="secondary" @click="addInsumo" class="mb"><Plus :size="18" /> Agregar Insumo</BaseButton>
       <BaseTable
         v-if="insumos.length"
         :columns="[
@@ -271,8 +272,8 @@ onMounted(async () => {
         </template>
       </BaseTable>
       <div class="step-nav">
-        <BaseButton variant="ghost" @click="prevStep">Atrás</BaseButton>
-        <BaseButton variant="primary" @click="saveMision">Guardar Misión</BaseButton>
+        <BaseButton variant="ghost" @click="prevStep"><ArrowLeft :size="18" /> Atrás</BaseButton>
+        <BaseButton variant="primary" @click="saveMision"><Save :size="18" /> Guardar Misión</BaseButton>
       </div>
     </BaseCard>
   </div>

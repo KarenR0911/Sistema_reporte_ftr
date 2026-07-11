@@ -2,6 +2,7 @@
 import { useAuthStore } from '@/stores/auth'
 import { useOnlineStatus } from '@/composables/useOnlineStatus'
 import { useRouter } from 'vue-router'
+import { Wifi, WifiOff, LogOut } from '@lucide/vue'
 
 const auth = useAuthStore()
 const { isOnline } = useOnlineStatus()
@@ -20,12 +21,14 @@ async function handleLogout() {
     </div>
     <div class="topbar-right">
       <span class="online-indicator" :class="{ offline: !isOnline }">
-        <span class="dot" />
+        <component :is="isOnline ? Wifi : WifiOff" :size="16" />
         {{ isOnline ? 'En línea' : 'Sin conexión' }}
       </span>
       <span class="user-name">{{ auth.currentUser?.nombre }}</span>
       <span class="user-role">{{ auth.currentUser?.rol }}</span>
-      <button class="logout-btn" @click="handleLogout">Cerrar sesión</button>
+      <button class="logout-btn" @click="handleLogout">
+        <LogOut :size="16" /> Cerrar sesión
+      </button>
     </div>
   </header>
 </template>
@@ -59,15 +62,6 @@ async function handleLogout() {
 }
 .online-indicator.offline {
   background: rgba(255, 152, 0, 0.3);
-}
-.dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: #4CAF50;
-}
-.offline .dot {
-  background: #FF9800;
 }
 .user-name {
   font-weight: 600;

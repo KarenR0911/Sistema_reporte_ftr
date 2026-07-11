@@ -6,6 +6,7 @@ import BaseInput from '@/components/ui/BaseInput.vue'
 import BaseButton from '@/components/ui/BaseButton.vue'
 import BaseTable from '@/components/ui/BaseTable.vue'
 import StatusBadge from '@/components/ui/StatusBadge.vue'
+import { UserPlus, ArrowLeft } from '@lucide/vue'
 import { useMisionesStore } from '@/stores/misiones'
 import { useInsumosStore } from '@/stores/insumos'
 import { useAtendidosStore } from '@/stores/atendidos'
@@ -108,7 +109,7 @@ onMounted(async () => {
         <h1 class="page-title">Registrar Atención</h1>
         <p class="mission-info">{{ mission.municipio }}, {{ mission.estado }}</p>
       </div>
-      <BaseButton variant="ghost" @click="router.push('/personal')">Volver</BaseButton>
+      <BaseButton variant="ghost" @click="router.push('/personal')"><ArrowLeft :size="18" /> Volver</BaseButton>
     </div>
 
     <BaseCard title="Datos de la Persona Atendida">
@@ -177,7 +178,7 @@ onMounted(async () => {
 
     <div class="submit-row">
       <BaseButton variant="primary" size="lg" @click="registerAttendee">
-        Registrar Atención
+        <UserPlus :size="20" /> Registrar Atención
       </BaseButton>
     </div>
   </div>

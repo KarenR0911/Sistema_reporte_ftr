@@ -6,6 +6,7 @@ import BaseInput from '@/components/ui/BaseInput.vue'
 import BaseSelect from '@/components/ui/BaseSelect.vue'
 import BaseTable from '@/components/ui/BaseTable.vue'
 import StatusBadge from '@/components/ui/StatusBadge.vue'
+import { Rocket, CheckCircle, User, Package, Users } from '@lucide/vue'
 import { useMisionesStore } from '@/stores/misiones'
 import { useInsumosStore } from '@/stores/insumos'
 import { useAtendidosStore } from '@/stores/atendidos'
@@ -316,35 +317,35 @@ onMounted(async () => {
 
     <div class="stats-grid">
       <BaseCard class="stat-card">
-        <div class="stat-icon">🚀</div>
+        <div class="stat-icon"><Rocket :size="32" /></div>
         <div class="stat-info">
           <span class="stat-number">{{ totalMisiones }}</span>
           <span class="stat-label">Total Misiones</span>
         </div>
       </BaseCard>
       <BaseCard class="stat-card">
-        <div class="stat-icon">✅</div>
+        <div class="stat-icon"><CheckCircle :size="32" /></div>
         <div class="stat-info">
           <span class="stat-number">{{ misionesActivas }}</span>
           <span class="stat-label">Misiones Activas</span>
         </div>
       </BaseCard>
       <BaseCard class="stat-card">
-        <div class="stat-icon">👤</div>
+        <div class="stat-icon"><User :size="32" /></div>
         <div class="stat-info">
           <span class="stat-number">{{ totalAtendidos }}</span>
           <span class="stat-label">Atendidos</span>
         </div>
       </BaseCard>
       <BaseCard class="stat-card">
-        <div class="stat-icon">📦</div>
+        <div class="stat-icon"><Package :size="32" /></div>
         <div class="stat-info">
           <span class="stat-number">{{ totalNecesidades }}</span>
           <span class="stat-label">Necesidades</span>
         </div>
       </BaseCard>
       <BaseCard class="stat-card">
-        <div class="stat-icon">👥</div>
+        <div class="stat-icon"><Users :size="32" /></div>
         <div class="stat-info">
           <span class="stat-number">{{ usuarios.length }}</span>
           <span class="stat-label">Usuarios</span>
@@ -561,7 +562,7 @@ onMounted(async () => {
 .page-title { font-size: 1.5rem; color: #00244D; margin: 0; }
 .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; }
 .stat-card { display: flex; align-items: center; gap: 16px; }
-.stat-icon { font-size: 2rem; }
+.stat-icon { display: flex; align-items: center; color: #145CAD; }
 .stat-info { display: flex; flex-direction: column; }
 .stat-number { font-size: 1.8rem; font-weight: 800; color: #00244D; }
 .stat-label { font-size: 0.85rem; color: #666; }
