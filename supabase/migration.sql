@@ -49,6 +49,8 @@ CREATE TABLE IF NOT EXISTS perfiles (
   categoria_voluntariado categoria_voluntariado DEFAULT NULL,
   especialidad TEXT DEFAULT '',
   area_voluntariado TEXT DEFAULT '',
+  email TEXT DEFAULT '',
+  password TEXT DEFAULT '123456',
   activo BOOLEAN NOT NULL DEFAULT true,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
@@ -211,3 +213,6 @@ DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
 CREATE TRIGGER on_auth_user_created
   AFTER INSERT ON auth.users
   FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
+
+-- 12. Índice único para email (ignora vacíos para evitar duplicados)
+CREATE UNIQUE INDEX IF NOT EXISTS idx_perfiles_email_unique ON perfiles (email) WHERE email <> '';
