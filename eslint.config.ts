@@ -22,5 +22,13 @@ export default defineConfigWithVueTs(
 
   ...pluginOxlint.buildFromOxlintConfigFile('.oxlintrc.json'),
 
-  skipFormatting,
+  {
+    rules: {
+      'no-unused-vars': 'warn',
+      'no-console': 'warn',
+      'vue/multi-word-component-names': 'off',
+    },
+  },
+
+  skipFormatting
 )

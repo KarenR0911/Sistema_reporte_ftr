@@ -7,6 +7,7 @@ import BaseSelect from '@/components/ui/BaseSelect.vue'
 import BaseButton from '@/components/ui/BaseButton.vue'
 import BaseTable from '@/components/ui/BaseTable.vue'
 import StatusBadge from '@/components/ui/StatusBadge.vue'
+import { ClipboardList, CheckCircle, ArrowLeft, Plus } from '@lucide/vue'
 import { useMisionesStore } from '@/stores/misiones'
 import { useTransporteStore } from '@/stores/transporte'
 import { usePersonalStore } from '@/stores/personal'
@@ -110,19 +111,19 @@ onMounted(async () => {
       <div class="header-actions">
         <StatusBadge :status="mission.estatus_mision" type="mision" />
         <RouterLink :to="`/coordinador/necesidades/${missionId}`">
-          <BaseButton variant="primary">Levantar Necesidades</BaseButton>
+          <BaseButton variant="primary"><ClipboardList :size="18" /> Levantar Necesidades</BaseButton>
         </RouterLink>
         <BaseButton v-if="mission.estatus_mision === 'activa'" variant="secondary" @click="openCompleteModal">
-          Completar Misión
+          <CheckCircle :size="18" /> Completar Misión
         </BaseButton>
-        <BaseButton variant="ghost" @click="router.push('/coordinador')">Volver</BaseButton>
+        <BaseButton variant="ghost" @click="router.push('/coordinador')"><ArrowLeft :size="18" /> Volver</BaseButton>
       </div>
     </div>
 
     <BaseCard title="Transporte">
       <template #default>
         <BaseButton variant="primary" size="sm" @click="showTransportForm = !showTransportForm" class="mb">
-          + Agregar Transporte
+          <Plus :size="16" /> Agregar Transporte
         </BaseButton>
         <div v-if="showTransportForm" class="inline-form">
           <BaseInput v-model="transportForm.tipo_transporte" placeholder="Tipo" />
@@ -149,7 +150,7 @@ onMounted(async () => {
     <BaseCard title="Personal">
       <template #default>
         <BaseButton variant="primary" size="sm" @click="showPersonalForm = !showPersonalForm" class="mb">
-          + Agregar Personal
+          <Plus :size="16" /> Agregar Personal
         </BaseButton>
         <div v-if="showPersonalForm" class="inline-form">
           <BaseInput v-model="personalForm.cedula" placeholder="Cédula" />

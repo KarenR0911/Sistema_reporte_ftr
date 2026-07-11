@@ -2,13 +2,14 @@
 import { computed } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import { useRoute } from 'vue-router'
+import { LayoutDashboard, Users, ClipboardList, Rocket, type LucideIcon } from '@lucide/vue'
 
 const auth = useAuthStore()
 const route = useRoute()
 
 interface NavItem {
   label: string
-  icon: string
+  icon: LucideIcon
   to: string
 }
 
@@ -17,23 +18,23 @@ const menuItems = computed<NavItem[]>(() => {
   const items: NavItem[] = []
   if (role === 'director') {
     items.push(
-      { label: 'Dashboard', icon: '📊', to: '/director' },
-      { label: 'Usuarios', icon: '👥', to: '/director#usuarios' },
-      { label: 'Reportes', icon: '📋', to: '/director#reportes' },
+      { label: 'Dashboard', icon: LayoutDashboard, to: '/director' },
+      { label: 'Usuarios', icon: Users, to: '/director#usuarios' },
+      { label: 'Reportes', icon: ClipboardList, to: '/director#reportes' },
     )
   } else if (role === 'administrador') {
     items.push(
-      { label: 'Dashboard', icon: '📊', to: '/admin' },
-      { label: 'Reportes', icon: '📋', to: '/admin' },
+      { label: 'Dashboard', icon: LayoutDashboard, to: '/admin' },
+      { label: 'Reportes', icon: ClipboardList, to: '/admin' },
     )
   } else if (role === 'coordinador') {
     items.push(
-      { label: 'Dashboard', icon: '📊', to: '/coordinador' },
-      { label: 'Nueva Misión', icon: '🚀', to: '/coordinador/nueva-mision' },
+      { label: 'Dashboard', icon: LayoutDashboard, to: '/coordinador' },
+      { label: 'Nueva Misión', icon: Rocket, to: '/coordinador/nueva-mision' },
     )
   } else if (role === 'personal') {
     items.push(
-      { label: 'Dashboard', icon: '📊', to: '/personal' },
+      { label: 'Dashboard', icon: LayoutDashboard, to: '/personal' },
     )
   }
   return items
@@ -53,7 +54,7 @@ const menuItems = computed<NavItem[]>(() => {
           :href="item.to"
           class="nav-link"
         >
-          <span class="nav-icon">{{ item.icon }}</span>
+          <span class="nav-icon"><component :is="item.icon" :size="20" /></span>
           {{ item.label }}
         </a>
         <RouterLink
@@ -62,7 +63,7 @@ const menuItems = computed<NavItem[]>(() => {
           class="nav-link"
           :class="{ active: route.path === item.to }"
         >
-          <span class="nav-icon">{{ item.icon }}</span>
+          <span class="nav-icon"><component :is="item.icon" :size="20" /></span>
           {{ item.label }}
         </RouterLink>
       </li>
@@ -122,6 +123,7 @@ const menuItems = computed<NavItem[]>(() => {
   border-left-color: #1FAAE1;
 }
 .nav-icon {
-  font-size: 1.1rem;
+  display: flex;
+  align-items: center;
 }
 </style>
