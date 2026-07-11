@@ -22,10 +22,10 @@ export async function seedUsuariosIfNeeded() {
   if (local.length > 0) return
 
   const usuarios: Usuario[] = [
-    { id: crypto.randomUUID(), cedula: '0001', nombre: 'Director General', rol: 'director', password: 'admin', activo: true },
-    { id: crypto.randomUUID(), cedula: '0002', nombre: 'Administrador', rol: 'administrador', password: 'admin', activo: true },
-    { id: crypto.randomUUID(), cedula: '0003', nombre: 'Coordinador Principal', rol: 'coordinador', password: 'admin', activo: true },
-    { id: crypto.randomUUID(), cedula: '0004', nombre: 'Voluntario Uno', rol: 'personal', password: 'admin', activo: true },
+    { id: crypto.randomUUID(), cedula: '0001', nombre: 'Director General', email: '0001@ftr.app', rol: 'director', password: 'admin', activo: true },
+    { id: crypto.randomUUID(), cedula: '0002', nombre: 'Administrador', email: '0002@ftr.app', rol: 'administrador', password: 'admin', activo: true },
+    { id: crypto.randomUUID(), cedula: '0003', nombre: 'Coordinador Principal', email: '0003@ftr.app', rol: 'coordinador', password: 'admin', activo: true },
+    { id: crypto.randomUUID(), cedula: '0004', nombre: 'Voluntario Uno', email: '0004@ftr.app', rol: 'personal', password: 'admin', activo: true },
   ]
 
   for (const u of usuarios) {

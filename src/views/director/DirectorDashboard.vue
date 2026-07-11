@@ -157,6 +157,7 @@ async function loadUsuarios() {
           id: p.id as string,
           cedula: p.cedula as string,
           nombre: p.nombre as string,
+          email: (p.email as string) ?? `${p.cedula}@ftr.app`,
           rol: p.rol as Usuario['rol'],
           password: '' as string,
           activo: p.activo as boolean,
@@ -176,12 +177,15 @@ async function loadUsuarios() {
 async function saveUser() {
   const isNew = !editingUser.value
   const esPersonal = formRol.value === 'personal'
+  const email = formEmail.value || `${formCedula.value}@ftr.app`
+  const password = formPassword.value || '123456'
   const user: Usuario = {
     id: editingUser.value?.id ?? crypto.randomUUID(),
     cedula: formCedula.value,
     nombre: formNombre.value,
+    email,
     rol: formRol.value as Usuario['rol'],
-    password: formPassword.value || '123456',
+    password,
     activo: true,
     categoria_voluntariado: esPersonal ? (formCategoriaVoluntariado.value as CategoriaVoluntariado) : undefined,
     especialidad: esPersonal ? formEspecialidad.value : '',
@@ -192,6 +196,8 @@ async function saveUser() {
     id: user.id,
     cedula: user.cedula,
     nombre: user.nombre,
+    email: user.email,
+    password: user.password,
     rol: user.rol,
     activo: user.activo,
     categoria_voluntariado: user.categoria_voluntariado ?? null,
@@ -201,18 +207,23 @@ async function saveUser() {
 
   if (navigator.onLine && isNew) {
     const { error: insertError } = await supabase.from('perfiles').insert(payload)
-    if (insertError) {
-      await addItem('usuarios', { ...user, categoria_voluntariado: payload.categoria_voluntariado ?? undefined })
+    if (!insertError) {
+      await addItem('usuarios', user)
+    } else {
+      await addItem('usuarios', user)
     }
   } else if (navigator.onLine && !isNew) {
     await supabase.from('perfiles').update({
       cedula: user.cedula,
       nombre: user.nombre,
+      email: user.email,
+      password: user.password,
       rol: user.rol,
       categoria_voluntariado: payload.categoria_voluntariado,
       especialidad: payload.especialidad,
       area_voluntariado: payload.area_voluntariado,
     }).eq('id', user.id)
+    await putItem('usuarios', user)
   } else {
     if (isNew) {
       await addItem('usuarios', user)
@@ -228,6 +239,7 @@ function editUser(u: Usuario) {
   editingUser.value = u
   formCedula.value = u.cedula
   formNombre.value = u.nombre
+  formEmail.value = u.email
   formRol.value = u.rol
   formPassword.value = ''
   formCategoriaVoluntariado.value = u.categoria_voluntariado ?? ''

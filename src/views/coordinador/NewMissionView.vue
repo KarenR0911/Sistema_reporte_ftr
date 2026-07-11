@@ -144,6 +144,7 @@ onMounted(async () => {
         id: p.id as string,
         cedula: p.cedula as string,
         nombre: p.nombre as string,
+        email: (p.email as string) ?? '',
         rol: 'personal' as const,
         password: '',
         activo: true,

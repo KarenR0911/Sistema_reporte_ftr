@@ -8,32 +8,34 @@
 ALTER TABLE perfiles ADD COLUMN IF NOT EXISTS categoria_voluntariado categoria_voluntariado DEFAULT NULL;
 ALTER TABLE perfiles ADD COLUMN IF NOT EXISTS especialidad TEXT DEFAULT '';
 ALTER TABLE perfiles ADD COLUMN IF NOT EXISTS area_voluntariado TEXT DEFAULT '';
+ALTER TABLE perfiles ADD COLUMN IF NOT EXISTS email TEXT UNIQUE DEFAULT '';
+ALTER TABLE perfiles ADD COLUMN IF NOT EXISTS password TEXT DEFAULT '123456';
 
 -- ============================================================
 -- DATOS DE PRUEBA
 -- ============================================================
 
 -- 1. PERFILES
-INSERT INTO perfiles (id, cedula, nombre, rol, categoria_voluntariado, especialidad, area_voluntariado, activo) VALUES
-('00000001-0000-0000-0000-000000000001', 'V-12345678', 'Carlos Mendoza', 'director', NULL, '', '', true),
-('00000001-0000-0000-0000-000000000002', 'V-23456789', 'María González', 'administrador', NULL, '', '', true),
-('00000001-0000-0000-0000-000000000003', 'V-34567890', 'Pedro Ramírez', 'coordinador', NULL, '', '', true),
-('00000001-0000-0000-0000-000000000004', 'V-45678901', 'Ana Castillo', 'coordinador', NULL, '', '', true),
-('00000001-0000-0000-0000-000000000005', 'V-56789012', 'Dr. Luis Herrera', 'personal', 'profesional', 'Medicina General', 'Medicina', true),
-('00000001-0000-0000-0000-000000000006', 'V-67890123', 'Dra. Carmen Rivas', 'personal', 'profesional', 'Pediatría', 'Medicina', true),
-('00000001-0000-0000-0000-000000000007', 'V-78901234', 'Enf. José Torres', 'personal', 'profesional', 'Enfermería', 'Medicina', true),
-('00000001-0000-0000-0000-000000000008', 'V-89012345', 'Psic. Sofía Medina', 'personal', 'profesional', 'Psicología Clínica', 'Salud Mental', true),
-('00000001-0000-0000-0000-000000000009', 'V-90123456', 'Ing. Andrés Blanco', 'personal', 'profesional', 'Ingeniería Civil', 'Infraestructura', true),
-('00000001-0000-0000-0000-000000000010', 'V-11223344', 'Lic. Laura Peña', 'personal', 'profesional', 'Trabajo Social', 'Atención Social', true),
-('00000001-0000-0000-0000-000000000011', 'V-22334455', 'Jorge Salazar', 'personal', 'voluntario', '', 'Logística', true),
-('00000001-0000-0000-0000-000000000012', 'V-33445566', 'Diana Contreras', 'personal', 'voluntario', '', 'Alimentación', true),
-('00000001-0000-0000-0000-000000000013', 'V-44556677', 'Ricardo Paredes', 'personal', 'voluntario', '', 'Transporte', true),
-('00000001-0000-0000-0000-000000000014', 'V-55667788', 'Martha Rangel', 'personal', 'voluntario', '', 'Alimentación', true),
-('00000001-0000-0000-0000-000000000015', 'V-66778899', 'Fernando Rincón', 'personal', 'voluntario', '', 'Comunicaciones', true),
-('00000001-0000-0000-0000-000000000016', 'V-77889900', 'Gabriela Rojas', 'personal', 'estudiante', 'Medicina', 'Medicina', true),
-('00000001-0000-0000-0000-000000000017', 'V-88990011', 'Samuel Duarte', 'personal', 'estudiante', 'Psicología', 'Salud Mental', true),
-('00000001-0000-0000-0000-000000000018', 'V-99001122', 'Valentina Rangel', 'personal', 'estudiante', 'Enfermería', 'Medicina', true),
-('00000001-0000-0000-0000-000000000019', 'V-10020033', 'Roberto Jiménez', 'personal', 'voluntario', '', 'Logística', false)
+INSERT INTO perfiles (id, cedula, nombre, email, password, rol, categoria_voluntariado, especialidad, area_voluntariado, activo) VALUES
+('00000001-0000-0000-0000-000000000001', 'V-12345678', 'Carlos Mendoza', 'V-12345678@ftr.app', '123456', 'director', NULL, '', '', true),
+('00000001-0000-0000-0000-000000000002', 'V-23456789', 'María González', 'V-23456789@ftr.app', '123456', 'administrador', NULL, '', '', true),
+('00000001-0000-0000-0000-000000000003', 'V-34567890', 'Pedro Ramírez', 'V-34567890@ftr.app', '123456', 'coordinador', NULL, '', '', true),
+('00000001-0000-0000-0000-000000000004', 'V-45678901', 'Ana Castillo', 'V-45678901@ftr.app', '123456', 'coordinador', NULL, '', '', true),
+('00000001-0000-0000-0000-000000000005', 'V-56789012', 'Dr. Luis Herrera', 'V-56789012@ftr.app', '123456', 'personal', 'profesional', 'Medicina General', 'Medicina', true),
+('00000001-0000-0000-0000-000000000006', 'V-67890123', 'Dra. Carmen Rivas', 'V-67890123@ftr.app', '123456', 'personal', 'profesional', 'Pediatría', 'Medicina', true),
+('00000001-0000-0000-0000-000000000007', 'V-78901234', 'Enf. José Torres', 'V-78901234@ftr.app', '123456', 'personal', 'profesional', 'Enfermería', 'Medicina', true),
+('00000001-0000-0000-0000-000000000008', 'V-89012345', 'Psic. Sofía Medina', 'V-89012345@ftr.app', '123456', 'personal', 'profesional', 'Psicología Clínica', 'Salud Mental', true),
+('00000001-0000-0000-0000-000000000009', 'V-90123456', 'Ing. Andrés Blanco', 'V-90123456@ftr.app', '123456', 'personal', 'profesional', 'Ingeniería Civil', 'Infraestructura', true),
+('00000001-0000-0000-0000-000000000010', 'V-11223344', 'Lic. Laura Peña', 'V-11223344@ftr.app', '123456', 'personal', 'profesional', 'Trabajo Social', 'Atención Social', true),
+('00000001-0000-0000-0000-000000000011', 'V-22334455', 'Jorge Salazar', 'V-22334455@ftr.app', '123456', 'personal', 'voluntario', '', 'Logística', true),
+('00000001-0000-0000-0000-000000000012', 'V-33445566', 'Diana Contreras', 'V-33445566@ftr.app', '123456', 'personal', 'voluntario', '', 'Alimentación', true),
+('00000001-0000-0000-0000-000000000013', 'V-44556677', 'Ricardo Paredes', 'V-44556677@ftr.app', '123456', 'personal', 'voluntario', '', 'Transporte', true),
+('00000001-0000-0000-0000-000000000014', 'V-55667788', 'Martha Rangel', 'V-55667788@ftr.app', '123456', 'personal', 'voluntario', '', 'Alimentación', true),
+('00000001-0000-0000-0000-000000000015', 'V-66778899', 'Fernando Rincón', 'V-66778899@ftr.app', '123456', 'personal', 'voluntario', '', 'Comunicaciones', true),
+('00000001-0000-0000-0000-000000000016', 'V-77889900', 'Gabriela Rojas', 'V-77889900@ftr.app', '123456', 'personal', 'estudiante', 'Medicina', 'Medicina', true),
+('00000001-0000-0000-0000-000000000017', 'V-88990011', 'Samuel Duarte', 'V-88990011@ftr.app', '123456', 'personal', 'estudiante', 'Psicología', 'Salud Mental', true),
+('00000001-0000-0000-0000-000000000018', 'V-99001122', 'Valentina Rangel', 'V-99001122@ftr.app', '123456', 'personal', 'estudiante', 'Enfermería', 'Medicina', true),
+('00000001-0000-0000-0000-000000000019', 'V-10020033', 'Roberto Jiménez', 'V-10020033@ftr.app', '123456', 'personal', 'voluntario', '', 'Logística', false)
 ON CONFLICT (id) DO NOTHING;
 
 -- 2. MISIONES

@@ -1,7 +1,7 @@
 import { ref, computed } from 'vue'
 import { defineStore } from 'pinia'
 import type { Usuario, RolUsuario, CategoriaVoluntariado } from '@/types'
-import { getAll } from '@/db'
+import { getAll, addItem } from '@/db'
 import { supabase } from '@/lib/supabase'
 
 export const useAuthStore = defineStore('auth', () => {
@@ -16,57 +16,56 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   async function login(email: string, password: string): Promise<boolean> {
+    // 1. Buscar en IndexedDB (offline-first)
     await loadUsuarios()
     const localUser = usuarios.value.find(
-      (u) => `${u.cedula}@ftr.app` === email && u.password === password && u.activo,
+      (u) => u.email === email && u.password === password && u.activo,
     )
     if (localUser) {
       currentUser.value = localUser
       localStorage.setItem('auth_user', JSON.stringify(localUser))
       return true
     }
-    try {
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      })
-      if (error) throw error
-      if (data.user) {
-        const cedula = data.user.user_metadata?.cedula ?? email.split('@')[0]
-        const { data: perfil } = await supabase
+
+    // 2. Buscar en perfiles de Supabase (online)
+    if (navigator.onLine) {
+      try {
+        const { data, error } = await supabase
           .from('perfiles')
           .select('*')
-          .eq('cedula', cedula)
-          .single()
-        if (perfil) {
+          .eq('email', email)
+          .eq('password', password)
+          .eq('activo', true)
+          .maybeSingle()
+
+        if (!error && data) {
           const user: Usuario = {
-            id: perfil.id,
-            cedula: perfil.cedula,
-            nombre: perfil.nombre,
-            rol: perfil.rol as RolUsuario,
-            password: '',
-            activo: perfil.activo,
-            categoria_voluntariado: perfil.categoria_voluntariado as CategoriaVoluntariado | undefined,
-            especialidad: (perfil.especialidad as string) ?? '',
-            area_voluntariado: (perfil.area_voluntariado as string) ?? '',
+            id: data.id,
+            cedula: data.cedula,
+            nombre: data.nombre,
+            email: data.email ?? '',
+            rol: data.rol as RolUsuario,
+            password: data.password ?? '',
+            activo: data.activo,
+            categoria_voluntariado: data.categoria_voluntariado as CategoriaVoluntariado | undefined,
+            especialidad: (data.especialidad as string) ?? '',
+            area_voluntariado: (data.area_voluntariado as string) ?? '',
           }
+          // Guardar en IndexedDB para futuro acceso offline
+          await addItem('usuarios', user)
           currentUser.value = user
           localStorage.setItem('auth_user', JSON.stringify(user))
           return true
         }
+      } catch {
+        // fallback silencioso
       }
-      return false
-    } catch {
-      return false
     }
+
+    return false
   }
 
   async function logout() {
-    try {
-      await supabase.auth.signOut()
-    } catch {
-      // ignore
-    }
     currentUser.value = null
     localStorage.removeItem('auth_user')
   }

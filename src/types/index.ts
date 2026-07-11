@@ -77,6 +77,7 @@ export interface Usuario {
   id: string
   cedula: string
   nombre: string
+  email: string
   rol: RolUsuario
   password: string
   activo: boolean
