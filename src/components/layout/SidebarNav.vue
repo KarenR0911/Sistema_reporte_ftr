@@ -73,11 +73,14 @@ const menuItems = computed<NavItem[]>(() => {
 <style scoped>
 .sidebar {
   width: 240px;
-  min-height: 100vh;
+  height: 100vh;
+  position: sticky;
+  top: 0;
   background: #00244D;
   color: #fff;
   display: flex;
   flex-direction: column;
+  flex-shrink: 0;
 }
 .sidebar-brand {
   padding: 24px;

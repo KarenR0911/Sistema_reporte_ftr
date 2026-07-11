@@ -7,13 +7,23 @@ import BaseSelect from '@/components/ui/BaseSelect.vue'
 import BaseTable from '@/components/ui/BaseTable.vue'
 import StatusBadge from '@/components/ui/StatusBadge.vue'
 import { useMisionesStore } from '@/stores/misiones'
+import { useInsumosStore } from '@/stores/insumos'
 import { useAtendidosStore } from '@/stores/atendidos'
 import { useNecesidadesStore } from '@/stores/necesidades'
+
+const ESTADOS_VENEZUELA = [
+  'Amazonas', 'Anzoátegui', 'Apure', 'Aragua', 'Barinas', 'Bolívar',
+  'Carabobo', 'Cojedes', 'Delta Amacuro', 'Distrito Capital', 'Falcón',
+  'Guárico', 'La Guaira', 'Lara', 'Mérida', 'Miranda', 'Monagas',
+  'Nueva Esparta', 'Portuguesa', 'Sucre', 'Táchira', 'Trujillo',
+  'Yaracuy', 'Zulia',
+] as const
 import { getAll, addItem, putItem } from '@/db'
 import { supabase } from '@/lib/supabase'
 import type { Usuario, CategoriaVoluntariado } from '@/types'
 
 const misionesStore = useMisionesStore()
+const insumosStore = useInsumosStore()
 const atendidosStore = useAtendidosStore()
 const necesidadesStore = useNecesidadesStore()
 
@@ -37,12 +47,94 @@ watch(formRol, (val) => {
   }
 })
 
+const showDeleteModal = ref(false)
+const userToDelete = ref<Usuario | null>(null)
+
 const totalMisiones = computed(() => misionesStore.list.length)
 const totalAtendidos = computed(() => atendidosStore.list.length)
 const totalNecesidades = computed(() => necesidadesStore.list.length)
 const misionesActivas = computed(() =>
   misionesStore.list.filter((m) => m.estatus_mision === 'activa').length,
 )
+
+type EstadoData = { estado: string; total: number; color: string }
+
+const ESTADO_COLORS = [
+  '#145CAD', '#1FAAE1', '#127BA4', '#68B1ED', '#8FBFBF',
+  '#4A90D9', '#2C6FAA', '#5BA3D9', '#3D8EB9', '#7BB8D9',
+  '#1A6DB5', '#3A9FD4', '#5BAED9', '#2E82B5', '#6BA8CC',
+  '#4B9FBF', '#1F8DB5', '#3F9FC4', '#6FB3CC', '#2F7FA4',
+  '#5FA3BF', '#8FC4D9', '#4A9FBF', '#7AB8CC',
+]
+
+const insumosPorEstado = computed(() => {
+  const map = new Map<string, number>()
+  for (const ins of insumosStore.list) {
+    if (ins.estatus_cargamento !== 'entregado') continue
+    const mision = misionesStore.getById(ins.id_mision)
+    if (!mision) continue
+    const est = mision.estado
+    map.set(est, (map.get(est) ?? 0) + ins.cantidad)
+  }
+  const result: EstadoData[] = []
+  for (const [estado, total] of map) {
+    const idx = ESTADOS_VENEZUELA.indexOf(estado as typeof ESTADOS_VENEZUELA[number])
+    const colorIdx = idx >= 0 ? idx : result.length % ESTADO_COLORS.length
+    result.push({ estado, total, color: ESTADO_COLORS[colorIdx]! })
+  }
+  return result.sort((a, b) => b.total - a.total)
+})
+
+const atendidosPorEstado = computed(() => {
+  const map = new Map<string, number>()
+  for (const at of atendidosStore.list) {
+    const mision = misionesStore.getById(at.id_mision)
+    if (!mision) continue
+    const est = mision.estado
+    map.set(est, (map.get(est) ?? 0) + 1)
+  }
+  const result: EstadoData[] = []
+  for (const [estado, total] of map) {
+    const idx = ESTADOS_VENEZUELA.indexOf(estado as typeof ESTADOS_VENEZUELA[number])
+    const colorIdx = idx >= 0 ? idx : result.length % ESTADO_COLORS.length
+    result.push({ estado, total, color: ESTADO_COLORS[colorIdx]! })
+  }
+  return result.sort((a, b) => b.total - a.total)
+})
+
+const totalInsumosEntregados = computed(() =>
+  insumosPorEstado.value.reduce((sum, e) => sum + e.total, 0),
+)
+
+const totalAtendidosGeneral = computed(() =>
+  atendidosPorEstado.value.reduce((sum, e) => sum + e.total, 0),
+)
+
+const insumosConic = computed(() => {
+  const total = totalInsumosEntregados.value
+  if (!total) return ''
+  let acum = 0
+  const stops = insumosPorEstado.value.map((e) => {
+    const pct = Math.round((e.total / total) * 100)
+    const start = acum
+    acum += pct
+    return `${e.color} ${start}% ${acum}%`
+  })
+  return `conic-gradient(${stops.join(', ')})`
+})
+
+const atendidosConic = computed(() => {
+  const total = totalAtendidosGeneral.value
+  if (!total) return ''
+  let acum = 0
+  const stops = atendidosPorEstado.value.map((e) => {
+    const pct = Math.round((e.total / total) * 100)
+    const start = acum
+    acum += pct
+    return `${e.color} ${start}% ${acum}%`
+  })
+  return `conic-gradient(${stops.join(', ')})`
+})
 
 const userColumns = [
   { key: 'cedula', label: 'Cédula' },
@@ -153,6 +245,28 @@ async function toggleActivo(u: Usuario) {
   await loadUsuarios()
 }
 
+function openDeleteModal(u: Usuario) {
+  userToDelete.value = u
+  showDeleteModal.value = true
+}
+
+function cancelDelete() {
+  showDeleteModal.value = false
+  userToDelete.value = null
+}
+
+async function confirmDelete() {
+  if (!userToDelete.value) return
+  const updated = { ...userToDelete.value, activo: false }
+  if (navigator.onLine) {
+    await supabase.from('perfiles').update({ activo: false }).eq('id', updated.id)
+  }
+  await putItem('usuarios', updated)
+  showDeleteModal.value = false
+  userToDelete.value = null
+  await loadUsuarios()
+}
+
 function resetForm() {
   showUserForm.value = false
   editingUser.value = null
@@ -169,6 +283,7 @@ function resetForm() {
 onMounted(async () => {
   await Promise.all([
     misionesStore.load(),
+    insumosStore.load(),
     atendidosStore.load(),
     necesidadesStore.load(),
     loadUsuarios(),
@@ -263,6 +378,38 @@ onMounted(async () => {
           </div>
         </div>
       </BaseCard>
+
+      <BaseCard title="Insumos Entregados por Estado" class="chart-card chart-wide">
+        <div v-if="insumosPorEstado.length === 0" class="empty-chart">Sin datos</div>
+        <div v-else class="donut-container">
+          <div class="donut">
+            <div class="donut-ring" :style="{ background: insumosConic }" />
+          </div>
+          <div class="donut-legend">
+            <div class="legend-total"><strong>Total:</strong> {{ totalInsumosEntregados }}</div>
+            <span v-for="e in insumosPorEstado" :key="e.estado" class="legend-item">
+              <span class="dot" :style="{ background: e.color }" />
+              {{ e.estado }} ({{ e.total }})
+            </span>
+          </div>
+        </div>
+      </BaseCard>
+
+      <BaseCard title="Personas Atendidas por Estado" class="chart-card chart-wide">
+        <div v-if="atendidosPorEstado.length === 0" class="empty-chart">Sin datos</div>
+        <div v-else class="donut-container">
+          <div class="donut">
+            <div class="donut-ring" :style="{ background: atendidosConic }" />
+          </div>
+          <div class="donut-legend">
+            <div class="legend-total"><strong>Total:</strong> {{ totalAtendidosGeneral }}</div>
+            <span v-for="e in atendidosPorEstado" :key="e.estado" class="legend-item">
+              <span class="dot" :style="{ background: e.color }" />
+              {{ e.estado }} ({{ e.total }})
+            </span>
+          </div>
+        </div>
+      </BaseCard>
     </div>
 
     <BaseCard id="usuarios" title="Gestión de Usuarios">
@@ -337,8 +484,21 @@ onMounted(async () => {
           <template #cell-acciones="{ row }">
             <div class="action-btns">
               <BaseButton size="sm" variant="ghost" @click="editUser(row as unknown as Usuario)">Editar</BaseButton>
-              <BaseButton size="sm" variant="ghost" @click="toggleActivo(row as unknown as Usuario)">
-                {{ (row as unknown as Usuario).activo ? 'Inactivar' : 'Activar' }}
+              <BaseButton
+                v-if="(row as unknown as Usuario).activo"
+                size="sm"
+                variant="danger"
+                @click="openDeleteModal(row as unknown as Usuario)"
+              >
+                Eliminar
+              </BaseButton>
+              <BaseButton
+                v-else
+                size="sm"
+                variant="ghost"
+                @click="toggleActivo(row as unknown as Usuario)"
+              >
+                Activar
               </BaseButton>
             </div>
           </template>
@@ -362,6 +522,26 @@ onMounted(async () => {
       </BaseTable>
     </BaseCard>
   </div>
+
+  <Teleport to="body">
+    <div v-if="showDeleteModal && userToDelete" class="modal-overlay" @click.self="cancelDelete">
+      <div class="modal-content">
+        <h2>Confirmar eliminación</h2>
+        <p>
+          ¿Estás seguro de eliminar al usuario <strong>{{ userToDelete.nombre }}</strong>
+          ({{ userToDelete.cedula }})?
+        </p>
+        <p class="modal-warning">
+          El usuario quedará inactivo pero sus registros en misiones, atenciones y reportes
+          se conservarán.
+        </p>
+        <div class="modal-actions">
+          <BaseButton variant="danger" @click="confirmDelete">Sí, eliminar</BaseButton>
+          <BaseButton variant="ghost" @click="cancelDelete">Cancelar</BaseButton>
+        </div>
+      </div>
+    </div>
+  </Teleport>
 </template>
 
 <style scoped>
@@ -387,6 +567,7 @@ onMounted(async () => {
 .action-btns { display: flex; gap: 4px; }
 
 .charts-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.chart-wide { grid-column: span 2; }
 .chart-card { min-height: 180px; }
 .bar-chart { display: flex; flex-direction: column; gap: 16px; padding: 8px 0; }
 .bar-item { display: flex; align-items: center; gap: 12px; }
@@ -400,8 +581,23 @@ onMounted(async () => {
 .donut-container { display: flex; align-items: center; gap: 24px; padding: 8px 0; }
 .donut-ring { width: 100px; height: 100px; border-radius: 50%; background: #F0F0F0; position: relative; }
 .donut-segment { position: absolute; inset: 0; border-radius: 50%; background: conic-gradient(#145CAD 0% var(--p), #8FBFBF var(--p) 100%); }
-.donut-legend { display: flex; flex-direction: column; gap: 8px; font-size: 0.85rem; }
+.donut-legend { display: flex; flex-direction: column; gap: 6px; font-size: 0.85rem; max-height: 300px; overflow-y: auto; }
+.legend-total { margin-bottom: 4px; }
+.legend-item { display: flex; align-items: center; gap: 6px; }
+.empty-chart { padding: 24px; text-align: center; color: #999; font-style: italic; }
 .dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 6px; }
 .dot.atendidos { background: #145CAD; }
 .dot.necesidades { background: #8FBFBF; }
+
+.modal-overlay {
+  position: fixed; inset: 0; background: rgba(0, 0, 0, 0.4);
+  display: flex; align-items: center; justify-content: center; z-index: 1000;
+}
+.modal-content {
+  background: #fff; border-radius: 12px; padding: 32px; max-width: 440px; width: 90%;
+  display: flex; flex-direction: column; gap: 16px;
+}
+.modal-content h2 { margin: 0; color: #00244D; font-size: 1.2rem; }
+.modal-warning { font-size: 0.85rem; color: #666; margin: 0; }
+.modal-actions { display: flex; gap: 8px; justify-content: flex-end; }
 </style>
