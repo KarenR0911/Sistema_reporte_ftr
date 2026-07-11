@@ -80,4 +80,7 @@ export interface Usuario {
   rol: RolUsuario
   password: string
   activo: boolean
+  categoria_voluntariado?: CategoriaVoluntariado
+  especialidad?: string
+  area_voluntariado?: string
 }

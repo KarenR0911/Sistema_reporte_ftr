@@ -115,8 +115,8 @@ async function saveMision() {
       id_mision,
       cedula: p.cedula,
       nombre: p.nombre,
-      categoria_voluntariado: 'voluntario',
-      especialidad: '',
+      categoria_voluntariado: p.categoria_voluntariado ?? 'voluntario',
+      especialidad: p.especialidad ?? '',
       status_sync: 'pending',
     }
     await personalStore.create(item)
@@ -147,6 +147,9 @@ onMounted(async () => {
         rol: 'personal' as const,
         password: '',
         activo: true,
+        categoria_voluntariado: p.categoria_voluntariado as Usuario['categoria_voluntariado'],
+        especialidad: (p.especialidad as string) ?? '',
+        area_voluntariado: (p.area_voluntariado as string) ?? '',
       }))
       return
     }
@@ -229,6 +232,10 @@ onMounted(async () => {
           <div class="personal-info">
             <span class="personal-name">{{ p.nombre }}</span>
             <span class="personal-cedula">{{ p.cedula }}</span>
+            <span class="personal-meta" v-if="p.categoria_voluntariado">
+              {{ p.categoria_voluntariado }}<span v-if="p.especialidad"> — {{ p.especialidad }}</span>
+              <span v-if="p.area_voluntariado"> · {{ p.area_voluntariado }}</span>
+            </span>
           </div>
         </label>
       </div>
@@ -324,4 +331,5 @@ onMounted(async () => {
 .personal-info { display: flex; flex-direction: column; }
 .personal-name { font-weight: 600; font-size: 0.95rem; }
 .personal-cedula { font-size: 0.8rem; color: #666; }
+.personal-meta { font-size: 0.75rem; color: #999; font-style: italic; }
 </style>

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, computed, watch } from 'vue'
 import BaseCard from '@/components/ui/BaseCard.vue'
 import BaseButton from '@/components/ui/BaseButton.vue'
 import BaseInput from '@/components/ui/BaseInput.vue'
@@ -11,7 +11,7 @@ import { useAtendidosStore } from '@/stores/atendidos'
 import { useNecesidadesStore } from '@/stores/necesidades'
 import { getAll, addItem, putItem } from '@/db'
 import { supabase } from '@/lib/supabase'
-import type { Usuario } from '@/types'
+import type { Usuario, CategoriaVoluntariado } from '@/types'
 
 const misionesStore = useMisionesStore()
 const atendidosStore = useAtendidosStore()
@@ -25,6 +25,17 @@ const formNombre = ref('')
 const formEmail = ref('')
 const formRol = ref('')
 const formPassword = ref('')
+const formCategoriaVoluntariado = ref<string>('')
+const formEspecialidad = ref('')
+const formAreaVoluntariado = ref('')
+
+watch(formRol, (val) => {
+  if (val !== 'personal') {
+    formCategoriaVoluntariado.value = ''
+    formEspecialidad.value = ''
+    formAreaVoluntariado.value = ''
+  }
+})
 
 const totalMisiones = computed(() => misionesStore.list.length)
 const totalAtendidos = computed(() => atendidosStore.list.length)
@@ -37,6 +48,7 @@ const userColumns = [
   { key: 'cedula', label: 'Cédula' },
   { key: 'nombre', label: 'Nombre' },
   { key: 'rol', label: 'Rol' },
+  { key: 'tipo', label: 'Tipo' },
   { key: 'activo', label: 'Estado' },
   { key: 'acciones', label: 'Acciones' },
 ]
@@ -56,6 +68,9 @@ async function loadUsuarios() {
           rol: p.rol as Usuario['rol'],
           password: '' as string,
           activo: p.activo as boolean,
+          categoria_voluntariado: p.categoria_voluntariado as CategoriaVoluntariado | undefined,
+          especialidad: (p.especialidad as string) ?? '',
+          area_voluntariado: (p.area_voluntariado as string) ?? '',
         }))
         return
       }
@@ -68,6 +83,7 @@ async function loadUsuarios() {
 
 async function saveUser() {
   const isNew = !editingUser.value
+  const esPersonal = formRol.value === 'personal'
   const user: Usuario = {
     id: editingUser.value?.id ?? crypto.randomUUID(),
     cedula: formCedula.value,
@@ -75,24 +91,35 @@ async function saveUser() {
     rol: formRol.value as Usuario['rol'],
     password: formPassword.value || '123456',
     activo: true,
+    categoria_voluntariado: esPersonal ? (formCategoriaVoluntariado.value as CategoriaVoluntariado) : undefined,
+    especialidad: esPersonal ? formEspecialidad.value : '',
+    area_voluntariado: esPersonal ? formAreaVoluntariado.value : '',
+  }
+
+  const payload: Record<string, unknown> = {
+    id: user.id,
+    cedula: user.cedula,
+    nombre: user.nombre,
+    rol: user.rol,
+    activo: user.activo,
+    categoria_voluntariado: user.categoria_voluntariado ?? null,
+    especialidad: user.especialidad ?? '',
+    area_voluntariado: user.area_voluntariado ?? '',
   }
 
   if (navigator.onLine && isNew) {
-    const { error: insertError } = await supabase.from('perfiles').insert({
-      id: user.id,
-      cedula: user.cedula,
-      nombre: user.nombre,
-      rol: user.rol,
-      activo: true,
-    })
+    const { error: insertError } = await supabase.from('perfiles').insert(payload)
     if (insertError) {
-      await addItem('usuarios', user)
+      await addItem('usuarios', { ...user, categoria_voluntariado: payload.categoria_voluntariado ?? undefined })
     }
   } else if (navigator.onLine && !isNew) {
     await supabase.from('perfiles').update({
       cedula: user.cedula,
       nombre: user.nombre,
       rol: user.rol,
+      categoria_voluntariado: payload.categoria_voluntariado,
+      especialidad: payload.especialidad,
+      area_voluntariado: payload.area_voluntariado,
     }).eq('id', user.id)
   } else {
     if (isNew) {
@@ -111,6 +138,9 @@ function editUser(u: Usuario) {
   formNombre.value = u.nombre
   formRol.value = u.rol
   formPassword.value = ''
+  formCategoriaVoluntariado.value = u.categoria_voluntariado ?? ''
+  formEspecialidad.value = u.especialidad ?? ''
+  formAreaVoluntariado.value = u.area_voluntariado ?? ''
   showUserForm.value = true
 }
 
@@ -131,6 +161,9 @@ function resetForm() {
   formEmail.value = ''
   formRol.value = ''
   formPassword.value = ''
+  formCategoriaVoluntariado.value = ''
+  formEspecialidad.value = ''
+  formAreaVoluntariado.value = ''
 }
 
 onMounted(async () => {
@@ -258,6 +291,28 @@ onMounted(async () => {
               required
             />
             <BaseInput v-model="formPassword" label="Contraseña" type="password" />
+            <template v-if="formRol === 'personal'">
+              <BaseSelect
+                v-model="formCategoriaVoluntariado"
+                label="Tipo"
+                :options="[
+                  { value: 'estudiante', label: 'Estudiante' },
+                  { value: 'profesional', label: 'Profesional' },
+                  { value: 'voluntario', label: 'Voluntario' },
+                ]"
+              />
+              <BaseInput
+                v-if="formCategoriaVoluntariado === 'profesional'"
+                v-model="formEspecialidad"
+                label="Especialidad"
+                placeholder="Médico, Enfermero, Psicólogo..."
+              />
+              <BaseInput
+                v-model="formAreaVoluntariado"
+                label="Área / Categoría del voluntariado"
+                placeholder="Medicina, Logística, Alimentación..."
+              />
+            </template>
           </div>
           <div class="form-actions">
             <BaseButton variant="primary" @click="saveUser">Guardar</BaseButton>
@@ -268,6 +323,13 @@ onMounted(async () => {
         <BaseTable :columns="userColumns" :rows="usuarios as unknown as Record<string, unknown>[]">
           <template #cell-rol="{ value }">
             <StatusBadge :status="value as string" />
+          </template>
+          <template #cell-tipo="{ row }">
+            <span v-if="(row as unknown as Usuario).categoria_voluntariado">
+              {{ (row as unknown as Usuario).categoria_voluntariado }}
+              <span v-if="(row as unknown as Usuario).especialidad"> — {{ (row as unknown as Usuario).especialidad }}</span>
+            </span>
+            <span v-else class="text-muted">—</span>
           </template>
           <template #cell-activo="{ row }">
             <StatusBadge :status="(row as unknown as Usuario).activo ? 'synced' : 'cancelada'" />
@@ -321,6 +383,7 @@ onMounted(async () => {
 .user-form h3 { margin: 0 0 12px; color: #00244D; }
 .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px; }
 .form-actions { display: flex; gap: 8px; }
+.text-muted { color: #999; }
 .action-btns { display: flex; gap: 4px; }
 
 .charts-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }

@@ -1,6 +1,6 @@
 import { ref, computed } from 'vue'
 import { defineStore } from 'pinia'
-import type { Usuario, RolUsuario } from '@/types'
+import type { Usuario, RolUsuario, CategoriaVoluntariado } from '@/types'
 import { getAll } from '@/db'
 import { supabase } from '@/lib/supabase'
 
@@ -46,6 +46,9 @@ export const useAuthStore = defineStore('auth', () => {
             rol: perfil.rol as RolUsuario,
             password: '',
             activo: perfil.activo,
+            categoria_voluntariado: perfil.categoria_voluntariado as CategoriaVoluntariado | undefined,
+            especialidad: (perfil.especialidad as string) ?? '',
+            area_voluntariado: (perfil.area_voluntariado as string) ?? '',
           }
           currentUser.value = user
           localStorage.setItem('auth_user', JSON.stringify(user))

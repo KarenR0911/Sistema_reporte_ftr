@@ -16,6 +16,9 @@ CREATE TABLE perfiles (
   cedula TEXT UNIQUE NOT NULL,
   nombre TEXT NOT NULL,
   rol rol_usuario NOT NULL DEFAULT 'personal',
+  categoria_voluntariado categoria_voluntariado DEFAULT NULL,
+  especialidad TEXT DEFAULT '',
+  area_voluntariado TEXT DEFAULT '',
   activo BOOLEAN NOT NULL DEFAULT true,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
@@ -154,3 +157,8 @@ $$;
 CREATE OR REPLACE TRIGGER on_auth_user_created
   AFTER INSERT ON auth.users
   FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
+
+-- 12. Migración para agregar columnas de perfil (ejecutar si la tabla ya existe)
+ALTER TABLE perfiles ADD COLUMN IF NOT EXISTS categoria_voluntariado categoria_voluntariado DEFAULT NULL;
+ALTER TABLE perfiles ADD COLUMN IF NOT EXISTS especialidad TEXT DEFAULT '';
+ALTER TABLE perfiles ADD COLUMN IF NOT EXISTS area_voluntariado TEXT DEFAULT '';
