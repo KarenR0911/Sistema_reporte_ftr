@@ -2,6 +2,7 @@
 import { onMounted } from 'vue'
 import { useSync } from '@/composables/useSync'
 import { useAuthStore } from '@/stores/auth'
+import ToastContainer from '@/components/ui/ToastContainer.vue'
 
 const auth = useAuthStore()
 useSync()
@@ -13,4 +14,5 @@ onMounted(() => {
 
 <template>
   <RouterView />
+  <ToastContainer />
 </template>

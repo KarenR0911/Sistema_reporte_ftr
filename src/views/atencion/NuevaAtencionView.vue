@@ -11,6 +11,7 @@ import { useMisionesStore } from '@/stores/misiones'
 import { useInsumosStore } from '@/stores/insumos'
 import { useAtendidosStore } from '@/stores/atendidos'
 import { useAuthStore } from '@/stores/auth'
+import { useToastStore } from '@/stores/toast'
 import type { Atendido, InsumoLlevado } from '@/types'
 
 const route = useRoute()
@@ -19,6 +20,7 @@ const misionesStore = useMisionesStore()
 const insumosStore = useInsumosStore()
 const atendidosStore = useAtendidosStore()
 const auth = useAuthStore()
+const toast = useToastStore()
 
 const missionId = route.params.id_mision as string
 const mission = computed(() => misionesStore.getById(missionId))
@@ -53,7 +55,7 @@ function setCantidad(id: string, val: string) {
 
 async function registerAttendee() {
   if (!formCedula.value.trim() || !formNombre.value.trim()) {
-    alert('Cédula y nombre del atendido son obligatorios.')
+    toast.error('Cédula y nombre del atendido son obligatorios.')
     return
   }
   const selectedIds = Object.keys(entregas.value)
@@ -91,6 +93,7 @@ async function registerAttendee() {
   formTelefono.value = ''
   formNotas.value = ''
   entregas.value = {}
+  toast.success('Atención registrada exitosamente')
 }
 
 onMounted(async () => {
@@ -103,17 +106,19 @@ onMounted(async () => {
 </script>
 
 <template>
-  <div class="new-attendee" v-if="mission">
-    <div class="header-row">
+  <div v-if="mission" class="flex flex-col gap-6">
+    <div class="flex justify-between items-start">
       <div>
-        <h1 class="page-title">Registrar Atención</h1>
-        <p class="mission-info">{{ mission.municipio }}, {{ mission.estado }}</p>
+        <div class="flex items-center gap-3">
+          <BaseButton variant="ghost" @click="router.push('/dashboard')"><ArrowLeft :size="18" /> Volver</BaseButton>
+          <h1 class="text-2xl text-brand m-0">Registrar Atención</h1>
+        </div>
+        <p class="text-text-secondary mt-1 text-sm m-0 ml-12">{{ mission.municipio }}, {{ mission.estado }}</p>
       </div>
-      <BaseButton variant="ghost" @click="router.push('/personal')"><ArrowLeft :size="18" /> Volver</BaseButton>
     </div>
 
     <BaseCard title="Datos de la Persona Atendida">
-      <div class="form-grid">
+      <div class="grid grid-cols-2 gap-4 mb-4">
         <BaseInput v-model="formCedula" label="Cédula del Atendido" required />
         <BaseInput v-model="formNombre" label="Nombre Completo" required />
         <BaseInput v-model="formTelefono" label="Teléfono de Contacto" />
@@ -122,37 +127,38 @@ onMounted(async () => {
     </BaseCard>
 
     <BaseCard title="Insumos a Entregar">
-      <p class="hint" v-if="insumosMision.length === 0">
+      <p v-if="insumosMision.length === 0" class="text-text-secondary italic">
         No hay insumos disponibles en esta misión.
       </p>
-      <div v-else class="insumo-list">
+      <div v-else class="flex flex-col gap-2">
         <div
           v-for="ins in insumosMision"
           :key="ins.id"
-          class="insumo-item"
-          :class="{ selected: entregas[ins.id] }"
+          class="flex items-center gap-3 px-3.5 py-2.5 border-2 rounded-lg transition-all"
+          :class="entregas[ins.id] ? 'border-primary bg-primary/5' : 'border-border-light'"
         >
           <input
             type="checkbox"
             :checked="!!entregas[ins.id]"
             @change="toggleInsumo(ins)"
+            class="w-4.5 h-4.5 accent-primary"
           />
-          <div class="insumo-info">
-            <span class="insumo-desc">{{ ins.descripcion }}</span>
-            <span class="insumo-meta">{{ ins.categoria }} — disp: {{ ins.cantidad }} {{ ins.unidad }}</span>
+          <div class="flex-1 flex flex-col">
+            <span class="font-semibold text-[0.9rem]">{{ ins.descripcion }}</span>
+            <span class="text-xs text-text-muted">{{ ins.categoria }} — disp: {{ ins.cantidad }} {{ ins.unidad }}</span>
           </div>
-          <div class="insumo-qty" v-if="entregas[ins.id]">
-            <label>
+          <div v-if="entregas[ins.id]">
+            <label class="flex items-center gap-1 text-sm text-text">
               Cant:
               <input
                 type="number"
                 :value="entregas[ins.id]"
                 min="1"
                 :max="ins.cantidad"
-                class="qty-input"
+                class="w-15 px-1.5 py-1 border border-border rounded-md text-sm text-center font-sans focus:outline-none focus:border-primary"
                 @input="setCantidad(ins.id, ($event.target as HTMLInputElement).value)"
               />
-              <span class="qty-unit">{{ ins.unidad }}</span>
+              <span class="text-xs text-text-secondary">{{ ins.unidad }}</span>
             </label>
           </div>
           <StatusBadge :status="ins.estatus_cargamento" type="cargamento" />
@@ -176,46 +182,14 @@ onMounted(async () => {
       </BaseTable>
     </BaseCard>
 
-    <div class="submit-row">
+    <div class="flex justify-end">
       <BaseButton variant="primary" size="lg" @click="registerAttendee">
         <UserPlus :size="20" /> Registrar Atención
       </BaseButton>
     </div>
   </div>
-  <div v-else class="loading-state">
+  <div v-else class="py-12 text-center text-text-secondary">
     <p>Cargando misión...</p>
-    <BaseButton variant="ghost" @click="router.push('/personal')">Volver</BaseButton>
+    <BaseButton variant="ghost" @click="router.push('/dashboard')">Volver</BaseButton>
   </div>
 </template>
-
-<style scoped>
-.new-attendee { display: flex; flex-direction: column; gap: 24px; }
-.header-row { display: flex; justify-content: space-between; align-items: flex-start; }
-.page-title { font-size: 1.5rem; color: #00244D; margin: 0; }
-.mission-info { color: #666; margin: 4px 0 0; font-size: 0.9rem; }
-.form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
-.submit-row { display: flex; justify-content: flex-end; }
-.hint { color: #666; font-style: italic; }
-
-.insumo-list { display: flex; flex-direction: column; gap: 8px; }
-.insumo-item {
-  display: flex; align-items: center; gap: 12px;
-  padding: 10px 14px;
-  border: 2px solid #E3E3E3; border-radius: 8px;
-  transition: all 0.2s;
-}
-.insumo-item.selected { border-color: #145CAD; background: rgba(20, 92, 173, 0.05); }
-.insumo-item input[type="checkbox"] { width: 18px; height: 18px; accent-color: #145CAD; }
-.insumo-info { flex: 1; display: flex; flex-direction: column; }
-.insumo-desc { font-weight: 600; font-size: 0.9rem; }
-.insumo-meta { font-size: 0.75rem; color: #999; }
-.insumo-qty label { display: flex; align-items: center; gap: 4px; font-size: 0.85rem; color: #333; }
-.qty-input {
-  width: 60px; padding: 4px 6px; border: 1px solid #BEBEBE; border-radius: 4px;
-  font-family: inherit; font-size: 0.85rem; text-align: center;
-}
-.qty-input:focus { outline: none; border-color: #145CAD; }
-.qty-unit { font-size: 0.75rem; color: #666; }
-
-.loading-state { padding: 48px; text-align: center; color: #666; }
-</style>

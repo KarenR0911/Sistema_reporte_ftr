@@ -3,9 +3,10 @@ import { ref, onMounted, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import BaseCard from '@/components/ui/BaseCard.vue'
 import BaseInput from '@/components/ui/BaseInput.vue'
-import BaseSelect from '@/components/ui/BaseSelect.vue'
 import BaseButton from '@/components/ui/BaseButton.vue'
 import BaseTable from '@/components/ui/BaseTable.vue'
+import PersonalSelector from '@/components/ui/PersonalSelector.vue'
+import ConfirmDialog from '@/components/ui/ConfirmDialog.vue'
 import StatusBadge from '@/components/ui/StatusBadge.vue'
 import { ClipboardList, CheckCircle, ArrowLeft, Plus } from '@lucide/vue'
 import { useMisionesStore } from '@/stores/misiones'
@@ -14,10 +15,12 @@ import { usePersonalStore } from '@/stores/personal'
 import { useInsumosStore } from '@/stores/insumos'
 import { useAtendidosStore } from '@/stores/atendidos'
 import { useNecesidadesStore } from '@/stores/necesidades'
-import type { Mision, Transporte, PersonalMision, InsumoLlevado } from '@/types'
+import { useAuthStore } from '@/stores/auth'
+import type { Mision, Transporte, PersonalMision, InsumoLlevado, Usuario } from '@/types'
 
 const route = useRoute()
 const router = useRouter()
+const auth = useAuthStore()
 const misionesStore = useMisionesStore()
 const transporteStore = useTransporteStore()
 const personalStore = usePersonalStore()
@@ -33,13 +36,44 @@ const insumosMision = computed(() => insumosStore.getByMision(missionId))
 const atendidos = computed(() => atendidosStore.getByMision(missionId))
 const necesidades = computed(() => necesidadesStore.getByMision(missionId))
 
+const role = computed(() => auth.userRole)
+const canEdit = computed(() => role.value === 'director' || role.value === 'administrador' || role.value === 'coordinador')
+
+const selectedUserList = ref<Usuario[]>([])
+
+async function agregarPersonalSeleccionado() {
+  for (const p of selectedUserList.value) {
+    const item: PersonalMision = {
+      id: crypto.randomUUID(),
+      id_mision: missionId,
+      cedula: p.cedula,
+      nombre: p.nombre,
+      categoria_voluntariado: p.categoria_voluntariado ?? 'voluntario',
+      especialidad: p.especialidad ?? '',
+      status_sync: 'pending',
+    }
+    await personalStore.create(item)
+  }
+  selectedUserList.value = []
+  showPersonalForm.value = false
+}
+
 const showTransportForm = ref(false)
 const showPersonalForm = ref(false)
 const transportForm = ref({ tipo_transporte: '', numero_placa: '', nombre_conductor: '' })
-const personalForm = ref({ cedula: '', nombre: '', categoria_voluntariado: '', especialidad: '' })
 
 const showCompleteModal = ref(false)
 const returnItems = ref<Record<string, boolean>>({})
+const showRemovePersonalDialog = ref(false)
+const personalToRemove = ref<string | null>(null)
+
+function confirmRemovePersonal() {
+  if (personalToRemove.value) {
+    personalStore.remove(personalToRemove.value)
+  }
+  showRemovePersonalDialog.value = false
+  personalToRemove.value = null
+}
 
 async function addTransporte() {
   const item: Transporte = {
@@ -51,19 +85,6 @@ async function addTransporte() {
   await transporteStore.create(item)
   transportForm.value = { tipo_transporte: '', numero_placa: '', nombre_conductor: '' }
   showTransportForm.value = false
-}
-
-async function addPersonal() {
-  const item: PersonalMision = {
-    id: crypto.randomUUID(),
-    id_mision: missionId,
-    ...personalForm.value,
-    categoria_voluntariado: personalForm.value.categoria_voluntariado as PersonalMision['categoria_voluntariado'],
-    status_sync: 'pending',
-  }
-  await personalStore.create(item)
-  personalForm.value = { cedula: '', nombre: '', categoria_voluntariado: '', especialidad: '' }
-  showPersonalForm.value = false
 }
 
 function openCompleteModal() {
@@ -86,7 +107,7 @@ async function confirmComplete() {
   const updatedMission = { ...mission.value, estatus_mision: 'completada' as const, status_sync: 'pending' as const }
   await misionesStore.update(updatedMission as Mision)
   showCompleteModal.value = false
-  router.push('/coordinador')
+  router.push('/misiones')
 }
 
 onMounted(async () => {
@@ -102,30 +123,32 @@ onMounted(async () => {
 </script>
 
 <template>
-  <div class="mission-detail" v-if="mission">
-    <div class="header-row">
+  <div v-if="mission" class="flex flex-col gap-6">
+    <div class="flex justify-between items-start">
       <div>
-        <h1 class="page-title">{{ mission.municipio }}, {{ mission.estado }}</h1>
-        <p class="mission-dir">{{ mission.direccion }}</p>
+        <div class="flex items-center gap-3">
+          <BaseButton variant="ghost" @click="router.push('/misiones')"><ArrowLeft :size="18" /> Volver</BaseButton>
+          <h1 class="text-2xl text-brand m-0">{{ mission.municipio }}, {{ mission.estado }}</h1>
+        </div>
+        <p class="text-text-secondary mt-1 text-sm m-0 ml-12">{{ mission.direccion }}</p>
       </div>
-      <div class="header-actions">
+      <div class="flex items-center gap-3 flex-wrap">
         <StatusBadge :status="mission.estatus_mision" type="mision" />
-        <RouterLink :to="`/coordinador/necesidades/${missionId}`">
+        <RouterLink v-if="canEdit" :to="`/misiones/${missionId}/necesidades`">
           <BaseButton variant="primary"><ClipboardList :size="18" /> Levantar Necesidades</BaseButton>
         </RouterLink>
-        <BaseButton v-if="mission.estatus_mision === 'activa'" variant="secondary" @click="openCompleteModal">
+        <BaseButton v-if="canEdit && mission.estatus_mision === 'activa'" variant="secondary" @click="openCompleteModal">
           <CheckCircle :size="18" /> Completar Misión
         </BaseButton>
-        <BaseButton variant="ghost" @click="router.push('/coordinador')"><ArrowLeft :size="18" /> Volver</BaseButton>
       </div>
     </div>
 
     <BaseCard title="Transporte">
       <template #default>
-        <BaseButton variant="primary" size="sm" @click="showTransportForm = !showTransportForm" class="mb">
+        <BaseButton v-if="canEdit" variant="primary" size="sm" @click="showTransportForm = !showTransportForm" class="mb-3">
           <Plus :size="16" /> Agregar Transporte
         </BaseButton>
-        <div v-if="showTransportForm" class="inline-form">
+        <div v-if="showTransportForm && canEdit" class="flex gap-2 items-end mb-3 flex-wrap">
           <BaseInput v-model="transportForm.tipo_transporte" placeholder="Tipo" />
           <BaseInput v-model="transportForm.numero_placa" placeholder="Placa" />
           <BaseInput v-model="transportForm.nombre_conductor" placeholder="Conductor" />
@@ -149,22 +172,15 @@ onMounted(async () => {
 
     <BaseCard title="Personal">
       <template #default>
-        <BaseButton variant="primary" size="sm" @click="showPersonalForm = !showPersonalForm" class="mb">
+        <BaseButton v-if="canEdit" variant="primary" size="sm" @click="showPersonalForm = !showPersonalForm" class="mb-3">
           <Plus :size="16" /> Agregar Personal
         </BaseButton>
-        <div v-if="showPersonalForm" class="inline-form">
-          <BaseInput v-model="personalForm.cedula" placeholder="Cédula" />
-          <BaseInput v-model="personalForm.nombre" placeholder="Nombre" />
-          <BaseSelect
-            v-model="personalForm.categoria_voluntariado"
-            :options="[
-              { value: 'estudiante', label: 'Estudiante' },
-              { value: 'profesional', label: 'Profesional' },
-              { value: 'voluntario', label: 'Voluntario' },
-            ]"
-          />
-          <BaseInput v-model="personalForm.especialidad" placeholder="Especialidad" />
-          <BaseButton variant="primary" size="sm" @click="addPersonal">Guardar</BaseButton>
+        <div v-if="showPersonalForm && canEdit" class="bg-bg p-4 rounded-lg mb-4">
+          <PersonalSelector v-model="selectedUserList" />
+          <div class="flex gap-2 mt-3">
+            <BaseButton variant="primary" size="sm" @click="agregarPersonalSeleccionado">Agregar seleccionados</BaseButton>
+            <BaseButton variant="ghost" size="sm" @click="showPersonalForm = false; selectedUserList = []">Cancelar</BaseButton>
+          </div>
         </div>
         <BaseTable
           :columns="[
@@ -172,11 +188,22 @@ onMounted(async () => {
             { key: 'nombre', label: 'Nombre' },
             { key: 'categoria_voluntariado', label: 'Categoría' },
             { key: 'status_sync', label: 'Sync' },
+            { key: 'acciones', label: '' },
           ]"
           :rows="personales as unknown as Record<string, unknown>[]"
         >
           <template #cell-status_sync="{ value }">
             <StatusBadge :status="value as string" type="sync" />
+          </template>
+          <template #cell-acciones="{ row }">
+            <BaseButton
+              v-if="canEdit"
+              size="sm"
+              variant="danger"
+              @click="personalToRemove = (row as unknown as PersonalMision).id; showRemovePersonalDialog = true"
+            >
+              Quitar
+            </BaseButton>
           </template>
         </BaseTable>
       </template>
@@ -231,47 +258,34 @@ onMounted(async () => {
     </BaseCard>
 
     <Teleport to="body">
-      <div v-if="showCompleteModal" class="modal-overlay" @click.self="showCompleteModal = false">
-        <div class="modal-content">
-          <h2>Completar Misión</h2>
+      <div v-if="showCompleteModal" class="fixed inset-0 bg-black/40 flex items-center justify-center z-1000" @click.self="showCompleteModal = false">
+        <div class="bg-white rounded-xl p-8 max-w-125 w-90% flex flex-col gap-4">
+          <h2 class="m-0 text-brand">Completar Misión</h2>
           <p>Marca los insumos que retornan (no fueron entregados):</p>
-          <div v-for="ins in insumosMision" :key="ins.id" class="return-item">
-            <label>
-              <input type="checkbox" v-model="returnItems[ins.id]" />
+          <div v-for="ins in insumosMision" :key="ins.id">
+            <label class="flex items-center gap-2.5 cursor-pointer py-1.5">
+              <input type="checkbox" v-model="returnItems[ins.id]" class="accent-primary w-4.5 h-4.5" />
               <span>{{ ins.categoria }} — {{ ins.descripcion }} ({{ ins.cantidad }} {{ ins.unidad }})</span>
             </label>
           </div>
-          <p v-if="insumosMision.length === 0" class="empty-return">No hay insumos registrados.</p>
-          <div class="modal-actions">
+          <p v-if="insumosMision.length === 0" class="text-text-secondary italic">No hay insumos registrados.</p>
+          <div class="flex gap-2 justify-end mt-2">
             <BaseButton variant="primary" @click="confirmComplete">Confirmar y Completar</BaseButton>
             <BaseButton variant="ghost" @click="showCompleteModal = false">Cancelar</BaseButton>
           </div>
         </div>
       </div>
     </Teleport>
+
+    <ConfirmDialog
+      :show="showRemovePersonalDialog"
+      title="Quitar personal"
+      message="¿Estás seguro de quitar a este miembro de la misión?"
+      description="El registro se eliminará de forma permanente. Podrás volver a agregarlo si es necesario."
+      confirm-text="Quitar"
+      variant="danger"
+      @confirm="confirmRemovePersonal"
+      @cancel="showRemovePersonalDialog = false; personalToRemove = null"
+    />
   </div>
 </template>
-
-<style scoped>
-.mission-detail { display: flex; flex-direction: column; gap: 24px; }
-.header-row { display: flex; justify-content: space-between; align-items: flex-start; }
-.page-title { font-size: 1.5rem; color: #00244D; margin: 0; }
-.mission-dir { color: #666; margin: 4px 0 0; font-size: 0.9rem; }
-.header-actions { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
-.inline-form { display: flex; gap: 8px; align-items: end; margin-bottom: 12px; flex-wrap: wrap; }
-.mb { margin-bottom: 12px; }
-
-.modal-overlay {
-  position: fixed; inset: 0; background: rgba(0, 0, 0, 0.4);
-  display: flex; align-items: center; justify-content: center; z-index: 1000;
-}
-.modal-content {
-  background: #fff; border-radius: 12px; padding: 32px; max-width: 500px; width: 90%;
-  display: flex; flex-direction: column; gap: 16px;
-}
-.modal-content h2 { margin: 0; color: #00244D; }
-.return-item label { display: flex; align-items: center; gap: 10px; cursor: pointer; padding: 6px 0; }
-.return-item input { accent-color: #145CAD; width: 18px; height: 18px; }
-.empty-return { color: #666; font-style: italic; }
-.modal-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 8px; }
-</style>

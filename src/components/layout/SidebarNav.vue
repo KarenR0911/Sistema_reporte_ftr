@@ -16,114 +16,42 @@ interface NavItem {
 const menuItems = computed<NavItem[]>(() => {
   const role = auth.userRole
   const items: NavItem[] = []
-  if (role === 'director') {
-    items.push(
-      { label: 'Dashboard', icon: LayoutDashboard, to: '/director' },
-      { label: 'Usuarios', icon: Users, to: '/director#usuarios' },
-      { label: 'Reportes', icon: ClipboardList, to: '/director#reportes' },
-    )
-  } else if (role === 'administrador') {
-    items.push(
-      { label: 'Dashboard', icon: LayoutDashboard, to: '/admin' },
-      { label: 'Reportes', icon: ClipboardList, to: '/admin' },
-    )
-  } else if (role === 'coordinador') {
-    items.push(
-      { label: 'Dashboard', icon: LayoutDashboard, to: '/coordinador' },
-      { label: 'Nueva Misión', icon: Rocket, to: '/coordinador/nueva-mision' },
-    )
-  } else if (role === 'personal') {
-    items.push(
-      { label: 'Dashboard', icon: LayoutDashboard, to: '/personal' },
-    )
+
+  items.push({ label: 'Dashboard', icon: LayoutDashboard, to: '/dashboard' })
+
+  if (role === 'director' || role === 'administrador' || role === 'coordinador') {
+    items.push({ label: 'Misiones', icon: ClipboardList, to: '/misiones' })
+    items.push({ label: 'Nueva Misión', icon: Rocket, to: '/misiones/nueva' })
   }
+
+  if (role === 'director' || role === 'administrador') {
+    items.push({ label: 'Usuarios', icon: Users, to: '/usuarios' })
+  }
+
   return items
 })
 </script>
 
 <template>
-  <nav class="sidebar">
-    <div class="sidebar-brand">
-      <h2>FTR</h2>
-      <span>Sistema de Reporte</span>
+  <nav class="w-60 h-screen sticky top-0 bg-brand text-white flex flex-col shrink-0">
+    <div class="px-6 py-6 border-b border-white/10">
+      <h2 class="m-0 text-2xl font-extrabold tracking-wider">FTR</h2>
+      <span class="text-xs opacity-70">Sistema de Reporte</span>
     </div>
-    <ul class="nav-list">
+    <ul class="list-none py-4 m-0">
       <li v-for="item in menuItems" :key="item.label">
-        <a
-          v-if="item.to.includes('#')"
-          :href="item.to"
-          class="nav-link"
-        >
-          <span class="nav-icon"><component :is="item.icon" :size="20" /></span>
-          {{ item.label }}
-        </a>
         <RouterLink
-          v-else
           :to="item.to"
-          class="nav-link"
-          :class="{ active: route.path === item.to }"
+          class="flex items-center gap-3 px-6 py-3 text-white/80 no-underline text-sm transition-all border-l-3 border-transparent hover:bg-white/8 hover:text-white"
+          :class="{
+            'bg-white/12 text-white border-l-primary-light':
+              route.path === item.to || route.path.startsWith(item.to + '/'),
+          }"
         >
-          <span class="nav-icon"><component :is="item.icon" :size="20" /></span>
+          <span class="flex items-center"><component :is="item.icon" :size="20" /></span>
           {{ item.label }}
         </RouterLink>
       </li>
     </ul>
   </nav>
 </template>
-
-<style scoped>
-.sidebar {
-  width: 240px;
-  height: 100vh;
-  position: sticky;
-  top: 0;
-  background: #00244D;
-  color: #fff;
-  display: flex;
-  flex-direction: column;
-  flex-shrink: 0;
-}
-.sidebar-brand {
-  padding: 24px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-}
-.sidebar-brand h2 {
-  margin: 0;
-  font-size: 1.5rem;
-  font-weight: 800;
-  letter-spacing: 2px;
-}
-.sidebar-brand span {
-  font-size: 0.75rem;
-  opacity: 0.7;
-}
-.nav-list {
-  list-style: none;
-  padding: 16px 0;
-  margin: 0;
-}
-.nav-link {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 12px 24px;
-  color: rgba(255, 255, 255, 0.8);
-  text-decoration: none;
-  font-size: 0.9rem;
-  transition: all 0.2s;
-  border-left: 3px solid transparent;
-}
-.nav-link:hover {
-  background: rgba(255, 255, 255, 0.08);
-  color: #fff;
-}
-.nav-link.active {
-  background: rgba(255, 255, 255, 0.12);
-  color: #fff;
-  border-left-color: #1FAAE1;
-}
-.nav-icon {
-  display: flex;
-  align-items: center;
-}
-</style>

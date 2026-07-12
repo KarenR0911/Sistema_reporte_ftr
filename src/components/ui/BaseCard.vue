@@ -6,33 +6,15 @@ defineProps<{
 </script>
 
 <template>
-  <div class="base-card" :style="padding ? { padding } : undefined">
-    <div v-if="title" class="card-header">
-      <h3>{{ title }}</h3>
+  <div
+    class="bg-white rounded-xl shadow-[0_1px_3px_rgba(0,0,0,0.08)] border border-border-light"
+    :style="padding ? { padding } : { padding: '24px' }"
+  >
+    <div v-if="title" class="mb-4 pb-3 border-b border-surface">
+      <h3 class="m-0 text-lg text-brand font-bold">{{ title }}</h3>
     </div>
-    <div class="card-body">
+    <div>
       <slot />
     </div>
   </div>
 </template>
-
-<style scoped>
-.base-card {
-  background: #fff;
-  border-radius: 12px;
-  padding: 24px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
-  border: 1px solid #E3E3E3;
-}
-.card-header {
-  margin-bottom: 16px;
-  padding-bottom: 12px;
-  border-bottom: 1px solid #F0F0F0;
-}
-.card-header h3 {
-  margin: 0;
-  font-size: 1.1rem;
-  color: #00244D;
-  font-weight: 700;
-}
-</style>
