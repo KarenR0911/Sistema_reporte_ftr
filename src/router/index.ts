@@ -60,6 +60,11 @@ const router = createRouter({
         },
       ],
     },
+    {
+      path: '/:pathMatch(.*)*',
+      name: 'not-found',
+      redirect: '/dashboard',
+    },
   ],
 })
 

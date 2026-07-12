@@ -43,15 +43,16 @@ const selectedUserList = ref<Usuario[]>([])
 
 async function agregarPersonalSeleccionado() {
   for (const p of selectedUserList.value) {
-    const item: PersonalMision = {
-      id: crypto.randomUUID(),
-      id_mision: missionId,
-      cedula: p.cedula,
-      nombre: p.nombre,
-      categoria_voluntariado: p.categoria_voluntariado ?? 'voluntario',
-      especialidad: p.especialidad ?? '',
-      status_sync: 'pending',
-    }
+      const item: PersonalMision = {
+        id: crypto.randomUUID(),
+        id_mision: missionId,
+        cedula: p.cedula,
+        nombre: p.nombre,
+        categoria_voluntariado: p.categoria_voluntariado ?? 'voluntario',
+        especialidad: p.especialidad ?? '',
+        area_voluntariado: p.area_voluntariado ?? '',
+        status_sync: 'pending',
+      }
     await personalStore.create(item)
   }
   selectedUserList.value = []

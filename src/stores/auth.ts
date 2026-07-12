@@ -2,7 +2,7 @@ import { ref, computed } from 'vue'
 import { defineStore } from 'pinia'
 import type { Usuario, RolUsuario, CategoriaVoluntariado } from '@/types'
 import { getAll, addItem } from '@/db'
-import { supabase } from '@/lib/supabase'
+import { getSupabase } from '@/lib/supabase'
 
 export const useAuthStore = defineStore('auth', () => {
   const currentUser = ref<Usuario | null>(null)
@@ -13,9 +13,38 @@ export const useAuthStore = defineStore('auth', () => {
 
   async function loadUsuarios() {
     usuarios.value = await getAll<Usuario>('usuarios')
+    if (navigator.onLine && usuarios.value.length === 0) {
+      await refreshUsuariosFromSupabase()
+    }
   }
 
-  async function login(email: string, password: string): Promise<boolean> {
+  async function refreshUsuariosFromSupabase() {
+    try {
+      const { data } = await getSupabase().from('perfiles').select('*')
+      if (data) {
+        for (const p of data) {
+          const user: Usuario = {
+            id: p.id,
+            cedula: p.cedula,
+            nombre: p.nombre,
+            email: p.email ?? '',
+            rol: p.rol as RolUsuario,
+            password: p.password ?? '',
+            activo: p.activo,
+            categoria_voluntariado: p.categoria_voluntariado as CategoriaVoluntariado | undefined,
+            especialidad: p.especialidad ?? '',
+            area_voluntariado: p.area_voluntariado ?? '',
+          }
+          await addItem('usuarios', user).catch(() => {})
+        }
+        usuarios.value = await getAll<Usuario>('usuarios')
+      }
+    } catch {
+      // fallback silencioso
+    }
+  }
+
+  async function login(email: string, password: string, recordar = true): Promise<boolean> {
     // 1. Buscar en IndexedDB (offline-first)
     await loadUsuarios()
     const localUser = usuarios.value.find(
@@ -23,14 +52,14 @@ export const useAuthStore = defineStore('auth', () => {
     )
     if (localUser) {
       currentUser.value = localUser
-      localStorage.setItem('auth_user', JSON.stringify(localUser))
+      if (recordar) localStorage.setItem('auth_user', JSON.stringify(localUser))
       return true
     }
 
     // 2. Buscar en perfiles de Supabase (online)
     if (navigator.onLine) {
       try {
-        const { data, error } = await supabase
+        const { data, error } = await getSupabase()
           .from('perfiles')
           .select('*')
           .eq('email', email)
@@ -51,10 +80,10 @@ export const useAuthStore = defineStore('auth', () => {
             especialidad: (data.especialidad as string) ?? '',
             area_voluntariado: (data.area_voluntariado as string) ?? '',
           }
-          // Guardar en IndexedDB para futuro acceso offline
           await addItem('usuarios', user)
+          await refreshUsuariosFromSupabase()
           currentUser.value = user
-          localStorage.setItem('auth_user', JSON.stringify(user))
+          if (recordar) localStorage.setItem('auth_user', JSON.stringify(user))
           return true
         }
       } catch {

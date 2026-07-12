@@ -17,7 +17,11 @@ onMounted(() => {
     <div class="flex-1 flex flex-col bg-bg">
       <TopBar />
       <main class="flex-1 p-6">
-        <RouterView />
+        <RouterView v-slot="{ Component }">
+          <Transition name="fade" mode="out-in">
+            <component :is="Component" />
+          </Transition>
+        </RouterView>
       </main>
     </div>
   </div>

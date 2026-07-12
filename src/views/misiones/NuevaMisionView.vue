@@ -51,6 +51,28 @@ function validateStep(): boolean {
   return true
 }
 
+function goToStep(target: number) {
+  if (target < step.value) {
+    step.value = target
+    return
+  }
+  for (let i = step.value; i < target; i++) {
+    if (!validateStepFor(i)) return
+  }
+  step.value = target
+}
+
+function validateStepFor(s: number): boolean {
+  if (s === 1) {
+    if (!misionForm.value.direccion.trim() || !misionForm.value.municipio.trim() || !misionForm.value.estado.trim()) {
+      toast.error('Completa todos los campos de la zona antes de avanzar.')
+      return false
+    }
+    return true
+  }
+  return true
+}
+
 function nextStep() {
   if (!validateStep()) return
   step.value++
@@ -78,7 +100,12 @@ function addInsumo() {
     toast.error('Completa al menos categoría, descripción y cantidad del insumo.')
     return
   }
-  insumos.value.push({ ...insumoForm.value, cantidad: Number(insumoForm.value.cantidad) || 0, estatus_cargamento: 'entregado' })
+  const cantidad = Number(insumoForm.value.cantidad)
+  if (cantidad <= 0) {
+    toast.error('La cantidad debe ser mayor a 0.')
+    return
+  }
+  insumos.value.push({ ...insumoForm.value, cantidad, estatus_cargamento: 'entregado' })
   insumoForm.value = { categoria: '', descripcion: '', cantidad: '', unidad: '', observaciones: '' }
 }
 
@@ -87,6 +114,10 @@ function removeInsumo(idx: number) {
 }
 
 async function saveMision() {
+  if (insumos.value.length === 0) {
+    toast.error('Debes agregar al menos un insumo a la misión.')
+    return
+  }
   const id_mision = crypto.randomUUID()
   const mision: Mision = {
     id: id_mision,
@@ -103,15 +134,16 @@ async function saveMision() {
   }
 
   for (const p of selectedPersonal.value) {
-    const item: PersonalMision = {
-      id: crypto.randomUUID(),
-      id_mision,
-      cedula: p.cedula,
-      nombre: p.nombre,
-      categoria_voluntariado: p.categoria_voluntariado ?? 'voluntario',
-      especialidad: p.especialidad ?? '',
-      status_sync: 'pending',
-    }
+      const item: PersonalMision = {
+        id: crypto.randomUUID(),
+        id_mision,
+        cedula: p.cedula,
+        nombre: p.nombre,
+        categoria_voluntariado: p.categoria_voluntariado ?? 'voluntario',
+        especialidad: p.especialidad ?? '',
+        area_voluntariado: p.area_voluntariado ?? '',
+        status_sync: 'pending',
+      }
     await personalStore.create(item)
   }
 
@@ -142,7 +174,7 @@ async function saveMision() {
       <div
         class="flex items-center gap-2 px-5 py-2.5 bg-white rounded-lg border-2 cursor-pointer text-sm font-semibold transition-all"
         :class="step === 1 ? 'border-primary text-primary' : step > 1 ? 'border-success text-success' : 'border-border-light text-text-secondary'"
-        @click="step = 1"
+        @click="goToStep(1)"
       >
         <span
           class="flex items-center justify-center w-6 h-6 rounded-full text-xs font-bold"
@@ -155,7 +187,7 @@ async function saveMision() {
       <div
         class="flex items-center gap-2 px-5 py-2.5 bg-white rounded-lg border-2 cursor-pointer text-sm font-semibold transition-all"
         :class="step === 2 ? 'border-primary text-primary' : step > 2 ? 'border-success text-success' : 'border-border-light text-text-secondary'"
-        @click="step = 2"
+        @click="goToStep(2)"
       >
         <span
           class="flex items-center justify-center w-6 h-6 rounded-full text-xs font-bold"
@@ -168,7 +200,7 @@ async function saveMision() {
       <div
         class="flex items-center gap-2 px-5 py-2.5 bg-white rounded-lg border-2 cursor-pointer text-sm font-semibold transition-all"
         :class="step === 3 ? 'border-primary text-primary' : step > 3 ? 'border-success text-success' : 'border-border-light text-text-secondary'"
-        @click="step = 3"
+        @click="goToStep(3)"
       >
         <span
           class="flex items-center justify-center w-6 h-6 rounded-full text-xs font-bold"
@@ -181,7 +213,7 @@ async function saveMision() {
       <div
         class="flex items-center gap-2 px-5 py-2.5 bg-white rounded-lg border-2 cursor-pointer text-sm font-semibold transition-all"
         :class="step === 4 ? 'border-primary text-primary' : step > 4 ? 'border-success text-success' : 'border-border-light text-text-secondary'"
-        @click="step = 4"
+        @click="goToStep(4)"
       >
         <span
           class="flex items-center justify-center w-6 h-6 rounded-full text-xs font-bold"

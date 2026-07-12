@@ -45,7 +45,7 @@ const menuItems = computed<NavItem[]>(() => {
           class="flex items-center gap-3 px-6 py-3 text-white/80 no-underline text-sm transition-all border-l-3 border-transparent hover:bg-white/8 hover:text-white"
           :class="{
             'bg-white/12 text-white border-l-primary-light':
-              route.path === item.to || route.path.startsWith(item.to + '/'),
+              route.path === item.to || (item.to !== '/dashboard' && route.path.startsWith(item.to + '/')),
           }"
         >
           <span class="flex items-center"><component :is="item.icon" :size="20" /></span>

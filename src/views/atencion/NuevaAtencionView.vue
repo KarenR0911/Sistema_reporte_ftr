@@ -44,7 +44,7 @@ function toggleInsumo(ins: InsumoLlevado) {
 }
 
 function setCantidad(id: string, val: string) {
-  const n = parseInt(val) || 0
+  const n = parseInt(val, 10) || 0
   if (n <= 0) {
     const { [id]: _, ...rest } = entregas.value
     entregas.value = rest
@@ -63,9 +63,9 @@ async function registerAttendee() {
     .map((id) => {
       const ins = insumosMision.value.find((i) => i.id === id)
       if (!ins) return null
-      return { id: ins.id, descripcion: ins.descripcion, cantidad: entregas.value[id] }
+      return { id: ins.id, descripcion: ins.descripcion, cantidad: entregas.value[id]! }
     })
-    .filter(Boolean)
+    .filter((v): v is NonNullable<typeof v> => v != null)
 
   const item: Atendido = {
     id: crypto.randomUUID(),
@@ -85,7 +85,8 @@ async function registerAttendee() {
     if (!entrega) continue
     const ins = insumosMision.value.find((i) => i.id === entrega.id)
     if (!ins) continue
-    await insumosStore.update({ ...ins, estatus_cargamento: 'entregado', status_sync: 'pending' })
+    const nuevaCantidad = Math.max(0, ins.cantidad - entrega.cantidad)
+    await insumosStore.update({ ...ins, cantidad: nuevaCantidad, status_sync: 'pending' })
   }
 
   formCedula.value = ''

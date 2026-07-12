@@ -8,7 +8,7 @@ import BaseTable from '@/components/ui/BaseTable.vue'
 import ConfirmDialog from '@/components/ui/ConfirmDialog.vue'
 import StatusBadge from '@/components/ui/StatusBadge.vue'
 import { getAll, addItem, putItem } from '@/db'
-import { supabase } from '@/lib/supabase'
+import { getSupabase } from '@/lib/supabase'
 import type { Usuario, CategoriaVoluntariado } from '@/types'
 
 const usuarios = ref<Usuario[]>([])
@@ -69,8 +69,7 @@ const userColumns = [
 async function loadUsuarios() {
   try {
     if (navigator.onLine) {
-      const { data, error } = await supabase
-        .from('perfiles')
+      const { data, error } = await getSupabase().from('perfiles')
         .select('*')
         .order('created_at', { ascending: false })
       if (!error && data) {
@@ -99,7 +98,7 @@ async function saveUser() {
   const isNew = !editingUser.value
   const esPersonal = formRol.value === 'personal'
   const email = formEmail.value || `${formCedula.value}@ftr.app`
-  const password = formPassword.value || '123456'
+  const password = formPassword.value || (editingUser.value ? editingUser.value.password : '123456')
   const user: Usuario = {
     id: editingUser.value?.id ?? crypto.randomUUID(),
     cedula: formCedula.value,
@@ -127,14 +126,14 @@ async function saveUser() {
   }
 
   if (navigator.onLine && isNew) {
-    const { error: insertError } = await supabase.from('perfiles').insert(payload)
+    const { error: insertError } = await getSupabase().from('perfiles').insert(payload)
     if (!insertError) {
       await addItem('usuarios', user)
     } else {
       await addItem('usuarios', user)
     }
   } else if (navigator.onLine && !isNew) {
-    await supabase.from('perfiles').update({
+    await getSupabase().from('perfiles').update({
       cedula: user.cedula,
       nombre: user.nombre,
       email: user.email,
@@ -172,7 +171,7 @@ function editUser(u: Usuario) {
 async function toggleActivo(u: Usuario) {
   const updated = { ...u, activo: !u.activo }
   if (navigator.onLine) {
-    await supabase.from('perfiles').update({ activo: updated.activo }).eq('id', updated.id)
+    await getSupabase().from('perfiles').update({ activo: updated.activo }).eq('id', updated.id)
   }
   await putItem('usuarios', updated)
   await loadUsuarios()
@@ -192,7 +191,7 @@ async function confirmDelete() {
   if (!userToDelete.value) return
   const updated = { ...userToDelete.value, activo: false }
   if (navigator.onLine) {
-    await supabase.from('perfiles').update({ activo: false }).eq('id', updated.id)
+    await getSupabase().from('perfiles').update({ activo: false }).eq('id', updated.id)
   }
   await putItem('usuarios', updated)
   showDeleteModal.value = false
