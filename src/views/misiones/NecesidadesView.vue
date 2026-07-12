@@ -56,17 +56,19 @@ onMounted(async () => {
 </script>
 
 <template>
-  <div class="needs-report">
-    <div class="header-row">
+  <div class="flex flex-col gap-6">
+    <div class="flex justify-between items-start">
       <div>
-        <h1 class="page-title">Levantamiento de Necesidades</h1>
-        <p v-if="mission" class="mission-info">{{ mission.municipio }}, {{ mission.estado }} - {{ mission.direccion }}</p>
+        <div class="flex items-center gap-3">
+          <BaseButton variant="ghost" @click="router.push(`/misiones/${missionId}`)"><ArrowLeft :size="18" /> Volver</BaseButton>
+          <h1 class="text-2xl text-brand m-0">Levantamiento de Necesidades</h1>
+        </div>
+        <p v-if="mission" class="text-text-secondary mt-1 text-sm m-0 ml-12">{{ mission.municipio }}, {{ mission.estado }} - {{ mission.direccion }}</p>
       </div>
-      <BaseButton variant="ghost" @click="router.back()"><ArrowLeft :size="18" /> Volver</BaseButton>
     </div>
 
     <BaseCard title="Registrar Necesidad">
-      <div class="form-grid">
+      <div class="grid grid-cols-2 gap-4 mb-4">
         <BaseInput v-model="formCategoria" label="Categoría" placeholder="Medicinas, Alimentos, Agua..." />
         <BaseInput v-model="formDescripcion" label="Descripción" />
         <BaseInput v-model="formCantidad" label="Cantidad Requerida" type="number" />
@@ -112,11 +114,3 @@ onMounted(async () => {
     </BaseCard>
   </div>
 </template>
-
-<style scoped>
-.needs-report { display: flex; flex-direction: column; gap: 24px; }
-.header-row { display: flex; justify-content: space-between; align-items: flex-start; }
-.page-title { font-size: 1.5rem; color: #00244D; margin: 0; }
-.mission-info { color: #666; margin: 4px 0 0; font-size: 0.9rem; }
-.form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
-</style>

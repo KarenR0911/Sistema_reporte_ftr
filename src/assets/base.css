@@ -1,55 +1,15 @@
 @import url('https://fonts.googleapis.com/css2?family=Inria+Sans:wght@300;400;600;700;800&display=swap');
 
-:root {
-  --color-bg: #F5F5F5;
-  --color-surface: #F0F0F0;
-  --color-white: #FFFFFF;
-  --color-text-primary: #333333;
-  --color-text-secondary: #666666;
-  --color-text-black: #000000;
-  --color-brand: #00244D;
-  --color-primary: #145CAD;
-  --color-primary-light: #1FAAE1;
-  --color-primary-alt: #127BA4;
-  --color-info: #68B1ED;
-  --color-neutral: #8FBFBF;
-  --color-border: #BEBEBE;
-  --color-border-light: #E3E3E3;
-}
-
-*,
-*::before,
-*::after {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
-}
-
 body {
   font-family: 'Inria Sans', sans-serif;
-  background: var(--color-bg);
-  color: var(--color-text-primary);
-  line-height: 1.6;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
 a {
-  color: var(--color-primary);
   text-decoration: none;
 }
 
 a:hover {
-  color: var(--color-primary-light);
-}
-
-h1, h2, h3, h4, h5, h6 {
-  color: var(--color-brand);
-  font-weight: 700;
-  line-height: 1.3;
-}
-
-img {
-  max-width: 100%;
-  height: auto;
+  color: var(--color-primary-light, #1faae1);
 }

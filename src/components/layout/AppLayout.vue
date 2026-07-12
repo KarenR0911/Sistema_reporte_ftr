@@ -12,30 +12,13 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="app-shell">
+  <div class="flex min-h-screen">
     <SidebarNav />
-    <div class="main-area">
+    <div class="flex-1 flex flex-col bg-bg">
       <TopBar />
-      <main class="main-content">
+      <main class="flex-1 p-6">
         <RouterView />
       </main>
     </div>
   </div>
 </template>
-
-<style scoped>
-.app-shell {
-  display: flex;
-  min-height: 100vh;
-}
-.main-area {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  background: #F5F5F5;
-}
-.main-content {
-  flex: 1;
-  padding: 24px;
-}
-</style>

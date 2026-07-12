@@ -1,3 +1,49 @@
+@import 'tailwindcss';
+
+@theme {
+  --font-sans: 'Inria Sans', sans-serif;
+
+  --color-brand: #00244D;
+  --color-primary: #145CAD;
+  --color-primary-hover: #0f4a8f;
+  --color-primary-light: #1FAAE1;
+  --color-primary-alt: #127BA4;
+  --color-info: #68B1ED;
+  --color-neutral: #8FBFBF;
+  --color-border: #BEBEBE;
+  --color-border-light: #E3E3E3;
+  --color-surface: #F0F0F0;
+  --color-bg: #F5F5F5;
+  --color-white: #FFFFFF;
+  --color-danger: #d32f2f;
+  --color-danger-hover: #b71c1c;
+  --color-success: #4CAF50;
+  --color-text: #333333;
+  --color-text-secondary: #666666;
+  --color-text-muted: #999999;
+
+  --color-status-pending-bg: #FFF3E0;
+  --color-status-pending-text: #E65100;
+  --color-status-synced-bg: #E8F5E9;
+  --color-status-synced-text: #2E7D32;
+  --color-status-activa-bg: #E3F2FD;
+  --color-status-activa-text: #1565C0;
+  --color-status-cancelada-bg: #FFEBEE;
+  --color-status-cancelada-text: #C62828;
+  --color-status-completada-bg: #E8F5E9;
+  --color-status-completada-text: #2E7D32;
+  --color-status-entregado-bg: #E8F5E9;
+  --color-status-entregado-text: #2E7D32;
+  --color-status-retorno-bg: #FFF3E0;
+  --color-status-retorno-text: #E65100;
+  --color-status-reportado-bg: #FFF3E0;
+  --color-status-reportado-text: #E65100;
+  --color-status-enproceso-bg: #E3F2FD;
+  --color-status-enproceso-text: #1565C0;
+  --color-status-atendido-bg: #E8F5E9;
+  --color-status-atendido-text: #2E7D32;
+}
+
 #app {
   min-height: 100vh;
 }

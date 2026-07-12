@@ -13,11 +13,13 @@ defineEmits<{
 </script>
 
 <template>
-  <div class="field">
-    <label v-if="label" class="field-label">{{ label }}<span v-if="required" class="required">*</span></label>
+  <div class="flex flex-col gap-1.5">
+    <label v-if="label" class="text-sm font-semibold text-text">
+      {{ label }}<span v-if="required" class="text-danger ml-0.5">*</span>
+    </label>
     <input
       :type="type ?? 'text'"
-      class="field-input"
+      class="font-sans px-3.5 py-2.5 border border-border rounded-lg text-sm bg-white transition-colors focus:outline-none focus:border-primary focus:ring-3 focus:ring-primary/10"
       :placeholder="placeholder"
       :value="modelValue"
       :required="required"
@@ -25,23 +27,3 @@ defineEmits<{
     />
   </div>
 </template>
-
-<style scoped>
-.field { display: flex; flex-direction: column; gap: 6px; }
-.field-label { font-size: 0.9rem; font-weight: 600; color: #333; }
-.required { color: #d32f2f; margin-left: 2px; }
-.field-input {
-  font-family: 'Inria Sans', sans-serif;
-  padding: 10px 14px;
-  border: 1px solid #BEBEBE;
-  border-radius: 8px;
-  font-size: 0.95rem;
-  background: #fff;
-  transition: border-color 0.2s;
-}
-.field-input:focus {
-  outline: none;
-  border-color: #145CAD;
-  box-shadow: 0 0 0 3px rgba(20, 92, 173, 0.1);
-}
-</style>
