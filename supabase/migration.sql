@@ -50,7 +50,6 @@ CREATE TABLE IF NOT EXISTS perfiles (
   especialidad TEXT DEFAULT '',
   area_voluntariado TEXT DEFAULT '',
   email TEXT DEFAULT '',
-  password TEXT DEFAULT '123456',
   activo BOOLEAN NOT NULL DEFAULT true,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );

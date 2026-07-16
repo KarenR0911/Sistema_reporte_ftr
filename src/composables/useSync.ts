@@ -1,8 +1,9 @@
 import { useOnlineStatus } from './useOnlineStatus'
 import { getPending, markAsSynced, putItem, getAll, getDeletedIds, clearDeletedId } from '@/db'
-import { getSupabase } from '@/lib/supabase'
-import type { StoreName, DeletedRecord } from '@/db'
-import { ref, computed, watch, onUnmounted } from 'vue'
+import { getAuthSupabase } from '@/lib/supabase'
+import { useAuthStore } from '@/stores/auth'
+import type { StoreName } from '@/db'
+import { ref, watch, onUnmounted } from 'vue'
 
 const STORES: { store: StoreName; table: string }[] = [
   { store: 'misiones', table: 'misiones' },
@@ -33,13 +34,14 @@ async function refreshPendingCount() {
   pendingCount.value = total
 }
 
-async function syncDeletesToSupabase() {
+async function syncDeletesToSupabase(token: string) {
   const deleted = await getDeletedIds()
   if (deleted.length === 0) return
+  const client = getAuthSupabase(token)
   for (const record of deleted) {
     const table = tableForStore(record.store)
     try {
-      const { error } = await getSupabase().from(table).delete().eq('id', record.id.replace(`${record.store}:`, ''))
+      const { error } = await client.from(table).delete().eq('id', record.id.replace(`${record.store}:`, ''))
       if (!error) {
         await clearDeletedId(record.id)
       }
@@ -49,13 +51,14 @@ async function syncDeletesToSupabase() {
   }
 }
 
-async function syncStoreToSupabase(store: StoreName, table: string, retries = 3) {
+async function syncStoreToSupabase(store: StoreName, table: string, token: string, retries = 3) {
+  const client = getAuthSupabase(token)
   const pending = await getPending(store)
   for (const item of pending) {
     const record = { ...item as Record<string, unknown> }
     for (let attempt = 0; attempt < retries; attempt++) {
       try {
-        const { error } = await getSupabase().from(table).upsert(record, { onConflict: 'id' })
+        const { error } = await client.from(table).upsert(record, { onConflict: 'id' })
         if (!error) {
           await markAsSynced(store, record.id as string)
           break
@@ -68,11 +71,12 @@ async function syncStoreToSupabase(store: StoreName, table: string, retries = 3)
   }
 }
 
-async function pullFromSupabase(store: StoreName, table: string) {
+async function pullFromSupabase(store: StoreName, table: string, token: string) {
   if (!navigator.onLine) return
   try {
+    const client = getAuthSupabase(token)
     const [remoteData, localData] = await Promise.all([
-      getSupabase().from(table).select('*'),
+      client.from(table).select('*'),
       getAll<Record<string, unknown>>(store),
     ])
     const { data } = remoteData
@@ -95,15 +99,18 @@ let stopWatcher: (() => void) | null = null
 
 export function useSync() {
   const { isOnline } = useOnlineStatus()
+  const auth = useAuthStore()
 
   async function syncAll() {
     if (!navigator.onLine) return
+    const token = auth.accessToken
+    if (!token) return
     isSyncing.value = true
     try {
-      await syncDeletesToSupabase()
+      await syncDeletesToSupabase(token)
       for (const { store, table } of STORES) {
-        await pullFromSupabase(store, table)
-        await syncStoreToSupabase(store, table)
+        await pullFromSupabase(store, table, token)
+        await syncStoreToSupabase(store, table, token)
       }
       await refreshPendingCount()
     } finally {

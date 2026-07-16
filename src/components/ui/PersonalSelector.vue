@@ -2,8 +2,9 @@
 import { ref, computed, onMounted } from 'vue'
 import { Search } from '@lucide/vue'
 import BaseButton from '@/components/ui/BaseButton.vue'
-import { getSupabase } from '@/lib/supabase'
+import { getSupabase, getAuthSupabase } from '@/lib/supabase'
 import { getAll, addItem } from '@/db'
+import { useAuthStore } from '@/stores/auth'
 import type { Usuario } from '@/types'
 
 const props = defineProps<{
@@ -64,7 +65,11 @@ function toggleAllPersonal() {
 }
 
 async function loadFromSupabase() {
-  const { data } = await getSupabase().from('perfiles').select('*').eq('rol', 'personal')
+  const auth = useAuthStore()
+  const client = auth.accessToken
+    ? getAuthSupabase(auth.accessToken)
+    : getSupabase()
+  const { data } = await client.from('perfiles').select('*').eq('rol', 'personal')
   if (!data) return
   const users: Usuario[] = data.map((p: Record<string, unknown>) => ({
     id: p.id as string,
@@ -72,7 +77,6 @@ async function loadFromSupabase() {
     nombre: p.nombre as string,
     email: (p.email as string) ?? '',
     rol: 'personal' as const,
-    password: (p.password as string) ?? '',
     activo: (p.activo as boolean) ?? true,
     categoria_voluntariado: p.categoria_voluntariado as Usuario['categoria_voluntariado'],
     especialidad: (p.especialidad as string) ?? '',

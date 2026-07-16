@@ -86,7 +86,6 @@ export interface Usuario {
   nombre: string
   email: string
   rol: RolUsuario
-  password: string
   activo: boolean
   categoria_voluntariado?: CategoriaVoluntariado
   especialidad?: string

@@ -30,7 +30,7 @@ export async function getDB(): Promise<IDBPDatabase> {
 
   try {
     dbInstance = await openDB(DB_NAME, DB_VERSION, {
-      upgrade(db, _oldVersion, _newVersion, transaction) {
+      upgrade(db, _oldVersion, _newVersion) {
         createStores(db)
       },
     })
