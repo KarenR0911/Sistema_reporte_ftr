@@ -23,6 +23,10 @@ const router = useRouter()
 
 const role = computed(() => auth.userRole)
 const misMisionIds = ref<Set<string>>(new Set())
+const currentCedula = computed(() => auth.currentUser?.cedula ?? '')
+const misAtenciones = computed(() =>
+  atendidosStore.list.filter((a) => a.cedula_personal === currentCedula.value),
+)
 const misMisionesActivas = computed(() =>
   misionesStore.list.filter((m) => misMisionIds.value.has(m.id) && m.estatus_mision === 'activa'),
 )
@@ -41,13 +45,22 @@ const misionColumns = [
 ]
 
 onMounted(async () => {
-  await Promise.all([
-    misionesStore.load(),
-    atendidosStore.load(),
-    necesidadesStore.load(),
-    insumosStore.load(),
-    personalStore.load(),
-  ])
+  const loads: Promise<void>[] = [misionesStore.load()]
+
+  if (role.value === 'director' || role.value === 'administrador') {
+    loads.push(
+      necesidadesStore.load(),
+      insumosStore.load(),
+    )
+  }
+
+  if (role.value === 'coordinador') {
+    loads.push()
+  }
+
+  loads.push(atendidosStore.load(), personalStore.load())
+
+  await Promise.all(loads)
 
   const cedula = auth.currentUser?.cedula
   if (cedula) {
@@ -93,7 +106,7 @@ onMounted(async () => {
       </BaseCard>
     </div>
 
-    <div v-else class="grid grid-cols-[repeat(auto-fit,minmax(200px,1fr))] gap-4">
+    <div v-else class="grid grid-cols-[repeat(auto-fit,minmax(180px,1fr))] gap-4">
       <BaseCard v-if="role === 'coordinador'" class="flex flex-col items-center text-center gap-1!">
         <span class="text-4xl font-extrabold text-brand">{{ totalMisiones }}</span>
         <span class="text-sm text-text-secondary">Total Misiones</span>
@@ -101,6 +114,14 @@ onMounted(async () => {
       <BaseCard v-if="role === 'coordinador'" class="flex flex-col items-center text-center gap-1!">
         <span class="text-4xl font-extrabold text-brand">{{ misionesActivas }}</span>
         <span class="text-sm text-text-secondary">Misiones Activas</span>
+      </BaseCard>
+      <BaseCard v-if="role === 'coordinador'" class="flex flex-col items-center text-center gap-1!">
+        <span class="text-4xl font-extrabold text-brand">{{ totalAtendidos }}</span>
+        <span class="text-sm text-text-secondary">Personas Atendidas</span>
+      </BaseCard>
+      <BaseCard v-if="role === 'coordinador'" class="flex flex-col items-center text-center gap-1!">
+        <span class="text-4xl font-extrabold text-brand">{{ totalNecesidades }}</span>
+        <span class="text-sm text-text-secondary">Necesidades Reportadas</span>
       </BaseCard>
       <BaseCard v-if="role === 'personal'" class="flex flex-col items-center text-center gap-1!">
         <span class="text-4xl font-extrabold text-brand">{{ misMisionesActivas.length }}</span>
@@ -175,7 +196,7 @@ onMounted(async () => {
           { key: 'fecha_hora_atencion', label: 'Fecha' },
           { key: 'status_sync', label: 'Sync' },
         ]"
-        :rows="atendidosStore.list.slice(-10).reverse() as unknown as Record<string, unknown>[]"
+        :rows="misAtenciones.slice(-10).reverse() as unknown as Record<string, unknown>[]"
       >
         <template #cell-status_sync="{ value }">
           <StatusBadge :status="value as string" type="sync" />

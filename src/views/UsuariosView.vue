@@ -8,9 +8,11 @@ import BaseTable from '@/components/ui/BaseTable.vue'
 import ConfirmDialog from '@/components/ui/ConfirmDialog.vue'
 import StatusBadge from '@/components/ui/StatusBadge.vue'
 import { getAll, addItem, putItem } from '@/db'
-import { supabase } from '@/lib/supabase'
+import { getSupabase, getAuthSupabase } from '@/lib/supabase'
+import { useAuthStore } from '@/stores/auth'
 import type { Usuario, CategoriaVoluntariado } from '@/types'
 
+const auth = useAuthStore()
 const usuarios = ref<Usuario[]>([])
 const showUserForm = ref(false)
 const editingUser = ref<Usuario | null>(null)
@@ -18,7 +20,6 @@ const formCedula = ref('')
 const formNombre = ref('')
 const formEmail = ref('')
 const formRol = ref('')
-const formPassword = ref('')
 const formCategoriaVoluntariado = ref<string>('')
 const formEspecialidad = ref('')
 const formAreaVoluntariado = ref('')
@@ -69,8 +70,7 @@ const userColumns = [
 async function loadUsuarios() {
   try {
     if (navigator.onLine) {
-      const { data, error } = await supabase
-        .from('perfiles')
+      const { data, error } = await getSupabase().from('perfiles')
         .select('*')
         .order('created_at', { ascending: false })
       if (!error && data) {
@@ -80,7 +80,6 @@ async function loadUsuarios() {
           nombre: p.nombre as string,
           email: (p.email as string) ?? `${p.cedula}@ftr.app`,
           rol: p.rol as Usuario['rol'],
-          password: '' as string,
           activo: p.activo as boolean,
           categoria_voluntariado: p.categoria_voluntariado as CategoriaVoluntariado | undefined,
           especialidad: (p.especialidad as string) ?? '',
@@ -99,50 +98,54 @@ async function saveUser() {
   const isNew = !editingUser.value
   const esPersonal = formRol.value === 'personal'
   const email = formEmail.value || `${formCedula.value}@ftr.app`
-  const password = formPassword.value || '123456'
   const user: Usuario = {
     id: editingUser.value?.id ?? crypto.randomUUID(),
     cedula: formCedula.value,
     nombre: formNombre.value,
     email,
     rol: formRol.value as Usuario['rol'],
-    password,
     activo: true,
     categoria_voluntariado: esPersonal ? (formCategoriaVoluntariado.value as CategoriaVoluntariado) : undefined,
     especialidad: esPersonal ? formEspecialidad.value : '',
     area_voluntariado: esPersonal ? formAreaVoluntariado.value : '',
   }
 
-  const payload: Record<string, unknown> = {
-    id: user.id,
-    cedula: user.cedula,
-    nombre: user.nombre,
-    email: user.email,
-    password: user.password,
-    rol: user.rol,
-    activo: user.activo,
-    categoria_voluntariado: user.categoria_voluntariado ?? null,
-    especialidad: user.especialidad ?? '',
-    area_voluntariado: user.area_voluntariado ?? '',
-  }
-
   if (navigator.onLine && isNew) {
-    const { error: insertError } = await supabase.from('perfiles').insert(payload)
-    if (!insertError) {
-      await addItem('usuarios', user)
-    } else {
+    try {
+      const { error } = await getSupabase().auth.signUp({
+        email: user.email,
+        password: '123456',
+        options: {
+          data: {
+            cedula: user.cedula,
+            nombre: user.nombre,
+            rol: user.rol,
+            categoria_voluntariado: user.categoria_voluntariado ?? null,
+            especialidad: user.especialidad ?? '',
+            area_voluntariado: user.area_voluntariado ?? '',
+          },
+        },
+      })
+      if (!error) {
+        await addItem('usuarios', user)
+      } else {
+        await addItem('usuarios', user)
+      }
+    } catch {
       await addItem('usuarios', user)
     }
   } else if (navigator.onLine && !isNew) {
-    await supabase.from('perfiles').update({
+    const client = auth.accessToken
+      ? getAuthSupabase(auth.accessToken)
+      : getSupabase()
+    await client.from('perfiles').update({
       cedula: user.cedula,
       nombre: user.nombre,
       email: user.email,
-      password: user.password,
       rol: user.rol,
-      categoria_voluntariado: payload.categoria_voluntariado,
-      especialidad: payload.especialidad,
-      area_voluntariado: payload.area_voluntariado,
+      categoria_voluntariado: user.categoria_voluntariado ?? null,
+      especialidad: user.especialidad ?? '',
+      area_voluntariado: user.area_voluntariado ?? '',
     }).eq('id', user.id)
     await putItem('usuarios', user)
   } else {
@@ -162,7 +165,6 @@ function editUser(u: Usuario) {
   formNombre.value = u.nombre
   formEmail.value = u.email
   formRol.value = u.rol
-  formPassword.value = ''
   formCategoriaVoluntariado.value = u.categoria_voluntariado ?? ''
   formEspecialidad.value = u.especialidad ?? ''
   formAreaVoluntariado.value = u.area_voluntariado ?? ''
@@ -172,7 +174,10 @@ function editUser(u: Usuario) {
 async function toggleActivo(u: Usuario) {
   const updated = { ...u, activo: !u.activo }
   if (navigator.onLine) {
-    await supabase.from('perfiles').update({ activo: updated.activo }).eq('id', updated.id)
+    const client = auth.accessToken
+      ? getAuthSupabase(auth.accessToken)
+      : getSupabase()
+    await client.from('perfiles').update({ activo: updated.activo }).eq('id', updated.id)
   }
   await putItem('usuarios', updated)
   await loadUsuarios()
@@ -192,7 +197,10 @@ async function confirmDelete() {
   if (!userToDelete.value) return
   const updated = { ...userToDelete.value, activo: false }
   if (navigator.onLine) {
-    await supabase.from('perfiles').update({ activo: false }).eq('id', updated.id)
+    const client = auth.accessToken
+      ? getAuthSupabase(auth.accessToken)
+      : getSupabase()
+    await client.from('perfiles').update({ activo: false }).eq('id', updated.id)
   }
   await putItem('usuarios', updated)
   showDeleteModal.value = false
@@ -207,7 +215,6 @@ function resetForm() {
   formNombre.value = ''
   formEmail.value = ''
   formRol.value = ''
-  formPassword.value = ''
   formCategoriaVoluntariado.value = ''
   formEspecialidad.value = ''
   formAreaVoluntariado.value = ''
@@ -276,7 +283,6 @@ onMounted(async () => {
               ]"
               required
             />
-            <BaseInput v-model="formPassword" label="Contraseña" type="password" />
             <template v-if="formRol === 'personal'">
               <BaseSelect
                 v-model="formCategoriaVoluntariado"

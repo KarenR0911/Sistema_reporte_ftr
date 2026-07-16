@@ -10,6 +10,7 @@ const auth = useAuthStore()
 
 const email = ref('')
 const password = ref('')
+const recordar = ref(true)
 const error = ref('')
 const loading = ref(false)
 
@@ -17,7 +18,7 @@ async function handleLogin() {
   error.value = ''
   loading.value = true
   try {
-    const ok = await auth.login(email.value, password.value)
+    const ok = await auth.login(email.value, password.value, recordar.value)
     if (ok) {
       router.push('/dashboard')
     } else {
@@ -53,6 +54,10 @@ async function handleLogin() {
           placeholder="Ingrese su contraseña"
           required
         />
+        <label class="flex items-center gap-2 text-sm text-text-secondary cursor-pointer select-none">
+          <input type="checkbox" v-model="recordar" class="accent-primary w-4 h-4" />
+          Recordar sesión
+        </label>
         <p v-if="error" class="text-danger text-sm m-0 text-center">{{ error }}</p>
         <BaseButton type="submit" variant="primary" size="lg" :disabled="loading">
           {{ loading ? 'Ingresando...' : 'Iniciar Sesión' }}

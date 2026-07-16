@@ -44,7 +44,14 @@ export interface PersonalMision {
   nombre: string
   categoria_voluntariado: CategoriaVoluntariado
   especialidad: string
+  area_voluntariado?: string
   status_sync: StatusSync
+}
+
+export interface InsumoEntregado {
+  id: string
+  descripcion: string
+  cantidad: number
 }
 
 export interface Atendido {
@@ -79,7 +86,6 @@ export interface Usuario {
   nombre: string
   email: string
   rol: RolUsuario
-  password: string
   activo: boolean
   categoria_voluntariado?: CategoriaVoluntariado
   especialidad?: string

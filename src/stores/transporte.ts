@@ -1,20 +1,15 @@
 import { ref } from 'vue'
 import { defineStore } from 'pinia'
 import type { Transporte } from '@/types'
-import { getAll, addItem, putItem, deleteItem } from '@/db'
-import { supabase } from '@/lib/supabase'
+import { getAll, addItem, putItem, deleteItem, addDeletedId } from '@/db'
 
 export const useTransporteStore = defineStore('transporte', () => {
   const list = ref<Transporte[]>([])
 
   async function load() {
-    try {
-      if (navigator.onLine) {
-        const { data } = await supabase.from('transporte').select('*')
-        if (data) { list.value = data as Transporte[]; return }
-      }
-    } catch { /* fallback */ }
-    list.value = await getAll<Transporte>('transporte')
+    if (list.value.length === 0) {
+      list.value = await getAll<Transporte>('transporte')
+    }
   }
 
   function getByMision(id_mision: string) {
@@ -22,29 +17,21 @@ export const useTransporteStore = defineStore('transporte', () => {
   }
 
   async function create(item: Transporte) {
-    const clone = { ...item }
+    const clone = { ...item, status_sync: 'pending' as const }
     await addItem('transporte', clone)
-    if (navigator.onLine) {
-      try { await supabase.from('transporte').insert(clone).maybeSingle() } catch { /* ignore */ }
-    }
     list.value.push(clone)
   }
 
   async function update(item: Transporte) {
-    const clone = { ...item }
+    const clone = { ...item, status_sync: 'pending' as const }
     await putItem('transporte', clone)
-    if (navigator.onLine) {
-      try { await supabase.from('transporte').update(clone).eq('id', clone.id) } catch { /* ignore */ }
-    }
     const idx = list.value.findIndex((t) => t.id === clone.id)
     if (idx !== -1) list.value[idx] = clone
   }
 
   async function remove(id: string) {
     await deleteItem('transporte', id)
-    if (navigator.onLine) {
-      try { await supabase.from('transporte').delete().eq('id', id) } catch { /* ignore */ }
-    }
+    await addDeletedId('transporte', id)
     list.value = list.value.filter((t) => t.id !== id)
   }
 

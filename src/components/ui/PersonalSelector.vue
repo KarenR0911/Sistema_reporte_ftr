@@ -2,7 +2,9 @@
 import { ref, computed, onMounted } from 'vue'
 import { Search } from '@lucide/vue'
 import BaseButton from '@/components/ui/BaseButton.vue'
-import { supabase } from '@/lib/supabase'
+import { getSupabase, getAuthSupabase } from '@/lib/supabase'
+import { getAll, addItem } from '@/db'
+import { useAuthStore } from '@/stores/auth'
 import type { Usuario } from '@/types'
 
 const props = defineProps<{
@@ -34,6 +36,8 @@ const filteredPersonal = computed(() => {
   return list
 })
 
+const isOnline = computed(() => navigator.onLine)
+
 const allSelected = computed(
   () =>
     filteredPersonal.value.length > 0 &&
@@ -60,23 +64,35 @@ function toggleAllPersonal() {
   }
 }
 
+async function loadFromSupabase() {
+  const auth = useAuthStore()
+  const client = auth.accessToken
+    ? getAuthSupabase(auth.accessToken)
+    : getSupabase()
+  const { data } = await client.from('perfiles').select('*').eq('rol', 'personal')
+  if (!data) return
+  const users: Usuario[] = data.map((p: Record<string, unknown>) => ({
+    id: p.id as string,
+    cedula: p.cedula as string,
+    nombre: p.nombre as string,
+    email: (p.email as string) ?? '',
+    rol: 'personal' as const,
+    activo: (p.activo as boolean) ?? true,
+    categoria_voluntariado: p.categoria_voluntariado as Usuario['categoria_voluntariado'],
+    especialidad: (p.especialidad as string) ?? '',
+    area_voluntariado: (p.area_voluntariado as string) ?? '',
+  }))
+  personalDisponible.value = users
+  for (const u of users) {
+    await addItem('usuarios', u).catch(() => {})
+  }
+}
+
 onMounted(async () => {
+  const local = await getAll<Usuario>('usuarios')
+  personalDisponible.value = local.filter((u) => u.rol === 'personal' && u.activo)
   if (navigator.onLine) {
-    const { data } = await supabase.from('perfiles').select('*').eq('rol', 'personal')
-    if (data) {
-      personalDisponible.value = data.map((p: Record<string, unknown>) => ({
-        id: p.id as string,
-        cedula: p.cedula as string,
-        nombre: p.nombre as string,
-        email: (p.email as string) ?? '',
-        rol: 'personal' as const,
-        password: '',
-        activo: true,
-        categoria_voluntariado: p.categoria_voluntariado as Usuario['categoria_voluntariado'],
-        especialidad: (p.especialidad as string) ?? '',
-        area_voluntariado: (p.area_voluntariado as string) ?? '',
-      }))
-    }
+    await loadFromSupabase()
   }
 })
 </script>
@@ -87,7 +103,7 @@ onMounted(async () => {
       Selecciona los voluntarios y profesionales que participarán en esta misión.
     </p>
     <div v-if="personalDisponible.length === 0" class="py-6 text-center text-text-secondary italic">
-      No hay personal disponible. Crea usuarios con rol "Personal" desde el panel de Usuarios.
+      {{ isOnline ? 'No hay personal disponible. Crea usuarios con rol "Personal" desde el panel de Usuarios.' : 'Modo offline: sin personal disponible. Conéctate para sincronizar.' }}
     </div>
     <template v-else>
       <div class="flex items-center gap-3 mb-3">
