@@ -54,10 +54,6 @@ onMounted(async () => {
     )
   }
 
-  if (role.value === 'coordinador') {
-    loads.push()
-  }
-
   loads.push(atendidosStore.load(), personalStore.load())
 
   await Promise.all(loads)

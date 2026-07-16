@@ -12,6 +12,8 @@ import { useInsumosStore } from '@/stores/insumos'
 import { useAtendidosStore } from '@/stores/atendidos'
 import { useAuthStore } from '@/stores/auth'
 import { useToastStore } from '@/stores/toast'
+import { useLoading } from '@/composables/useLoading'
+import { atencionSchema } from '@/lib/schemas'
 import type { Atendido, InsumoLlevado } from '@/types'
 
 const route = useRoute()
@@ -21,6 +23,7 @@ const insumosStore = useInsumosStore()
 const atendidosStore = useAtendidosStore()
 const auth = useAuthStore()
 const toast = useToastStore()
+const { loading, withLoading } = useLoading()
 
 const missionId = route.params.id_mision as string
 const mission = computed(() => misionesStore.getById(missionId))
@@ -32,6 +35,7 @@ const formCedula = ref('')
 const formNombre = ref('')
 const formTelefono = ref('')
 const formNotas = ref('')
+const formErrors = ref<Record<string, string>>({})
 const entregas = ref<Record<string, number>>({})
 
 function toggleInsumo(ins: InsumoLlevado) {
@@ -54,8 +58,17 @@ function setCantidad(id: string, val: string) {
 }
 
 async function registerAttendee() {
-  if (!formCedula.value.trim() || !formNombre.value.trim()) {
-    toast.error('Cédula y nombre del atendido son obligatorios.')
+  formErrors.value = {}
+  const result = atencionSchema.safeParse({
+    cedula_atendido: formCedula.value,
+    nombre_atendido: formNombre.value,
+    telefono_contacto: formTelefono.value,
+    notas: formNotas.value,
+  })
+  if (!result.success) {
+    for (const issue of result.error.issues) {
+      formErrors.value[issue.path[0] as string] = issue.message
+    }
     return
   }
   const selectedIds = Object.keys(entregas.value)
@@ -79,15 +92,18 @@ async function registerAttendee() {
     insumos_dados: JSON.stringify(insumosEntregados),
     status_sync: 'pending',
   }
-  await atendidosStore.create(item)
 
-  for (const entrega of insumosEntregados) {
-    if (!entrega) continue
-    const ins = insumosMision.value.find((i) => i.id === entrega.id)
-    if (!ins) continue
-    const nuevaCantidad = Math.max(0, ins.cantidad - entrega.cantidad)
-    await insumosStore.update({ ...ins, cantidad: nuevaCantidad, status_sync: 'pending' })
-  }
+  await withLoading(async () => {
+    await atendidosStore.create(item)
+
+    for (const entrega of insumosEntregados) {
+      if (!entrega) continue
+      const ins = insumosMision.value.find((i) => i.id === entrega.id)
+      if (!ins) continue
+      const nuevaCantidad = Math.max(0, ins.cantidad - entrega.cantidad)
+      await insumosStore.update({ ...ins, cantidad: nuevaCantidad, status_sync: 'pending' })
+    }
+  }, 'Registrando atención...')
 
   formCedula.value = ''
   formNombre.value = ''
@@ -120,8 +136,8 @@ onMounted(async () => {
 
     <BaseCard title="Datos de la Persona Atendida">
       <div class="grid grid-cols-2 gap-4 mb-4">
-        <BaseInput v-model="formCedula" label="Cédula del Atendido" required />
-        <BaseInput v-model="formNombre" label="Nombre Completo" required />
+        <BaseInput v-model="formCedula" label="Cédula del Atendido" required :error="formErrors.cedula_atendido" @update:model-value="formErrors.cedula_atendido = ''" />
+        <BaseInput v-model="formNombre" label="Nombre Completo" required :error="formErrors.nombre_atendido" @update:model-value="formErrors.nombre_atendido = ''" />
         <BaseInput v-model="formTelefono" label="Teléfono de Contacto" />
         <BaseInput v-model="formNotas" label="Notas de la Atención" />
       </div>
@@ -184,7 +200,7 @@ onMounted(async () => {
     </BaseCard>
 
     <div class="flex justify-end">
-      <BaseButton variant="primary" size="lg" @click="registerAttendee">
+      <BaseButton variant="primary" size="lg" @click="registerAttendee" :loading="loading">
         <UserPlus :size="20" /> Registrar Atención
       </BaseButton>
     </div>

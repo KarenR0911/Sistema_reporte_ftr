@@ -4,6 +4,12 @@ defineProps<{
   size?: 'sm' | 'md' | 'lg'
   disabled?: boolean
   type?: 'button' | 'submit' | 'reset'
+  loading?: boolean
+  loadingText?: string
+}>()
+
+defineEmits<{
+  click: [event: MouseEvent]
 }>()
 </script>
 
@@ -20,8 +26,14 @@ defineProps<{
       size === 'md' || (!size) ? 'px-5 py-2.5 text-[0.95rem]' : '',
       size === 'lg' ? 'px-7 py-3.5 text-[1.05rem]' : '',
     ]"
-    :disabled="disabled"
+    :disabled="disabled || loading"
+    @click="$emit('click', $event)"
   >
-    <slot />
+    <span v-if="loading" class="flex items-center gap-1.5">
+      <span class="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+      <span v-if="loadingText">{{ loadingText }}</span>
+      <span v-else>Cargando...</span>
+    </span>
+    <span v-else><slot /></span>
   </button>
 </template>

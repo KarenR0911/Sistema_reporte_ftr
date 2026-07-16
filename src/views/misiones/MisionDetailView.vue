@@ -16,11 +16,14 @@ import { useInsumosStore } from '@/stores/insumos'
 import { useAtendidosStore } from '@/stores/atendidos'
 import { useNecesidadesStore } from '@/stores/necesidades'
 import { useAuthStore } from '@/stores/auth'
+import { useLoading } from '@/composables/useLoading'
 import type { Mision, Transporte, PersonalMision, InsumoLlevado, Usuario } from '@/types'
 
 const route = useRoute()
 const router = useRouter()
 const auth = useAuthStore()
+const { loading, withLoading } = useLoading()
+
 const misionesStore = useMisionesStore()
 const transporteStore = useTransporteStore()
 const personalStore = usePersonalStore()
@@ -42,7 +45,8 @@ const canEdit = computed(() => role.value === 'director' || role.value === 'admi
 const selectedUserList = ref<Usuario[]>([])
 
 async function agregarPersonalSeleccionado() {
-  for (const p of selectedUserList.value) {
+  await withLoading(async () => {
+    for (const p of selectedUserList.value) {
       const item: PersonalMision = {
         id: crypto.randomUUID(),
         id_mision: missionId,
@@ -51,10 +55,10 @@ async function agregarPersonalSeleccionado() {
         categoria_voluntariado: p.categoria_voluntariado ?? 'voluntario',
         especialidad: p.especialidad ?? '',
         area_voluntariado: p.area_voluntariado ?? '',
-        status_sync: 'pending',
       }
-    await personalStore.create(item)
-  }
+      await personalStore.create(item)
+    }
+  }, 'Agregando personal...')
   selectedUserList.value = []
   showPersonalForm.value = false
 }
@@ -77,13 +81,14 @@ function confirmRemovePersonal() {
 }
 
 async function addTransporte() {
-  const item: Transporte = {
-    id: crypto.randomUUID(),
-    id_mision: missionId,
-    ...transportForm.value,
-    status_sync: 'pending',
-  }
-  await transporteStore.create(item)
+  await withLoading(async () => {
+    const item: Transporte = {
+      id: crypto.randomUUID(),
+      id_mision: missionId,
+      ...transportForm.value,
+    }
+    await transporteStore.create(item)
+  }, 'Guardando transporte...')
   transportForm.value = { tipo_transporte: '', numero_placa: '', nombre_conductor: '' }
   showTransportForm.value = false
 }
@@ -99,14 +104,16 @@ function openCompleteModal() {
 
 async function confirmComplete() {
   if (!mission.value) return
-  for (const ins of insumosMision.value) {
-    if (returnItems.value[ins.id]) {
-      const updated = { ...ins, estatus_cargamento: 'retorno' as const, status_sync: 'pending' as const }
-      await insumosStore.update(updated)
+  await withLoading(async () => {
+    for (const ins of insumosMision.value) {
+      if (returnItems.value[ins.id]) {
+        const updated = { ...ins, estatus_cargamento: 'retorno' as const, status_sync: 'pending' as const }
+        await insumosStore.update(updated)
+      }
     }
-  }
-  const updatedMission = { ...mission.value, estatus_mision: 'completada' as const, status_sync: 'pending' as const }
-  await misionesStore.update(updatedMission as Mision)
+    const updatedMission = { ...mission.value, estatus_mision: 'completada' as const, status_sync: 'pending' as const }
+    await misionesStore.update(updatedMission as Mision)
+  }, 'Completando misión...')
   showCompleteModal.value = false
   router.push('/misiones')
 }
@@ -153,7 +160,7 @@ onMounted(async () => {
           <BaseInput v-model="transportForm.tipo_transporte" placeholder="Tipo" />
           <BaseInput v-model="transportForm.numero_placa" placeholder="Placa" />
           <BaseInput v-model="transportForm.nombre_conductor" placeholder="Conductor" />
-          <BaseButton variant="primary" size="sm" @click="addTransporte">Guardar</BaseButton>
+          <BaseButton variant="primary" size="sm" @click="addTransporte" :loading="loading">Guardar</BaseButton>
         </div>
         <BaseTable
           :columns="[
@@ -179,7 +186,7 @@ onMounted(async () => {
         <div v-if="showPersonalForm && canEdit" class="bg-bg p-4 rounded-lg mb-4">
           <PersonalSelector v-model="selectedUserList" />
           <div class="flex gap-2 mt-3">
-            <BaseButton variant="primary" size="sm" @click="agregarPersonalSeleccionado">Agregar seleccionados</BaseButton>
+            <BaseButton variant="primary" size="sm" @click="agregarPersonalSeleccionado" :loading="loading">Agregar seleccionados</BaseButton>
             <BaseButton variant="ghost" size="sm" @click="showPersonalForm = false; selectedUserList = []">Cancelar</BaseButton>
           </div>
         </div>
@@ -271,7 +278,7 @@ onMounted(async () => {
           </div>
           <p v-if="insumosMision.length === 0" class="text-text-secondary italic">No hay insumos registrados.</p>
           <div class="flex gap-2 justify-end mt-2">
-            <BaseButton variant="primary" @click="confirmComplete">Confirmar y Completar</BaseButton>
+            <BaseButton variant="primary" @click="confirmComplete" :loading="loading">Confirmar y Completar</BaseButton>
             <BaseButton variant="ghost" @click="showCompleteModal = false">Cancelar</BaseButton>
           </div>
         </div>
