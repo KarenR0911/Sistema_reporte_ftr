@@ -10,6 +10,7 @@ import StatusBadge from '@/components/ui/StatusBadge.vue'
 import { getAll, addItem, putItem } from '@/db'
 import { getSupabase, getAuthSupabase } from '@/lib/supabase'
 import { useAuthStore } from '@/stores/auth'
+import { useToastStore } from '@/stores/toast'
 import type { Usuario, CategoriaVoluntariado } from '@/types'
 
 const auth = useAuthStore()
@@ -112,9 +113,10 @@ async function saveUser() {
 
   if (navigator.onLine && isNew) {
     try {
+      const tempPassword = Math.random().toString(36).slice(2, 10) + 'A1!'
       const { error } = await getSupabase().auth.signUp({
         email: user.email,
-        password: '123456',
+        password: tempPassword,
         options: {
           data: {
             cedula: user.cedula,
@@ -128,8 +130,10 @@ async function saveUser() {
       })
       if (!error) {
         await addItem('usuarios', user)
+        useToastStore().success(`Usuario creado. Contraseña temporal: ${tempPassword}`)
       } else {
         await addItem('usuarios', user)
+        useToastStore().success(`Usuario creado (offline). Contraseña temporal: ${tempPassword}`)
       }
     } catch {
       await addItem('usuarios', user)

@@ -87,16 +87,7 @@ export const useAuthStore = defineStore('auth', () => {
       }
     }
 
-    // 2. Offline: buscar en IndexedDB
-    await loadUsuarios()
-    const localUser = usuarios.value.find(
-      (u) => u.email === email && u.activo,
-    )
-    if (localUser) {
-      currentUser.value = localUser
-      return true
-    }
-
+    // 2. Offline: solo puede acceder si hay sesión guardada (restoreSession)
     return false
   }
 

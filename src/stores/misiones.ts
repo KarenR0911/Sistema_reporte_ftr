@@ -2,6 +2,7 @@ import { ref } from 'vue'
 import { defineStore } from 'pinia'
 import type { Mision } from '@/types'
 import { getAll, addItem, putItem, deleteItem, addDeletedId } from '@/db'
+import { markNeedsSync } from '@/lib/syncTrigger'
 
 export const useMisionesStore = defineStore('misiones', () => {
   const list = ref<Mision[]>([])
@@ -16,6 +17,7 @@ export const useMisionesStore = defineStore('misiones', () => {
     const clone = { ...mision, status_sync: 'pending' as const }
     await addItem('misiones', clone)
     list.value.push(clone)
+    markNeedsSync()
   }
 
   async function update(mision: Mision) {
@@ -23,12 +25,14 @@ export const useMisionesStore = defineStore('misiones', () => {
     await putItem('misiones', clone)
     const idx = list.value.findIndex((m) => m.id === clone.id)
     if (idx !== -1) list.value[idx] = clone
+    markNeedsSync()
   }
 
   async function remove(id: string) {
     await deleteItem('misiones', id)
     await addDeletedId('misiones', id)
     list.value = list.value.filter((m) => m.id !== id)
+    markNeedsSync()
   }
 
   function getById(id: string) {

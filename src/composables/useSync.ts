@@ -2,6 +2,7 @@ import { useOnlineStatus } from './useOnlineStatus'
 import { getPending, markAsSynced, putItem, getAll, getDeletedIds, clearDeletedId } from '@/db'
 import { getAuthSupabase } from '@/lib/supabase'
 import { useAuthStore } from '@/stores/auth'
+import { useNeedsSync } from '@/lib/syncTrigger'
 import type { StoreName } from '@/db'
 import { ref, watch, onUnmounted } from 'vue'
 
@@ -55,12 +56,13 @@ async function syncStoreToSupabase(store: StoreName, table: string, token: strin
   const client = getAuthSupabase(token)
   const pending = await getPending(store)
   for (const item of pending) {
-    const record = { ...item as Record<string, unknown> }
+    const { status_sync: _, ...record } = { ...item as Record<string, unknown> }
     for (let attempt = 0; attempt < retries; attempt++) {
       try {
         const { error } = await client.from(table).upsert(record, { onConflict: 'id' })
         if (!error) {
           await markAsSynced(store, record.id as string)
+          await client.from(table).update({ status_sync: 'synced' }).eq('id', record.id as string)
           break
         }
       } catch {
@@ -128,8 +130,18 @@ export function useSync() {
     refreshPendingCount()
   }
 
+  const { needsSyncCount } = useNeedsSync()
+  let syncTimeout: ReturnType<typeof setTimeout> | null = null
+  watch(needsSyncCount, () => {
+    if (syncTimeout) clearTimeout(syncTimeout)
+    syncTimeout = setTimeout(() => {
+      syncAll()
+    }, 2000)
+  })
+
   onUnmounted(() => {
     if (stopWatcher) stopWatcher()
+    if (syncTimeout) clearTimeout(syncTimeout)
   })
 
   return { syncAll, isSyncing, pendingCount }
