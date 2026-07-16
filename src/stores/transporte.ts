@@ -1,16 +1,27 @@
 import { ref } from 'vue'
 import { defineStore } from 'pinia'
 import type { Transporte } from '@/types'
-import { getAll, addItem, putItem, deleteItem, addDeletedId } from '@/db'
-import { markNeedsSync } from '@/lib/syncTrigger'
+import { getAll, putItem, deleteItem } from '@/db'
+import { getSupabase } from '@/lib/supabase'
 
 export const useTransporteStore = defineStore('transporte', () => {
   const list = ref<Transporte[]>([])
 
   async function load() {
-    if (list.value.length === 0) {
-      list.value = await getAll<Transporte>('transporte')
+    if (navigator.onLine) {
+      const sb = getSupabase()
+      try {
+        const { data, error } = await sb.from('transporte').select('*')
+        if (!error && data) {
+          list.value = data as Transporte[]
+          for (const item of data) {
+            await putItem('transporte', { ...item, status_sync: 'synced' })
+          }
+          return
+        }
+      } catch { /* fallback a cache */ }
     }
+    list.value = await getAll<Transporte>('transporte')
   }
 
   function getByMision(id_mision: string) {
@@ -18,25 +29,30 @@ export const useTransporteStore = defineStore('transporte', () => {
   }
 
   async function create(item: Transporte) {
-    const clone = { ...item, status_sync: 'pending' as const }
-    await addItem('transporte', clone)
-    list.value.push(clone)
-    markNeedsSync()
+    const sb = getSupabase()
+    const { error } = await sb.from('transporte').insert(item)
+    if (error) throw error
+    const saved = { ...item, status_sync: 'synced' as const }
+    list.value.push(saved)
+    await putItem('transporte', saved)
   }
 
   async function update(item: Transporte) {
-    const clone = { ...item, status_sync: 'pending' as const }
-    await putItem('transporte', clone)
-    const idx = list.value.findIndex((t) => t.id === clone.id)
-    if (idx !== -1) list.value[idx] = clone
-    markNeedsSync()
+    const sb = getSupabase()
+    const { error } = await sb.from('transporte').update(item).eq('id', item.id)
+    if (error) throw error
+    const saved = { ...item, status_sync: 'synced' as const }
+    const idx = list.value.findIndex((t) => t.id === item.id)
+    if (idx !== -1) list.value[idx] = saved
+    await putItem('transporte', saved)
   }
 
   async function remove(id: string) {
-    await deleteItem('transporte', id)
-    await addDeletedId('transporte', id)
+    const sb = getSupabase()
+    const { error } = await sb.from('transporte').delete().eq('id', id)
+    if (error) throw error
     list.value = list.value.filter((t) => t.id !== id)
-    markNeedsSync()
+    await deleteItem('transporte', id)
   }
 
   return { list, load, getByMision, create, update, remove }

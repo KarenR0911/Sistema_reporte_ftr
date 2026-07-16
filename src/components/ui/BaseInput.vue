@@ -5,6 +5,8 @@ defineProps<{
   type?: string
   placeholder?: string
   required?: boolean
+  error?: string
+  maxlength?: number
 }>()
 
 defineEmits<{
@@ -19,11 +21,14 @@ defineEmits<{
     </label>
     <input
       :type="type ?? 'text'"
-      class="font-sans px-3.5 py-2.5 border border-border rounded-lg text-sm bg-white transition-colors focus:outline-none focus:border-primary focus:ring-3 focus:ring-primary/10"
+      class="font-sans px-3.5 py-2.5 border rounded-lg text-sm bg-white transition-colors focus:outline-none focus:ring-3 focus:ring-primary/10"
+      :class="error ? 'border-danger' : 'border-border focus:border-primary'"
       :placeholder="placeholder"
       :value="modelValue"
       :required="required"
+      :maxlength="maxlength"
       @input="$emit('update:modelValue', ($event.target as HTMLInputElement).value)"
     />
+    <p v-if="error" class="text-danger text-xs m-0">{{ error }}</p>
   </div>
 </template>

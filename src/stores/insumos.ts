@@ -1,16 +1,27 @@
 import { ref } from 'vue'
 import { defineStore } from 'pinia'
 import type { InsumoLlevado } from '@/types'
-import { getAll, addItem, putItem, deleteItem, addDeletedId } from '@/db'
-import { markNeedsSync } from '@/lib/syncTrigger'
+import { getAll, putItem, deleteItem } from '@/db'
+import { getSupabase } from '@/lib/supabase'
 
 export const useInsumosStore = defineStore('insumos', () => {
   const list = ref<InsumoLlevado[]>([])
 
   async function load() {
-    if (list.value.length === 0) {
-      list.value = await getAll<InsumoLlevado>('insumos')
+    if (navigator.onLine) {
+      const sb = getSupabase()
+      try {
+        const { data, error } = await sb.from('insumos').select('*')
+        if (!error && data) {
+          list.value = data as InsumoLlevado[]
+          for (const item of data) {
+            await putItem('insumos', { ...item, status_sync: 'synced' })
+          }
+          return
+        }
+      } catch { /* fallback a cache */ }
     }
+    list.value = await getAll<InsumoLlevado>('insumos')
   }
 
   function getByMision(id_mision: string) {
@@ -18,25 +29,30 @@ export const useInsumosStore = defineStore('insumos', () => {
   }
 
   async function create(item: InsumoLlevado) {
-    const clone = { ...item, status_sync: 'pending' as const }
-    await addItem('insumos', clone)
-    list.value.push(clone)
-    markNeedsSync()
+    const sb = getSupabase()
+    const { error } = await sb.from('insumos').insert(item)
+    if (error) throw error
+    const saved = { ...item, status_sync: 'synced' as const }
+    list.value.push(saved)
+    await putItem('insumos', saved)
   }
 
   async function update(item: InsumoLlevado) {
-    const clone = { ...item, status_sync: 'pending' as const }
-    await putItem('insumos', clone)
-    const idx = list.value.findIndex((i) => i.id === clone.id)
-    if (idx !== -1) list.value[idx] = clone
-    markNeedsSync()
+    const sb = getSupabase()
+    const { error } = await sb.from('insumos').update(item).eq('id', item.id)
+    if (error) throw error
+    const saved = { ...item, status_sync: 'synced' as const }
+    const idx = list.value.findIndex((i) => i.id === item.id)
+    if (idx !== -1) list.value[idx] = saved
+    await putItem('insumos', saved)
   }
 
   async function remove(id: string) {
-    await deleteItem('insumos', id)
-    await addDeletedId('insumos', id)
+    const sb = getSupabase()
+    const { error } = await sb.from('insumos').delete().eq('id', id)
+    if (error) throw error
     list.value = list.value.filter((i) => i.id !== id)
-    markNeedsSync()
+    await deleteItem('insumos', id)
   }
 
   return { list, load, getByMision, create, update, remove }

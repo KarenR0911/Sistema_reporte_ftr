@@ -10,12 +10,15 @@ import StatusBadge from '@/components/ui/StatusBadge.vue'
 import { Plus, ArrowLeft } from '@lucide/vue'
 import { useMisionesStore } from '@/stores/misiones'
 import { useNecesidadesStore } from '@/stores/necesidades'
+import { necesidadSchema } from '@/lib/schemas'
 import type { Necesidad } from '@/types'
+import { useLoading } from '@/composables/useLoading'
 
 const route = useRoute()
 const router = useRouter()
 const misionesStore = useMisionesStore()
 const necesidadesStore = useNecesidadesStore()
+const { loading, withLoading } = useLoading()
 
 const missionId = route.params.id as string
 const mission = computed(() => misionesStore.getById(missionId))
@@ -27,21 +30,38 @@ const formCantidad = ref('')
 const formUnidad = ref('')
 const formObservaciones = ref('')
 const formPrioridad = ref('media')
+const formErrors = ref<Record<string, string>>({})
 
 async function addNecesidad() {
+  formErrors.value = {}
+  const cantidad_requerida = Number(formCantidad.value) || 0
+  const result = necesidadSchema.safeParse({
+    categoria: formCategoria.value,
+    descripcion: formDescripcion.value,
+    cantidad_requerida,
+    unidad: formUnidad.value,
+    observaciones: formObservaciones.value,
+    prioridad: formPrioridad.value,
+  })
+  if (!result.success) {
+    for (const issue of result.error.issues) {
+      formErrors.value[issue.path[0] as string] = issue.message
+    }
+    return
+  }
   const item: Necesidad = {
     id: crypto.randomUUID(),
     id_mision: missionId,
     categoria: formCategoria.value,
     descripcion: formDescripcion.value,
-    cantidad_requerida: Number(formCantidad.value) || 0,
+    cantidad_requerida,
     unidad: formUnidad.value,
     observaciones: formObservaciones.value,
     prioridad: formPrioridad.value as Necesidad['prioridad'],
     estatus: 'reportado',
     status_sync: 'pending',
   }
-  await necesidadesStore.create(item)
+  await withLoading(() => necesidadesStore.create(item), 'Guardando necesidad...')
   formCategoria.value = ''
   formDescripcion.value = ''
   formCantidad.value = ''
@@ -69,14 +89,15 @@ onMounted(async () => {
 
     <BaseCard title="Registrar Necesidad">
       <div class="grid grid-cols-2 gap-4 mb-4">
-        <BaseInput v-model="formCategoria" label="Categoría" placeholder="Medicinas, Alimentos, Agua..." />
-        <BaseInput v-model="formDescripcion" label="Descripción" />
-        <BaseInput v-model="formCantidad" label="Cantidad Requerida" type="number" />
+        <BaseInput v-model="formCategoria" label="Categoría" placeholder="Medicinas, Alimentos, Agua..." :error="formErrors.categoria" @update:model-value="formErrors.categoria = ''" />
+        <BaseInput v-model="formDescripcion" label="Descripción" :error="formErrors.descripcion" @update:model-value="formErrors.descripcion = ''" />
+        <BaseInput v-model="formCantidad" label="Cantidad Requerida" type="number" :error="formErrors.cantidad_requerida" @update:model-value="formErrors.cantidad_requerida = ''" />
         <BaseInput v-model="formUnidad" label="Unidad" placeholder="kg, unidades, litros..." />
         <BaseInput v-model="formObservaciones" label="Observaciones" />
         <BaseSelect
           v-model="formPrioridad"
           label="Prioridad"
+          :error="formErrors.prioridad"
           :options="[
             { value: 'baja', label: 'Baja' },
             { value: 'media', label: 'Media' },
@@ -85,7 +106,7 @@ onMounted(async () => {
           ]"
         />
       </div>
-      <BaseButton variant="primary" @click="addNecesidad"><Plus :size="18" /> Agregar Necesidad</BaseButton>
+      <BaseButton variant="primary" @click="addNecesidad" :loading="loading"><Plus :size="18" /> Agregar Necesidad</BaseButton>
     </BaseCard>
 
     <BaseCard title="Necesidades Registradas">

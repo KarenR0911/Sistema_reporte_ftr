@@ -12,6 +12,8 @@ import { useTransporteStore } from '@/stores/transporte'
 import { usePersonalStore } from '@/stores/personal'
 import { useInsumosStore } from '@/stores/insumos'
 import { useToastStore } from '@/stores/toast'
+import { useLoading } from '@/composables/useLoading'
+import { misionSchema, transporteSchema, insumoSchema } from '@/lib/schemas'
 import type { Mision, Transporte, PersonalMision, InsumoLlevado, Usuario } from '@/types'
 
 const router = useRouter()
@@ -20,6 +22,7 @@ const transporteStore = useTransporteStore()
 const personalStore = usePersonalStore()
 const insumosStore = useInsumosStore()
 const toast = useToastStore()
+const { loading, withLoading } = useLoading()
 
 const step = ref(1)
 const selectedPersonal = ref<Usuario[]>([])
@@ -29,17 +32,25 @@ const misionForm = ref({
   municipio: '',
   estado: '',
 })
+const misionErrors = ref<Record<string, string>>({})
 
 const transportes = ref<Omit<Transporte, 'id' | 'id_mision' | 'status_sync'>[]>([])
 const transportForm = ref({ tipo_transporte: '', numero_placa: '', nombre_conductor: '' })
+const transportErrors = ref<Record<string, string>>({})
 
 const insumos = ref<Omit<InsumoLlevado, 'id' | 'id_mision' | 'status_sync'>[]>([])
 const insumoForm = ref({ categoria: '', descripcion: '', cantidad: '', unidad: '', observaciones: '' })
+const insumoErrors = ref<Record<string, string>>({})
 
 function validateStep(): boolean {
+  misionErrors.value = {}
   if (step.value === 1) {
-    if (!misionForm.value.direccion.trim() || !misionForm.value.municipio.trim() || !misionForm.value.estado.trim()) {
-      toast.error('Completa todos los campos de la zona (dirección, municipio, estado).')
+    const result = misionSchema.safeParse(misionForm.value)
+    if (!result.success) {
+      for (const issue of result.error.issues) {
+        misionErrors.value[issue.path[0] as string] = issue.message
+      }
+      toast.error('Completa todos los campos de la zona correctamente.')
       return false
     }
     return true
@@ -83,12 +94,18 @@ function prevStep() {
 }
 
 function addTransporte() {
-  if (!transportForm.value.tipo_transporte || !transportForm.value.numero_placa || !transportForm.value.nombre_conductor) {
+  transportErrors.value = {}
+  const result = transporteSchema.safeParse(transportForm.value)
+  if (!result.success) {
+    for (const issue of result.error.issues) {
+      transportErrors.value[issue.path[0] as string] = issue.message
+    }
     toast.error('Completa todos los datos del transporte.')
     return
   }
   transportes.value.push({ ...transportForm.value })
   transportForm.value = { tipo_transporte: '', numero_placa: '', nombre_conductor: '' }
+  transportErrors.value = {}
 }
 
 function removeTransporte(idx: number) {
@@ -96,17 +113,19 @@ function removeTransporte(idx: number) {
 }
 
 function addInsumo() {
-  if (!insumoForm.value.categoria || !insumoForm.value.descripcion || !insumoForm.value.cantidad) {
-    toast.error('Completa al menos categoría, descripción y cantidad del insumo.')
-    return
-  }
-  const cantidad = Number(insumoForm.value.cantidad)
-  if (cantidad <= 0) {
-    toast.error('La cantidad debe ser mayor a 0.')
+  insumoErrors.value = {}
+  const cantidad = Number(insumoForm.value.cantidad) || 0
+  const result = insumoSchema.safeParse({ ...insumoForm.value, cantidad })
+  if (!result.success) {
+    for (const issue of result.error.issues) {
+      insumoErrors.value[issue.path[0] as string] = issue.message
+    }
+    toast.error('Completa correctamente los datos del insumo.')
     return
   }
   insumos.value.push({ ...insumoForm.value, cantidad, estatus_cargamento: 'entregado' })
   insumoForm.value = { categoria: '', descripcion: '', cantidad: '', unidad: '', observaciones: '' }
+  insumoErrors.value = {}
 }
 
 function removeInsumo(idx: number) {
@@ -126,14 +145,15 @@ async function saveMision() {
     estatus_mision: 'activa',
     status_sync: 'pending',
   }
-  await misionesStore.create(mision)
+  await withLoading(async () => {
+    await misionesStore.create(mision)
 
-  for (const t of transportes.value) {
-    const item: Transporte = { id: crypto.randomUUID(), id_mision, ...t, status_sync: 'pending' }
-    await transporteStore.create(item)
-  }
+    for (const t of transportes.value) {
+      const item: Transporte = { id: crypto.randomUUID(), id_mision, ...t, status_sync: 'pending' }
+      await transporteStore.create(item)
+    }
 
-  for (const p of selectedPersonal.value) {
+    for (const p of selectedPersonal.value) {
       const item: PersonalMision = {
         id: crypto.randomUUID(),
         id_mision,
@@ -144,19 +164,20 @@ async function saveMision() {
         area_voluntariado: p.area_voluntariado ?? '',
         status_sync: 'pending',
       }
-    await personalStore.create(item)
-  }
-
-  for (const i of insumos.value) {
-    const item: InsumoLlevado = {
-      id: crypto.randomUUID(),
-      id_mision,
-      ...i,
-      estatus_cargamento: 'entregado',
-      status_sync: 'pending',
+      await personalStore.create(item)
     }
-    await insumosStore.create(item)
-  }
+
+    for (const i of insumos.value) {
+      const item: InsumoLlevado = {
+        id: crypto.randomUUID(),
+        id_mision,
+        ...i,
+        estatus_cargamento: 'entregado',
+        status_sync: 'pending',
+      }
+      await insumosStore.create(item)
+    }
+  }, 'Guardando misión...')
 
   toast.success('Misión creada exitosamente')
   router.push('/misiones')
@@ -227,18 +248,18 @@ async function saveMision() {
 
     <BaseCard v-if="step === 1" title="Datos de la Zona">
       <div class="grid grid-cols-2 gap-4 mb-4">
-        <BaseInput v-model="misionForm.direccion" label="Dirección" required />
-        <BaseInput v-model="misionForm.municipio" label="Municipio" required />
-        <BaseInput v-model="misionForm.estado" label="Estado" required />
+        <BaseInput v-model="misionForm.direccion" label="Dirección" required :error="misionErrors.direccion" @update:model-value="misionErrors.direccion = ''" />
+        <BaseInput v-model="misionForm.municipio" label="Municipio" required :error="misionErrors.municipio" @update:model-value="misionErrors.municipio = ''" />
+        <BaseInput v-model="misionForm.estado" label="Estado" required :error="misionErrors.estado" @update:model-value="misionErrors.estado = ''" />
       </div>
       <BaseButton variant="primary" @click="nextStep">Siguiente</BaseButton>
     </BaseCard>
 
     <BaseCard v-if="step === 2" title="Transporte">
       <div class="grid grid-cols-2 gap-4 mb-4">
-        <BaseInput v-model="transportForm.tipo_transporte" label="Tipo de Transporte" placeholder="Camioneta, Autobús..." />
-        <BaseInput v-model="transportForm.numero_placa" label="Número de Placa" />
-        <BaseInput v-model="transportForm.nombre_conductor" label="Nombre del Conductor" />
+        <BaseInput v-model="transportForm.tipo_transporte" label="Tipo de Transporte" placeholder="Camioneta, Autobús..." :error="transportErrors.tipo_transporte" @update:model-value="transportErrors.tipo_transporte = ''" />
+        <BaseInput v-model="transportForm.numero_placa" label="Número de Placa" :error="transportErrors.numero_placa" @update:model-value="transportErrors.numero_placa = ''" />
+        <BaseInput v-model="transportForm.nombre_conductor" label="Nombre del Conductor" :error="transportErrors.nombre_conductor" @update:model-value="transportErrors.nombre_conductor = ''" />
       </div>
       <BaseButton variant="secondary" @click="addTransporte" class="mb-3"><Plus :size="18" /> Agregar Transporte</BaseButton>
       <BaseTable
@@ -272,9 +293,9 @@ async function saveMision() {
     <BaseCard v-if="step === 4" title="Insumos Llevados">
       <p class="text-sm text-text-secondary mb-3">Registra los insumos que se llevan a la misión. El estatus se definirá al finalizar.</p>
       <div class="grid grid-cols-2 gap-4 mb-4">
-        <BaseInput v-model="insumoForm.categoria" label="Categoría" placeholder="Medicinas, Alimentos..." />
-        <BaseInput v-model="insumoForm.descripcion" label="Descripción" />
-        <BaseInput v-model="insumoForm.cantidad" label="Cantidad" type="number" />
+        <BaseInput v-model="insumoForm.categoria" label="Categoría" placeholder="Medicinas, Alimentos..." :error="insumoErrors.categoria" @update:model-value="insumoErrors.categoria = ''" />
+        <BaseInput v-model="insumoForm.descripcion" label="Descripción" :error="insumoErrors.descripcion" @update:model-value="insumoErrors.descripcion = ''" />
+        <BaseInput v-model="insumoForm.cantidad" label="Cantidad" type="number" :error="insumoErrors.cantidad" @update:model-value="insumoErrors.cantidad = ''" />
         <BaseInput v-model="insumoForm.unidad" label="Unidad" placeholder="kg, unidades, litros..." />
         <BaseInput v-model="insumoForm.observaciones" label="Observaciones" />
       </div>
@@ -295,7 +316,7 @@ async function saveMision() {
       </BaseTable>
       <div class="flex justify-between mt-4">
         <BaseButton variant="ghost" @click="prevStep"><ArrowLeft :size="18" /> Atrás</BaseButton>
-        <BaseButton variant="primary" @click="saveMision"><Save :size="18" /> Guardar Misión</BaseButton>
+        <BaseButton variant="primary" @click="saveMision" :loading="loading"><Save :size="18" /> Guardar Misión</BaseButton>
       </div>
     </BaseCard>
   </div>
