@@ -22,6 +22,7 @@ const personalStore = usePersonalStore()
 const router = useRouter()
 
 const role = computed(() => auth.userRole)
+const cargando = ref(true)
 const misMisionIds = ref<Set<string>>(new Set())
 const currentCedula = computed(() => auth.currentUser?.cedula ?? '')
 const misAtenciones = computed(() =>
@@ -56,7 +57,12 @@ onMounted(async () => {
 
   loads.push(atendidosStore.load(), personalStore.load())
 
-  await Promise.all(loads)
+  try {
+    await Promise.all(loads)
+  } catch {
+    // error silencioso
+  }
+  cargando.value = false
 
   const cedula = auth.currentUser?.cedula
   if (cedula) {
@@ -67,7 +73,11 @@ onMounted(async () => {
 </script>
 
 <template>
-  <div class="flex flex-col gap-6">
+  <div v-if="cargando" class="py-12 text-center text-text-secondary">
+    <div class="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+    <p>Cargando panel...</p>
+  </div>
+  <div v-else class="flex flex-col gap-6">
     <h1 class="text-2xl text-brand m-0">Panel {{ role === 'director' ? 'del Director' : role === 'administrador' ? 'de Administración' : role === 'coordinador' ? 'del Coordinador' : 'de Voluntario' }}</h1>
 
     <!-- Stats Grid -->
@@ -189,6 +199,7 @@ onMounted(async () => {
         :columns="[
           { key: 'nombre_atendido', label: 'Atendido' },
           { key: 'cedula_atendido', label: 'Cédula' },
+          { key: 'tipo_atencion', label: 'Tipo' },
           { key: 'fecha_hora_atencion', label: 'Fecha' },
           { key: 'status_sync', label: 'Sync' },
         ]"

@@ -58,7 +58,6 @@ async function syncStoreToSupabase(store: StoreName, table: string, token: strin
         const { error } = await client.from(table).upsert(record, { onConflict: 'id' })
         if (!error) {
           await markAsSynced(store, record.id as string)
-          await client.from(table).update({ status_sync: 'synced' }).eq('id', record.id as string)
           break
         }
       } catch {

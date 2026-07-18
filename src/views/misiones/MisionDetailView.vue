@@ -22,7 +22,7 @@ import type { Mision, Transporte, PersonalMision, InsumoLlevado, Usuario } from 
 const route = useRoute()
 const router = useRouter()
 const auth = useAuthStore()
-const { loading, withLoading } = useLoading()
+const { loading, withLoading, saving } = useLoading()
 
 const misionesStore = useMisionesStore()
 const transporteStore = useTransporteStore()
@@ -30,6 +30,11 @@ const personalStore = usePersonalStore()
 const insumosStore = useInsumosStore()
 const atendidosStore = useAtendidosStore()
 const necesidadesStore = useNecesidadesStore()
+
+const storesReady = computed(() =>
+  misionesStore.loaded && transporteStore.loaded && personalStore.loaded
+  && insumosStore.loaded && (atendidosStore.loaded ?? true) && (necesidadesStore.loaded ?? true)
+)
 
 const missionId = route.params.id as string
 const mission = computed(() => misionesStore.getById(missionId))
@@ -46,7 +51,10 @@ const selectedUserList = ref<Usuario[]>([])
 
 async function agregarPersonalSeleccionado() {
   await withLoading(async () => {
-    for (const p of selectedUserList.value) {
+    const existentes = personalStore.getByMision(missionId)
+    const cedulasExistentes = new Set(existentes.map((p) => p.cedula))
+    const nuevos = selectedUserList.value.filter((p) => !cedulasExistentes.has(p.cedula))
+    for (const p of nuevos) {
       const item: PersonalMision = {
         id: crypto.randomUUID(),
         id_mision: missionId,
@@ -107,11 +115,11 @@ async function confirmComplete() {
   await withLoading(async () => {
     for (const ins of insumosMision.value) {
       if (returnItems.value[ins.id]) {
-        const updated = { ...ins, estatus_cargamento: 'retorno' as const, status_sync: 'pending' as const }
+        const updated = { ...ins, estatus_cargamento: 'retorno' as const }
         await insumosStore.update(updated)
       }
     }
-    const updatedMission = { ...mission.value, estatus_mision: 'completada' as const, status_sync: 'pending' as const }
+    const updatedMission = { ...mission.value, estatus_mision: 'completada' as const }
     await misionesStore.update(updatedMission as Mision)
   }, 'Completando misión...')
   showCompleteModal.value = false
@@ -131,7 +139,11 @@ onMounted(async () => {
 </script>
 
 <template>
-  <div v-if="mission" class="flex flex-col gap-6">
+  <div v-if="!storesReady" class="py-12 text-center text-text-secondary">
+    <div class="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+    <p>Cargando misión...</p>
+  </div>
+  <div v-else-if="mission" class="flex flex-col gap-6">
     <div class="flex justify-between items-start">
       <div>
         <div class="flex items-center gap-3">
@@ -160,21 +172,16 @@ onMounted(async () => {
           <BaseInput v-model="transportForm.tipo_transporte" placeholder="Tipo" />
           <BaseInput v-model="transportForm.numero_placa" placeholder="Placa" />
           <BaseInput v-model="transportForm.nombre_conductor" placeholder="Conductor" />
-          <BaseButton variant="primary" size="sm" @click="addTransporte" :loading="loading">Guardar</BaseButton>
+          <BaseButton variant="primary" size="sm" @click="addTransporte" :loading="saving">Guardar</BaseButton>
         </div>
         <BaseTable
           :columns="[
             { key: 'tipo_transporte', label: 'Tipo' },
             { key: 'numero_placa', label: 'Placa' },
             { key: 'nombre_conductor', label: 'Conductor' },
-            { key: 'status_sync', label: 'Sync' },
           ]"
           :rows="transportes as unknown as Record<string, unknown>[]"
-        >
-          <template #cell-status_sync="{ value }">
-            <StatusBadge :status="value as string" type="sync" />
-          </template>
-        </BaseTable>
+        />
       </template>
     </BaseCard>
 
@@ -186,7 +193,7 @@ onMounted(async () => {
         <div v-if="showPersonalForm && canEdit" class="bg-bg p-4 rounded-lg mb-4">
           <PersonalSelector v-model="selectedUserList" />
           <div class="flex gap-2 mt-3">
-            <BaseButton variant="primary" size="sm" @click="agregarPersonalSeleccionado" :loading="loading">Agregar seleccionados</BaseButton>
+            <BaseButton variant="primary" size="sm" @click="agregarPersonalSeleccionado" :loading="saving">Agregar seleccionados</BaseButton>
             <BaseButton variant="ghost" size="sm" @click="showPersonalForm = false; selectedUserList = []">Cancelar</BaseButton>
           </div>
         </div>
@@ -195,14 +202,10 @@ onMounted(async () => {
             { key: 'cedula', label: 'Cédula' },
             { key: 'nombre', label: 'Nombre' },
             { key: 'categoria_voluntariado', label: 'Categoría' },
-            { key: 'status_sync', label: 'Sync' },
             { key: 'acciones', label: '' },
           ]"
           :rows="personales as unknown as Record<string, unknown>[]"
         >
-          <template #cell-status_sync="{ value }">
-            <StatusBadge :status="value as string" type="sync" />
-          </template>
           <template #cell-acciones="{ row }">
             <BaseButton
               v-if="canEdit"
@@ -239,6 +242,9 @@ onMounted(async () => {
         :columns="[
           { key: 'nombre_atendido', label: 'Nombre' },
           { key: 'cedula_atendido', label: 'Cédula' },
+          { key: 'tipo_atencion', label: 'Tipo' },
+          { key: 'edad', label: 'Edad' },
+          { key: 'sexo', label: 'Sexo' },
           { key: 'fecha_hora_atencion', label: 'Fecha' },
         ]"
         :rows="atendidos as unknown as Record<string, unknown>[]"
@@ -278,7 +284,7 @@ onMounted(async () => {
           </div>
           <p v-if="insumosMision.length === 0" class="text-text-secondary italic">No hay insumos registrados.</p>
           <div class="flex gap-2 justify-end mt-2">
-            <BaseButton variant="primary" @click="confirmComplete" :loading="loading">Confirmar y Completar</BaseButton>
+            <BaseButton variant="primary" @click="confirmComplete" :loading="saving">Confirmar y Completar</BaseButton>
             <BaseButton variant="ghost" @click="showCompleteModal = false">Cancelar</BaseButton>
           </div>
         </div>
@@ -295,5 +301,9 @@ onMounted(async () => {
       @confirm="confirmRemovePersonal"
       @cancel="showRemovePersonalDialog = false; personalToRemove = null"
     />
+  </div>
+  <div v-else class="py-12 text-center text-text-secondary">
+    <p>Misión no encontrada.</p>
+    <BaseButton variant="ghost" @click="router.push('/misiones')">Volver a misiones</BaseButton>
   </div>
 </template>

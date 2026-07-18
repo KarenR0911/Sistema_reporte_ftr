@@ -430,7 +430,7 @@ onMounted(async () => {
             <span v-else class="text-text-muted">—</span>
           </template>
           <template #cell-activo="{ row }">
-            <StatusBadge :status="(row as unknown as Usuario).activo ? 'synced' : 'cancelada'" />
+            <StatusBadge :status="(row as unknown as Usuario).activo ? 'activo' : 'inactivo'" />
           </template>
           <template #cell-acciones="{ row }">
             <div class="flex gap-1">

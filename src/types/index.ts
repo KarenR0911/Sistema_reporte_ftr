@@ -5,6 +5,8 @@ export type EstatusCargamento = 'entregado' | 'retorno'
 export type CategoriaVoluntariado = 'estudiante' | 'profesional' | 'voluntario'
 export type Prioridad = 'baja' | 'media' | 'alta' | 'critica'
 export type EstatusNecesidad = 'reportado' | 'enproceso' | 'atendido'
+export type TipoAtencion = 'medica' | 'psicosocial' | 'alimento' | 'refugio' | 'higiene' | 'informacion' | 'traslado' | 'otro'
+export type Vulnerabilidad = 'embarazada' | 'discapacidad' | 'adulto_mayor' | 'menor_no_acompanado' | 'enfermedad_cronica' | 'otro'
 
 export interface Mision {
   id: string
@@ -13,7 +15,6 @@ export interface Mision {
   estado: string
   fecha_inicio: string
   estatus_mision: EstatusMision
-  status_sync: StatusSync
 }
 
 export interface InsumoLlevado {
@@ -25,7 +26,6 @@ export interface InsumoLlevado {
   unidad: string
   observaciones: string
   estatus_cargamento: EstatusCargamento
-  status_sync: StatusSync
 }
 
 export interface Transporte {
@@ -34,7 +34,6 @@ export interface Transporte {
   tipo_transporte: string
   numero_placa: string
   nombre_conductor: string
-  status_sync: StatusSync
 }
 
 export interface PersonalMision {
@@ -45,13 +44,6 @@ export interface PersonalMision {
   categoria_voluntariado: CategoriaVoluntariado
   especialidad: string
   area_voluntariado?: string
-  status_sync: StatusSync
-}
-
-export interface InsumoEntregado {
-  id: string
-  descripcion: string
-  cantidad: number
 }
 
 export interface Atendido {
@@ -62,8 +54,12 @@ export interface Atendido {
   nombre_atendido: string
   telefono_contacto: string
   fecha_hora_atencion: string
+  edad: number | null
+  sexo: string | null
+  tipo_atencion: TipoAtencion | null
+  referido: boolean
+  vulnerabilidad: string
   notas: string
-  insumos_dados: string
   status_sync: StatusSync
 }
 

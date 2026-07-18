@@ -106,9 +106,12 @@ CREATE TABLE IF NOT EXISTS atendidos (
   nombre_atendido TEXT NOT NULL,
   telefono_contacto TEXT DEFAULT '',
   fecha_hora_atencion TIMESTAMPTZ NOT NULL DEFAULT now(),
+  edad INT,
+  sexo TEXT,
+  tipo_atencion TEXT,
+  referido BOOLEAN NOT NULL DEFAULT false,
+  vulnerabilidad TEXT NOT NULL DEFAULT '[]',
   notas TEXT DEFAULT '',
-  insumos_dados TEXT DEFAULT '',
-  status_sync status_sync NOT NULL DEFAULT 'pending',
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 

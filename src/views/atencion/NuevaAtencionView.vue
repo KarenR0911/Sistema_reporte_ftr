@@ -3,57 +3,75 @@ import { ref, onMounted, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import BaseCard from '@/components/ui/BaseCard.vue'
 import BaseInput from '@/components/ui/BaseInput.vue'
+import BaseSelect from '@/components/ui/BaseSelect.vue'
 import BaseButton from '@/components/ui/BaseButton.vue'
 import BaseTable from '@/components/ui/BaseTable.vue'
 import StatusBadge from '@/components/ui/StatusBadge.vue'
 import { UserPlus, ArrowLeft } from '@lucide/vue'
 import { useMisionesStore } from '@/stores/misiones'
-import { useInsumosStore } from '@/stores/insumos'
 import { useAtendidosStore } from '@/stores/atendidos'
 import { useAuthStore } from '@/stores/auth'
 import { useToastStore } from '@/stores/toast'
 import { useLoading } from '@/composables/useLoading'
 import { atencionSchema } from '@/lib/schemas'
-import type { Atendido, InsumoLlevado } from '@/types'
+import type { Atendido, TipoAtencion } from '@/types'
 
 const route = useRoute()
 const router = useRouter()
 const misionesStore = useMisionesStore()
-const insumosStore = useInsumosStore()
 const atendidosStore = useAtendidosStore()
 const auth = useAuthStore()
 const toast = useToastStore()
-const { loading, withLoading } = useLoading()
+const { loading, withLoading, saving } = useLoading()
 
 const missionId = route.params.id_mision as string
 const mission = computed(() => misionesStore.getById(missionId))
-const insumosMision = computed(() =>
-  insumosStore.getByMision(missionId).filter((i) => i.estatus_cargamento !== 'retorno'),
-)
 
 const formCedula = ref('')
 const formNombre = ref('')
+const formEdad = ref<number | null>(null)
+const formSexo = ref('')
+const formTipoAtencion = ref('')
+const formReferido = ref(false)
+const formVulnerabilidades = ref<string[]>([])
 const formTelefono = ref('')
 const formNotas = ref('')
 const formErrors = ref<Record<string, string>>({})
-const entregas = ref<Record<string, number>>({})
 
-function toggleInsumo(ins: InsumoLlevado) {
-  if (entregas.value[ins.id]) {
-    const { [ins.id]: _, ...rest } = entregas.value
-    entregas.value = rest
-  } else {
-    entregas.value = { ...entregas.value, [ins.id]: 1 }
-  }
-}
+const sexoOptions = [
+  { value: '', label: 'Seleccionar…' },
+  { value: 'masculino', label: 'Masculino' },
+  { value: 'femenino', label: 'Femenino' },
+  { value: 'otro', label: 'Otro' },
+]
 
-function setCantidad(id: string, val: string) {
-  const n = parseInt(val, 10) || 0
-  if (n <= 0) {
-    const { [id]: _, ...rest } = entregas.value
-    entregas.value = rest
+const tipoAtencionOptions: { value: TipoAtencion | ''; label: string }[] = [
+  { value: '', label: 'Seleccionar…' },
+  { value: 'medica', label: 'Atención Médica / Primeros Auxilios' },
+  { value: 'psicosocial', label: 'Apoyo Psicosocial' },
+  { value: 'alimento', label: 'Alimentación / Hidratación' },
+  { value: 'refugio', label: 'Refugio / Abrigo Temporal' },
+  { value: 'higiene', label: 'Kits de Higiene / Saneamiento' },
+  { value: 'informacion', label: 'Orientación e Información' },
+  { value: 'traslado', label: 'Traslado / Evacuación' },
+  { value: 'otro', label: 'Otro' },
+]
+
+const vulnerabilidadOptions = [
+  { value: 'embarazada', label: 'Embarazada' },
+  { value: 'discapacidad', label: 'Persona con Discapacidad' },
+  { value: 'adulto_mayor', label: 'Adulto Mayor (65+)' },
+  { value: 'menor_no_acompanado', label: 'Menor No Acompañado' },
+  { value: 'enfermedad_cronica', label: 'Enfermedad Crónica' },
+  { value: 'otro', label: 'Otra Vulnerabilidad' },
+]
+
+function toggleVulnerabilidad(val: string) {
+  const idx = formVulnerabilidades.value.indexOf(val)
+  if (idx === -1) {
+    formVulnerabilidades.value.push(val)
   } else {
-    entregas.value = { ...entregas.value, [id]: n }
+    formVulnerabilidades.value.splice(idx, 1)
   }
 }
 
@@ -62,6 +80,11 @@ async function registerAttendee() {
   const result = atencionSchema.safeParse({
     cedula_atendido: formCedula.value,
     nombre_atendido: formNombre.value,
+    edad: formEdad.value,
+    sexo: formSexo.value || null,
+    tipo_atencion: formTipoAtencion.value || null,
+    referido: formReferido.value,
+    vulnerabilidad: formVulnerabilidades.value,
     telefono_contacto: formTelefono.value,
     notas: formNotas.value,
   })
@@ -71,14 +94,6 @@ async function registerAttendee() {
     }
     return
   }
-  const selectedIds = Object.keys(entregas.value)
-  const insumosEntregados = selectedIds
-    .map((id) => {
-      const ins = insumosMision.value.find((i) => i.id === id)
-      if (!ins) return null
-      return { id: ins.id, descripcion: ins.descripcion, cantidad: entregas.value[id]! }
-    })
-    .filter((v): v is NonNullable<typeof v> => v != null)
 
   const item: Atendido = {
     id: crypto.randomUUID(),
@@ -88,35 +103,32 @@ async function registerAttendee() {
     nombre_atendido: formNombre.value,
     telefono_contacto: formTelefono.value,
     fecha_hora_atencion: new Date().toISOString(),
+    edad: formEdad.value,
+    sexo: formSexo.value || null,
+    tipo_atencion: (formTipoAtencion.value || null) as TipoAtencion | null,
+    referido: formReferido.value,
+    vulnerabilidad: JSON.stringify(formVulnerabilidades.value),
     notas: formNotas.value,
-    insumos_dados: JSON.stringify(insumosEntregados),
     status_sync: 'pending',
   }
 
-  await withLoading(async () => {
-    await atendidosStore.create(item)
-
-    for (const entrega of insumosEntregados) {
-      if (!entrega) continue
-      const ins = insumosMision.value.find((i) => i.id === entrega.id)
-      if (!ins) continue
-      const nuevaCantidad = Math.max(0, ins.cantidad - entrega.cantidad)
-      await insumosStore.update({ ...ins, cantidad: nuevaCantidad, status_sync: 'pending' })
-    }
-  }, 'Registrando atención...')
+  await withLoading(() => atendidosStore.create(item), 'Registrando atención...')
 
   formCedula.value = ''
   formNombre.value = ''
+  formEdad.value = null
+  formSexo.value = ''
+  formTipoAtencion.value = ''
+  formReferido.value = false
+  formVulnerabilidades.value = []
   formTelefono.value = ''
   formNotas.value = ''
-  entregas.value = {}
   toast.success('Atención registrada exitosamente')
 }
 
 onMounted(async () => {
   await Promise.all([
     misionesStore.load(),
-    insumosStore.load(),
     atendidosStore.load(),
   ])
 })
@@ -136,50 +148,49 @@ onMounted(async () => {
 
     <BaseCard title="Datos de la Persona Atendida">
       <div class="grid grid-cols-2 gap-4 mb-4">
-        <BaseInput v-model="formCedula" label="Cédula del Atendido" required :error="formErrors.cedula_atendido" @update:model-value="formErrors.cedula_atendido = ''" />
+        <BaseInput v-model="formCedula" label="Cédula de Identidad" required :error="formErrors.cedula_atendido" @update:model-value="formErrors.cedula_atendido = ''" />
         <BaseInput v-model="formNombre" label="Nombre Completo" required :error="formErrors.nombre_atendido" @update:model-value="formErrors.nombre_atendido = ''" />
-        <BaseInput v-model="formTelefono" label="Teléfono de Contacto" />
-        <BaseInput v-model="formNotas" label="Notas de la Atención" />
+        <BaseInput v-model="formEdad" label="Edad" type="number" min="0" max="150" :error="formErrors.edad" />
+        <BaseSelect v-model="formSexo" label="Sexo" :options="sexoOptions" :error="formErrors.sexo" />
       </div>
     </BaseCard>
 
-    <BaseCard title="Insumos a Entregar">
-      <p v-if="insumosMision.length === 0" class="text-text-secondary italic">
-        No hay insumos disponibles en esta misión.
-      </p>
-      <div v-else class="flex flex-col gap-2">
-        <div
-          v-for="ins in insumosMision"
-          :key="ins.id"
-          class="flex items-center gap-3 px-3.5 py-2.5 border-2 rounded-lg transition-all"
-          :class="entregas[ins.id] ? 'border-primary bg-primary/5' : 'border-border-light'"
-        >
+    <BaseCard title="Atención Brindada">
+      <div class="grid grid-cols-1 gap-4">
+        <BaseSelect v-model="formTipoAtencion" label="Tipo de Atención" required :options="tipoAtencionOptions" :error="formErrors.tipo_atencion" />
+
+        <div class="flex items-center gap-3">
           <input
+            id="referido"
             type="checkbox"
-            :checked="!!entregas[ins.id]"
-            @change="toggleInsumo(ins)"
+            v-model="formReferido"
             class="w-4.5 h-4.5 accent-primary"
           />
-          <div class="flex-1 flex flex-col">
-            <span class="font-semibold text-[0.9rem]">{{ ins.descripcion }}</span>
-            <span class="text-xs text-text-muted">{{ ins.categoria }} — disp: {{ ins.cantidad }} {{ ins.unidad }}</span>
-          </div>
-          <div v-if="entregas[ins.id]">
-            <label class="flex items-center gap-1 text-sm text-text">
-              Cant:
+          <label for="referido" class="text-sm font-medium cursor-pointer">Requiere referencia / derivación a otro servicio</label>
+        </div>
+
+        <fieldset class="border border-border rounded-lg p-4">
+          <legend class="text-sm font-semibold text-text-secondary px-1">Vulnerabilidades (selecciona todas que apliquen)</legend>
+          <div class="flex flex-wrap gap-x-6 gap-y-1.5 mt-2">
+            <label
+              v-for="opt in vulnerabilidadOptions"
+              :key="opt.value"
+              class="flex items-center gap-2 cursor-pointer text-sm py-0.5"
+            >
               <input
-                type="number"
-                :value="entregas[ins.id]"
-                min="1"
-                :max="ins.cantidad"
-                class="w-15 px-1.5 py-1 border border-border rounded-md text-sm text-center font-sans focus:outline-none focus:border-primary"
-                @input="setCantidad(ins.id, ($event.target as HTMLInputElement).value)"
+                type="checkbox"
+                :value="opt.value"
+                :checked="formVulnerabilidades.includes(opt.value)"
+                @change="toggleVulnerabilidad(opt.value)"
+                class="w-4 h-4 accent-primary"
               />
-              <span class="text-xs text-text-secondary">{{ ins.unidad }}</span>
+              {{ opt.label }}
             </label>
           </div>
-          <StatusBadge :status="ins.estatus_cargamento" type="cargamento" />
-        </div>
+        </fieldset>
+
+        <BaseInput v-model="formTelefono" label="Teléfono de Contacto" />
+        <BaseInput v-model="formNotas" label="Notas de la Atención" />
       </div>
     </BaseCard>
 
@@ -188,6 +199,7 @@ onMounted(async () => {
         :columns="[
           { key: 'nombre_atendido', label: 'Nombre' },
           { key: 'cedula_atendido', label: 'Cédula' },
+          { key: 'tipo_atencion', label: 'Tipo' },
           { key: 'fecha_hora_atencion', label: 'Fecha' },
           { key: 'status_sync', label: 'Sync' },
         ]"
@@ -200,7 +212,7 @@ onMounted(async () => {
     </BaseCard>
 
     <div class="flex justify-end">
-      <BaseButton variant="primary" size="lg" @click="registerAttendee" :loading="loading">
+      <BaseButton variant="primary" size="lg" @click="registerAttendee" :loading="saving">
         <UserPlus :size="20" /> Registrar Atención
       </BaseButton>
     </div>
