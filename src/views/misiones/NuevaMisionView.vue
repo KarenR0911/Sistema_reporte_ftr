@@ -22,7 +22,7 @@ const transporteStore = useTransporteStore()
 const personalStore = usePersonalStore()
 const insumosStore = useInsumosStore()
 const toast = useToastStore()
-const { loading, withLoading } = useLoading()
+const { loading, withLoading, saving } = useLoading()
 
 const step = ref(1)
 const selectedPersonal = ref<Usuario[]>([])
@@ -34,11 +34,11 @@ const misionForm = ref({
 })
 const misionErrors = ref<Record<string, string>>({})
 
-const transportes = ref<Omit<Transporte, 'id' | 'id_mision' | 'status_sync'>[]>([])
+const transportes = ref<Omit<Transporte, 'id' | 'id_mision'>[]>([])
 const transportForm = ref({ tipo_transporte: '', numero_placa: '', nombre_conductor: '' })
 const transportErrors = ref<Record<string, string>>({})
 
-const insumos = ref<Omit<InsumoLlevado, 'id' | 'id_mision' | 'status_sync'>[]>([])
+const insumos = ref<Omit<InsumoLlevado, 'id' | 'id_mision'>[]>([])
 const insumoForm = ref({ categoria: '', descripcion: '', cantidad: '', unidad: '', observaciones: '' })
 const insumoErrors = ref<Record<string, string>>({})
 
@@ -143,13 +143,12 @@ async function saveMision() {
     ...misionForm.value,
     fecha_inicio: new Date().toISOString(),
     estatus_mision: 'activa',
-    status_sync: 'pending',
   }
   await withLoading(async () => {
     await misionesStore.create(mision)
 
     for (const t of transportes.value) {
-      const item: Transporte = { id: crypto.randomUUID(), id_mision, ...t, status_sync: 'pending' }
+      const item: Transporte = { id: crypto.randomUUID(), id_mision, ...t }
       await transporteStore.create(item)
     }
 
@@ -162,7 +161,6 @@ async function saveMision() {
         categoria_voluntariado: p.categoria_voluntariado ?? 'voluntario',
         especialidad: p.especialidad ?? '',
         area_voluntariado: p.area_voluntariado ?? '',
-        status_sync: 'pending',
       }
       await personalStore.create(item)
     }
@@ -173,7 +171,6 @@ async function saveMision() {
         id_mision,
         ...i,
         estatus_cargamento: 'entregado',
-        status_sync: 'pending',
       }
       await insumosStore.create(item)
     }
@@ -316,7 +313,7 @@ async function saveMision() {
       </BaseTable>
       <div class="flex justify-between mt-4">
         <BaseButton variant="ghost" @click="prevStep"><ArrowLeft :size="18" /> Atrás</BaseButton>
-        <BaseButton variant="primary" @click="saveMision" :loading="loading"><Save :size="18" /> Guardar Misión</BaseButton>
+        <BaseButton variant="primary" @click="saveMision" :loading="saving"><Save :size="18" /> Guardar Misión</BaseButton>
       </div>
     </BaseCard>
   </div>

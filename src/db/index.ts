@@ -1,9 +1,9 @@
 import { openDB, deleteDB, type IDBPDatabase } from 'idb'
 
 const DB_NAME = 'sistema-reporte-ftr'
-const DB_VERSION = 3
+const DB_VERSION = 4
 
-type StoreName = 'misiones' | 'insumos' | 'transporte' | 'personal' | 'atendidos' | 'necesidades' | 'usuarios'
+type StoreName = 'atendidos' | 'necesidades' | 'usuarios'
 
 interface DeletedRecord {
   id: string
@@ -14,7 +14,7 @@ interface DeletedRecord {
 let dbInstance: IDBPDatabase | null = null
 
 function createStores(db: IDBPDatabase) {
-  const stores = ['misiones', 'insumos', 'transporte', 'personal', 'atendidos', 'necesidades', 'usuarios']
+  const stores = ['atendidos', 'necesidades', 'usuarios']
   for (const name of stores) {
     if (!db.objectStoreNames.contains(name)) {
       db.createObjectStore(name, { keyPath: 'id' })
@@ -25,12 +25,22 @@ function createStores(db: IDBPDatabase) {
   }
 }
 
+function deleteObsoleteStores(db: IDBPDatabase) {
+  const obsolete = ['misiones', 'insumos', 'transporte', 'personal']
+  for (const name of obsolete) {
+    if (db.objectStoreNames.contains(name)) {
+      db.deleteObjectStore(name)
+    }
+  }
+}
+
 export async function getDB(): Promise<IDBPDatabase> {
   if (dbInstance) return dbInstance
 
   try {
     dbInstance = await openDB(DB_NAME, DB_VERSION, {
       upgrade(db, _oldVersion, _newVersion) {
+        deleteObsoleteStores(db)
         createStores(db)
       },
     })
@@ -53,16 +63,6 @@ export async function getDB(): Promise<IDBPDatabase> {
 export async function getAll<T>(store: StoreName): Promise<T[]> {
   const db = await getDB()
   return db.getAll(store)
-}
-
-export async function getById<T>(store: StoreName, id: string): Promise<T | undefined> {
-  const db = await getDB()
-  return db.get(store, id)
-}
-
-export async function getByIndex<T>(store: StoreName, index: string, value: string): Promise<T[]> {
-  const db = await getDB()
-  return db.getAllFromIndex(store, index, value)
 }
 
 export async function addItem<T>(store: StoreName, item: T): Promise<void> {
@@ -108,14 +108,6 @@ export async function getDeletedIds(): Promise<DeletedRecord[]> {
 export async function clearDeletedId(id: string): Promise<void> {
   const db = await getDB()
   await db.delete('_deleted', id)
-}
-
-export async function clearAllDeleted(): Promise<void> {
-  const db = await getDB()
-  const all = await db.getAll('_deleted')
-  for (const item of all) {
-    await db.delete('_deleted', item.id)
-  }
 }
 
 export type { StoreName, DeletedRecord }

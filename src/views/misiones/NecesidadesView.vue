@@ -18,7 +18,7 @@ const route = useRoute()
 const router = useRouter()
 const misionesStore = useMisionesStore()
 const necesidadesStore = useNecesidadesStore()
-const { loading, withLoading } = useLoading()
+const { loading, withLoading, saving } = useLoading()
 
 const missionId = route.params.id as string
 const mission = computed(() => misionesStore.getById(missionId))
@@ -106,7 +106,7 @@ onMounted(async () => {
           ]"
         />
       </div>
-      <BaseButton variant="primary" @click="addNecesidad" :loading="loading"><Plus :size="18" /> Agregar Necesidad</BaseButton>
+      <BaseButton variant="primary" @click="addNecesidad" :loading="saving"><Plus :size="18" /> Agregar Necesidad</BaseButton>
     </BaseCard>
 
     <BaseCard title="Necesidades Registradas">

@@ -6,11 +6,13 @@ import { markNeedsSync } from '@/lib/syncTrigger'
 
 export const useNecesidadesStore = defineStore('necesidades', () => {
   const list = ref<Necesidad[]>([])
+  const loaded = ref(false)
 
   async function load() {
     if (list.value.length === 0) {
       list.value = await getAll<Necesidad>('necesidades')
     }
+    loaded.value = true
   }
 
   function getByMision(id_mision: string) {
@@ -39,5 +41,5 @@ export const useNecesidadesStore = defineStore('necesidades', () => {
     markNeedsSync()
   }
 
-  return { list, load, getByMision, create, update, remove }
+  return { list, loaded, load, getByMision, create, update, remove }
 })

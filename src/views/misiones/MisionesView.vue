@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, computed } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import BaseCard from '@/components/ui/BaseCard.vue'
 import BaseButton from '@/components/ui/BaseButton.vue'
 import BaseTable from '@/components/ui/BaseTable.vue'
@@ -13,23 +13,32 @@ const auth = useAuthStore()
 const router = useRouter()
 
 const role = computed(() => auth.userRole)
+const cargando = ref(true)
 
 const misionColumns = [
   { key: 'direccion', label: 'Dirección' },
   { key: 'municipio', label: 'Municipio' },
   { key: 'fecha_inicio', label: 'Fecha' },
   { key: 'estatus_mision', label: 'Estatus' },
-  { key: 'status_sync', label: 'Sync' },
   { key: 'acciones', label: 'Acciones' },
 ]
 
-onMounted(() => {
-  misionesStore.load()
+onMounted(async () => {
+  try {
+    await misionesStore.load()
+  } catch {
+    // error silencioso
+  }
+  cargando.value = false
 })
 </script>
 
 <template>
-  <div class="flex flex-col gap-6">
+  <div v-if="cargando" class="py-12 text-center text-text-secondary">
+    <div class="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+    <p>Cargando misiones...</p>
+  </div>
+  <div v-else class="flex flex-col gap-6">
     <div class="flex justify-between items-center">
       <h1 class="text-2xl text-brand m-0">Misiones</h1>
       <BaseButton variant="primary" @click="router.push('/misiones/nueva')">
@@ -41,9 +50,6 @@ onMounted(() => {
       <BaseTable :columns="misionColumns" :rows="misionesStore.list as unknown as Record<string, unknown>[]">
         <template #cell-estatus_mision="{ value }">
           <StatusBadge :status="value as string" type="mision" />
-        </template>
-        <template #cell-status_sync="{ value }">
-          <StatusBadge :status="value as string" type="sync" />
         </template>
         <template #cell-acciones="{ row }">
           <div class="flex gap-1">

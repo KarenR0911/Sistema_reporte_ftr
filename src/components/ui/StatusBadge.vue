@@ -8,6 +8,8 @@ const statusColors: Record<string, { bg: string; color: string }> = {
   pending: { bg: '#FFF3E0', color: '#E65100' },
   synced: { bg: '#E8F5E9', color: '#2E7D32' },
   activa: { bg: '#E3F2FD', color: '#1565C0' },
+  activo: { bg: '#E8F5E9', color: '#2E7D32' },
+  inactivo: { bg: '#FFEBEE', color: '#C62828' },
   completada: { bg: '#E8F5E9', color: '#2E7D32' },
   cancelada: { bg: '#FFEBEE', color: '#C62828' },
   entregado: { bg: '#E8F5E9', color: '#2E7D32' },

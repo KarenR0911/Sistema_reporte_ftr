@@ -14,7 +14,13 @@ export function getSupabase(): SupabaseClient {
     throw new Error('Missing VITE_SUPABASE_URL or VITE_SUPABASE_ANON_KEY environment variables')
   }
 
-  _supabase = createClient(supabaseUrl, supabaseAnonKey)
+  _supabase = createClient(supabaseUrl, supabaseAnonKey, {
+    auth: {
+      autoRefreshToken: true,
+      persistSession: true,
+      detectSessionInUrl: false,
+    },
+  })
   return _supabase
 }
 

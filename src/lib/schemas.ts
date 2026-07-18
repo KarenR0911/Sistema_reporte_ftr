@@ -51,6 +51,13 @@ export const insumoSchema = z.object({
 export const atencionSchema = z.object({
   cedula_atendido: z.string().min(1, 'Cédula del atendido es requerida'),
   nombre_atendido: z.string().min(1, 'Nombre del atendido es requerido'),
+  edad: z.number().int().positive('Edad debe ser un número positivo').nullable().optional(),
+  sexo: z.enum(['masculino', 'femenino', 'otro']).nullable().optional(),
+  tipo_atencion: z.enum(['medica', 'psicosocial', 'alimento', 'refugio', 'higiene', 'informacion', 'traslado', 'otro'], {
+    errorMap: () => ({ message: 'Selecciona un tipo de atención válido' }),
+  }).nullable().optional(),
+  referido: z.boolean().optional(),
+  vulnerabilidad: z.array(z.enum(['embarazada', 'discapacidad', 'adulto_mayor', 'menor_no_acompanado', 'enfermedad_cronica', 'otro'])).optional(),
   telefono_contacto: z.string().optional(),
   notas: z.string().optional(),
 })
