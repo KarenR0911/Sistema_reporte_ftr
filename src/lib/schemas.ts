@@ -62,6 +62,12 @@ export const atencionSchema = z.object({
   notas: z.string().optional(),
 })
 
+export const salidaInsumoSchema = z.object({
+  id_insumo: z.string().min(1, 'Selecciona un insumo'),
+  cantidad: z.number().int().positive('Cantidad debe ser mayor a 0'),
+  motivo: z.string().optional(),
+})
+
 export const necesidadSchema = z.object({
   categoria: z.string().min(1, 'Categoría es requerida'),
   descripcion: z.string().min(1, 'Descripción es requerida'),

@@ -8,7 +8,7 @@ import BaseTable from '@/components/ui/BaseTable.vue'
 import PersonalSelector from '@/components/ui/PersonalSelector.vue'
 import ConfirmDialog from '@/components/ui/ConfirmDialog.vue'
 import StatusBadge from '@/components/ui/StatusBadge.vue'
-import { ClipboardList, CheckCircle, ArrowLeft, Plus } from '@lucide/vue'
+import { ClipboardList, CheckCircle, ArrowLeft, Plus, Package } from '@lucide/vue'
 import { useMisionesStore } from '@/stores/misiones'
 import { useTransporteStore } from '@/stores/transporte'
 import { usePersonalStore } from '@/stores/personal'
@@ -156,6 +156,9 @@ onMounted(async () => {
         <StatusBadge :status="mission.estatus_mision" type="mision" />
         <RouterLink v-if="canEdit" :to="`/misiones/${missionId}/necesidades`">
           <BaseButton variant="primary"><ClipboardList :size="18" /> Levantar Necesidades</BaseButton>
+        </RouterLink>
+        <RouterLink v-if="canEdit" :to="`/misiones/${missionId}/farmacia`">
+          <BaseButton variant="primary"><Package :size="18" /> Farmacia</BaseButton>
         </RouterLink>
         <BaseButton v-if="canEdit && mission.estatus_mision === 'activa'" variant="secondary" @click="openCompleteModal">
           <CheckCircle :size="18" /> Completar Misión
