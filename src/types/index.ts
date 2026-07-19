@@ -71,6 +71,7 @@ export interface SalidaInsumo {
   motivo: string
   registrado_por: string
   created_at: string
+  status_sync?: StatusSync
 }
 
 export interface Necesidad {

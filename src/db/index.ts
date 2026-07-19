@@ -1,9 +1,9 @@
 import { openDB, deleteDB, type IDBPDatabase } from 'idb'
 
 const DB_NAME = 'sistema-reporte-ftr'
-const DB_VERSION = 4
+const DB_VERSION = 5
 
-type StoreName = 'atendidos' | 'necesidades' | 'usuarios'
+type StoreName = 'atendidos' | 'necesidades' | 'usuarios' | 'salidas'
 
 interface DeletedRecord {
   id: string
@@ -14,7 +14,7 @@ interface DeletedRecord {
 let dbInstance: IDBPDatabase | null = null
 
 function createStores(db: IDBPDatabase) {
-  const stores = ['atendidos', 'necesidades', 'usuarios']
+  const stores = ['atendidos', 'necesidades', 'usuarios', 'salidas']
   for (const name of stores) {
     if (!db.objectStoreNames.contains(name)) {
       db.createObjectStore(name, { keyPath: 'id' })

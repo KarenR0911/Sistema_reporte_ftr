@@ -9,6 +9,7 @@ import { ref, watch, onUnmounted } from 'vue'
 const STORES: { store: StoreName; table: string }[] = [
   { store: 'atendidos', table: 'atendidos' },
   { store: 'necesidades', table: 'necesidades' },
+  { store: 'salidas', table: 'salidas_insumos' },
 ]
 
 const STORE_TABLE_MAP = new Map(STORES.map((s) => [s.store, s.table]))
