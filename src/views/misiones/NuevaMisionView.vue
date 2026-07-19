@@ -182,13 +182,13 @@ async function saveMision() {
 </script>
 
 <template>
-  <div class="flex flex-col gap-6">
+  <div class="flex flex-col gap-4 md:gap-6">
     <div class="flex items-center gap-3">
       <BaseButton variant="ghost" @click="router.push('/misiones')"><ArrowLeft :size="18" /> Volver</BaseButton>
       <h1 class="text-2xl text-brand m-0">Nueva Misión</h1>
     </div>
 
-    <div class="flex gap-2">
+    <div class="flex gap-2 flex-wrap">
       <div
         class="flex items-center gap-2 px-5 py-2.5 bg-white rounded-lg border-2 cursor-pointer text-sm font-semibold transition-all"
         :class="step === 1 ? 'border-primary text-primary' : step > 1 ? 'border-success text-success' : 'border-border-light text-text-secondary'"
@@ -244,7 +244,7 @@ async function saveMision() {
     </div>
 
     <BaseCard v-if="step === 1" title="Datos de la Zona">
-      <div class="grid grid-cols-2 gap-4 mb-4">
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
         <BaseInput v-model="misionForm.direccion" label="Dirección" required :error="misionErrors.direccion" @update:model-value="misionErrors.direccion = ''" />
         <BaseInput v-model="misionForm.municipio" label="Municipio" required :error="misionErrors.municipio" @update:model-value="misionErrors.municipio = ''" />
         <BaseInput v-model="misionForm.estado" label="Estado" required :error="misionErrors.estado" @update:model-value="misionErrors.estado = ''" />
@@ -253,7 +253,7 @@ async function saveMision() {
     </BaseCard>
 
     <BaseCard v-if="step === 2" title="Transporte">
-      <div class="grid grid-cols-2 gap-4 mb-4">
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
         <BaseInput v-model="transportForm.tipo_transporte" label="Tipo de Transporte" placeholder="Camioneta, Autobús..." :error="transportErrors.tipo_transporte" @update:model-value="transportErrors.tipo_transporte = ''" />
         <BaseInput v-model="transportForm.numero_placa" label="Número de Placa" :error="transportErrors.numero_placa" @update:model-value="transportErrors.numero_placa = ''" />
         <BaseInput v-model="transportForm.nombre_conductor" label="Nombre del Conductor" :error="transportErrors.nombre_conductor" @update:model-value="transportErrors.nombre_conductor = ''" />
@@ -289,7 +289,7 @@ async function saveMision() {
 
     <BaseCard v-if="step === 4" title="Insumos Llevados">
       <p class="text-sm text-text-secondary mb-3">Registra los insumos que se llevan a la misión. El estatus se definirá al finalizar.</p>
-      <div class="grid grid-cols-2 gap-4 mb-4">
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
         <BaseInput v-model="insumoForm.categoria" label="Categoría" placeholder="Medicinas, Alimentos..." :error="insumoErrors.categoria" @update:model-value="insumoErrors.categoria = ''" />
         <BaseInput v-model="insumoForm.descripcion" label="Descripción" :error="insumoErrors.descripcion" @update:model-value="insumoErrors.descripcion = ''" />
         <BaseInput v-model="insumoForm.cantidad" label="Cantidad" type="number" :error="insumoErrors.cantidad" @update:model-value="insumoErrors.cantidad = ''" />

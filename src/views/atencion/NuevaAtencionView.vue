@@ -135,7 +135,7 @@ onMounted(async () => {
 </script>
 
 <template>
-  <div v-if="mission" class="flex flex-col gap-6">
+  <div v-if="mission" class="flex flex-col gap-4 md:gap-6">
     <div class="flex justify-between items-start">
       <div>
         <div class="flex items-center gap-3">
@@ -147,7 +147,7 @@ onMounted(async () => {
     </div>
 
     <BaseCard title="Datos de la Persona Atendida">
-      <div class="grid grid-cols-2 gap-4 mb-4">
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
         <BaseInput v-model="formCedula" label="Cédula de Identidad" required :error="formErrors.cedula_atendido" @update:model-value="formErrors.cedula_atendido = ''" />
         <BaseInput v-model="formNombre" label="Nombre Completo" required :error="formErrors.nombre_atendido" @update:model-value="formErrors.nombre_atendido = ''" />
         <BaseInput v-model="formEdad" label="Edad" type="number" min="0" max="150" :error="formErrors.edad" />
