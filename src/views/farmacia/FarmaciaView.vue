@@ -178,14 +178,40 @@ onMounted(async () => {
           :options="insumoOptions"
           :error="formErrors.id_insumo"
         />
-        <BaseInput
-          v-model="formCantidad"
-          label="Cantidad"
-          type="number"
-          min="1"
-          required
-          :error="formErrors.cantidad"
-        />
+        <div class="flex flex-col gap-1.5">
+          <label class="text-sm font-semibold text-text">
+            Cantidad<span class="text-danger ml-0.5">*</span>
+          </label>
+          <div
+            class="flex items-center border rounded-lg overflow-hidden"
+            :class="formErrors.cantidad ? 'border-danger' : 'border-border'"
+          >
+            <button
+              type="button"
+              class="flex items-center justify-center w-10 h-10 text-lg font-bold text-primary bg-gray-50 hover:bg-gray-100 transition-colors border-r border-border select-none cursor-pointer"
+              :class="formCantidad && formCantidad > 1 ? '' : 'opacity-30'"
+              :disabled="!formCantidad || formCantidad <= 1"
+              @click="formCantidad = formCantidad ? formCantidad - 1 : null"
+            >−</button>
+            <input
+              type="number"
+              min="1"
+              :max="insumoSeleccionado ? stockDisponible(insumoSeleccionado) : undefined"
+              class="flex-1 w-0 min-w-0 text-center font-sans text-sm py-2.5 outline-none border-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+              :value="formCantidad ?? ''"
+              required
+              @input="formCantidad = parseInt(($event.target as HTMLInputElement).value) || null"
+            />
+            <button
+              type="button"
+              class="flex items-center justify-center w-10 h-10 text-lg font-bold text-primary bg-gray-50 hover:bg-gray-100 transition-colors border-l border-border select-none cursor-pointer"
+              :class="insumoSeleccionado && formCantidad && formCantidad < stockDisponible(insumoSeleccionado) ? '' : 'opacity-30'"
+              :disabled="!insumoSeleccionado || (formCantidad !== null && formCantidad >= (insumoSeleccionado ? stockDisponible(insumoSeleccionado) : 999999))"
+              @click="formCantidad = Math.min((formCantidad ?? 0) + 1, insumoSeleccionado ? stockDisponible(insumoSeleccionado) : 999999)"
+            >+</button>
+          </div>
+          <p v-if="formErrors.cantidad" class="text-danger text-xs m-0">{{ formErrors.cantidad }}</p>
+        </div>
         <div class="col-span-2">
           <BaseInput v-model="formMotivo" label="Motivo" placeholder="Ej: distribución comunitaria, curación, etc." />
         </div>
