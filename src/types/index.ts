@@ -63,6 +63,16 @@ export interface Atendido {
   status_sync: StatusSync
 }
 
+export interface SalidaInsumo {
+  id: string
+  id_mision: string
+  id_insumo: string
+  cantidad: number
+  motivo: string
+  registrado_por: string
+  created_at: string
+}
+
 export interface Necesidad {
   id: string
   id_mision: string

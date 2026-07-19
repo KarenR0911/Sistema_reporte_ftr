@@ -129,16 +129,27 @@ CREATE TABLE IF NOT EXISTS necesidades (
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
+CREATE TABLE IF NOT EXISTS salidas_insumos (
+  id UUID PRIMARY KEY,
+  id_mision UUID NOT NULL REFERENCES misiones(id) ON DELETE CASCADE,
+  id_insumo UUID NOT NULL REFERENCES insumos(id) ON DELETE CASCADE,
+  cantidad INTEGER NOT NULL CHECK (cantidad > 0),
+  motivo TEXT DEFAULT '',
+  registrado_por TEXT NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
 -- 3. ÍNDICES
 CREATE INDEX IF NOT EXISTS idx_insumos_mision ON insumos(id_mision);
 CREATE INDEX IF NOT EXISTS idx_transporte_mision ON transporte(id_mision);
 CREATE INDEX IF NOT EXISTS idx_personal_mision ON personal_mision(id_mision);
 CREATE INDEX IF NOT EXISTS idx_atendidos_mision ON atendidos(id_mision);
 CREATE INDEX IF NOT EXISTS idx_necesidades_mision ON necesidades(id_mision);
-CREATE INDEX IF NOT EXISTS idx_misiones_status ON misiones(status_sync);
 CREATE INDEX IF NOT EXISTS idx_perfiles_cedula ON perfiles(cedula);
 CREATE INDEX IF NOT EXISTS idx_perfiles_rol ON perfiles(rol);
 CREATE UNIQUE INDEX IF NOT EXISTS idx_perfiles_email_unique ON perfiles (email) WHERE email <> '';
+CREATE INDEX IF NOT EXISTS idx_salidas_insumos_mision ON salidas_insumos(id_mision);
+CREATE INDEX IF NOT EXISTS idx_salidas_insumos_insumo ON salidas_insumos(id_insumo);
 
 -- 4. FUNCIONES HELPER PARA RLS
 CREATE OR REPLACE FUNCTION public.is_admin_or_director()
@@ -179,6 +190,7 @@ ALTER TABLE transporte ENABLE ROW LEVEL SECURITY;
 ALTER TABLE personal_mision ENABLE ROW LEVEL SECURITY;
 ALTER TABLE atendidos ENABLE ROW LEVEL SECURITY;
 ALTER TABLE necesidades ENABLE ROW LEVEL SECURITY;
+ALTER TABLE salidas_insumos ENABLE ROW LEVEL SECURITY;
 
 -- 6. POLÍTICAS RLS (versión final con JWT)
 
@@ -303,6 +315,14 @@ CREATE POLICY "necesidades_insert_auth" ON necesidades
 CREATE POLICY "necesidades_update_auth" ON necesidades
   FOR UPDATE USING (auth.role() = 'authenticated');
 CREATE POLICY "necesidades_delete_admin_only" ON necesidades
+  FOR DELETE USING (public.is_admin_or_director());
+
+-- SALIDAS_INSUMOS
+CREATE POLICY "salidas_insumos_select_auth" ON salidas_insumos
+  FOR SELECT USING (auth.role() = 'authenticated');
+CREATE POLICY "salidas_insumos_insert_auth" ON salidas_insumos
+  FOR INSERT WITH CHECK (auth.role() = 'authenticated');
+CREATE POLICY "salidas_insumos_delete_admin_only" ON salidas_insumos
   FOR DELETE USING (public.is_admin_or_director());
 
 -- 7. TRIGGER: CREAR PERFIL AUTOMÁTICAMENTE AL REGISTRARSE POR SUPABASE AUTH
