@@ -66,6 +66,26 @@ const vulnerabilidadOptions = [
   { value: 'otro', label: 'Otra Vulnerabilidad' },
 ]
 
+function parseVuln(value: unknown): string[] {
+  if (!value) return []
+  try {
+    const s = String(value)
+    return s.startsWith('[') ? JSON.parse(s) : [s]
+  } catch {
+    return [String(value)]
+  }
+}
+
+function labelVuln(v: string): string {
+  return v === 'embarazada' ? 'Embarazada'
+    : v === 'discapacidad' ? 'Discapacidad'
+    : v === 'adulto_mayor' ? 'Adulto Mayor'
+    : v === 'menor_no_acompanado' ? 'Menor solo'
+    : v === 'enfermedad_cronica' ? 'Enf. Crónica'
+    : v === 'otro' ? 'Otra'
+    : v
+}
+
 function toggleVulnerabilidad(val: string) {
   const idx = formVulnerabilidades.value.indexOf(val)
   if (idx === -1) {
@@ -199,14 +219,39 @@ onMounted(async () => {
         :columns="[
           { key: 'nombre_atendido', label: 'Nombre' },
           { key: 'cedula_atendido', label: 'Cédula' },
-          { key: 'tipo_atencion', label: 'Tipo' },
+          { key: 'edad', label: 'Edad' },
+          { key: 'sexo', label: 'Sexo' },
+          { key: 'tipo_atencion', label: 'Tipo de Atención' },
+          { key: 'vulnerabilidad', label: 'Vulnerabilidad' },
           { key: 'fecha_hora_atencion', label: 'Fecha' },
-          { key: 'status_sync', label: 'Sync' },
         ]"
         :rows="atendidosStore.getByMision(missionId) as unknown as Record<string, unknown>[]"
       >
-        <template #cell-status_sync="{ value }">
-          <StatusBadge :status="value as string" type="sync" />
+        <template #cell-sexo="{ value }">
+          {{ value === 'masculino' ? 'Masculino' : value === 'femenino' ? 'Femenino' : value === 'otro' ? 'Otro' : '—' }}
+        </template>
+        <template #cell-tipo_atencion="{ value }">
+          {{
+            value === 'medica' ? 'Médica / Primeros Auxilios'
+            : value === 'psicosocial' ? 'Apoyo Psicosocial'
+            : value === 'alimento' ? 'Alimentación / Hidratación'
+            : value === 'refugio' ? 'Refugio / Abrigo'
+            : value === 'higiene' ? 'Kits de Higiene'
+            : value === 'informacion' ? 'Orientación'
+            : value === 'traslado' ? 'Traslado / Evacuación'
+            : value === 'otro' ? 'Otro'
+            : '—'
+          }}
+        </template>
+        <template #cell-vulnerabilidad="{ value }">
+          <div v-if="value" class="flex flex-wrap gap-1">
+            <template v-for="v in parseVuln(value)" :key="v">
+              <span class="text-xs px-2 py-0.5 rounded-full bg-amber-100 text-amber-800">
+                {{ labelVuln(v) }}
+              </span>
+            </template>
+          </div>
+          <span v-else class="text-text-secondary">—</span>
         </template>
       </BaseTable>
     </BaseCard>

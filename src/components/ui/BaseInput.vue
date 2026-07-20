@@ -1,17 +1,28 @@
 <script setup lang="ts">
-defineProps<{
+const props = defineProps<{
   label?: string
-  modelValue: string
+  modelValue: string | number
   type?: string
   placeholder?: string
   required?: boolean
   error?: string
   maxlength?: number
+  min?: number | string
+  max?: number | string
 }>()
 
-defineEmits<{
-  'update:modelValue': [value: string]
+const emit = defineEmits<{
+  'update:modelValue': [value: string | number]
 }>()
+
+function handleInput(e: Event) {
+  const raw = (e.target as HTMLInputElement).value
+  if (props.type === 'number') {
+    emit('update:modelValue', raw === '' ? '' : Number(raw))
+  } else {
+    emit('update:modelValue', raw)
+  }
+}
 </script>
 
 <template>
@@ -27,7 +38,9 @@ defineEmits<{
       :value="modelValue"
       :required="required"
       :maxlength="maxlength"
-      @input="$emit('update:modelValue', ($event.target as HTMLInputElement).value)"
+      :min="min"
+      :max="max"
+      @input="handleInput"
     />
     <p v-if="error" class="text-danger text-xs m-0">{{ error }}</p>
   </div>
