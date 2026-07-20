@@ -17,7 +17,7 @@ export const useAuthStore = defineStore('auth', () => {
       id: p.id as string,
       cedula: p.cedula as string,
       nombre: p.nombre as string,
-      email: (p.email as string) ?? '',
+      email: (p.email as string) || `${p.cedula}@ftr.app`,
       rol: p.rol as RolUsuario,
       activo: (p.activo as boolean) ?? true,
       categoria_voluntariado: p.categoria_voluntariado as CategoriaVoluntariado | undefined,

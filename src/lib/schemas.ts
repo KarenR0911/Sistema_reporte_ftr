@@ -11,7 +11,6 @@ export const usuarioSchema = z.object({
     .min(1, 'Cédula es requerida')
     .regex(/^V-\d+$/, 'Cédula debe tener formato V-12345678'),
   nombre: z.string().min(1, 'Nombre es requerido'),
-  email: z.string().email('Email inválido').optional().or(z.literal('')),
   rol: z.enum(['director', 'administrador', 'coordinador', 'personal'], {
     errorMap: () => ({ message: 'Selecciona un rol válido' }),
   }),
