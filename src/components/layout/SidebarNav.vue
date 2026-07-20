@@ -46,7 +46,7 @@ const menuItems = computed<NavItem[]>(() => {
   </Teleport>
 
   <nav
-    class="h-screen w-60 bg-brand text-white flex flex-col shrink-0 transition-transform duration-300 ease-in-out z-50
+    class="min-h-screen w-60 bg-brand text-white flex flex-col shrink-0 transition-transform duration-300 ease-in-out z-50
       fixed left-0 top-0
       md:sticky md:left-auto md:top-auto
       max-md:data-[open=false]:-translate-x-full
