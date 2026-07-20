@@ -36,6 +36,10 @@ const storesReady = computed(() =>
   && insumosStore.loaded && (atendidosStore.loaded ?? true) && (necesidadesStore.loaded ?? true)
 )
 
+const canAccessFarmacia = computed(() =>
+  role.value === 'director' || role.value === 'administrador',
+)
+
 const missionId = route.params.id as string
 const mission = computed(() => misionesStore.getById(missionId))
 const transportes = computed(() => transporteStore.getByMision(missionId))
@@ -157,7 +161,7 @@ onMounted(async () => {
         <RouterLink v-if="canEdit" :to="`/misiones/${missionId}/necesidades`">
           <BaseButton variant="primary"><ClipboardList :size="18" /> Levantar Necesidades</BaseButton>
         </RouterLink>
-        <RouterLink v-if="canEdit" :to="`/misiones/${missionId}/farmacia`">
+        <RouterLink v-if="canAccessFarmacia" :to="`/misiones/${missionId}/farmacia`">
           <BaseButton variant="primary"><Package :size="18" /> Farmacia</BaseButton>
         </RouterLink>
         <BaseButton v-if="canEdit && mission.estatus_mision === 'activa'" variant="secondary" @click="openCompleteModal">

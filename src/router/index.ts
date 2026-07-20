@@ -50,7 +50,7 @@ const router = createRouter({
           path: 'misiones/:id/farmacia',
           name: 'farmacia',
           component: () => import('@/views/farmacia/FarmaciaView.vue'),
-          meta: { roles: ['director', 'administrador', 'coordinador'] },
+          meta: { roles: ['director', 'administrador'] },
         },
         {
           path: 'atencion/nueva/:id_mision',
