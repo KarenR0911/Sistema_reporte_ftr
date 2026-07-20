@@ -7,7 +7,7 @@ import BaseSelect from '@/components/ui/BaseSelect.vue'
 import BaseButton from '@/components/ui/BaseButton.vue'
 import BaseTable from '@/components/ui/BaseTable.vue'
 import StatusBadge from '@/components/ui/StatusBadge.vue'
-import { UserPlus, ArrowLeft } from '@lucide/vue'
+import { UserPlus, ArrowLeft, Eye } from '@lucide/vue'
 import { useMisionesStore } from '@/stores/misiones'
 import { useAtendidosStore } from '@/stores/atendidos'
 import { useAuthStore } from '@/stores/auth'
@@ -65,6 +65,49 @@ const vulnerabilidadOptions = [
   { value: 'enfermedad_cronica', label: 'Enfermedad Crónica' },
   { value: 'otro', label: 'Otra Vulnerabilidad' },
 ]
+
+const showDetail = ref(false)
+const selectedAtendido = ref<Atendido | null>(null)
+
+function openDetail(a: Atendido) {
+  selectedAtendido.value = a
+  showDetail.value = true
+}
+
+function closeDetail() {
+  showDetail.value = false
+  selectedAtendido.value = null
+}
+
+function formatDate(iso: string): string {
+  if (!iso) return '—'
+  return new Date(iso).toLocaleString('es-VE', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  })
+}
+
+function labelTipoAtencion(val: unknown): string {
+  return val === 'medica' ? 'Médica / Primeros Auxilios'
+    : val === 'psicosocial' ? 'Apoyo Psicosocial'
+    : val === 'alimento' ? 'Alimentación / Hidratación'
+    : val === 'refugio' ? 'Refugio / Abrigo'
+    : val === 'higiene' ? 'Kits de Higiene'
+    : val === 'informacion' ? 'Orientación'
+    : val === 'traslado' ? 'Traslado / Evacuación'
+    : val === 'otro' ? 'Otro'
+    : '—'
+}
+
+function labelSexo(val: unknown): string {
+  return val === 'masculino' ? 'Masculino'
+    : val === 'femenino' ? 'Femenino'
+    : val === 'otro' ? 'Otro'
+    : '—'
+}
 
 function parseVuln(value: unknown): string[] {
   if (!value) return []
@@ -221,37 +264,23 @@ onMounted(async () => {
           { key: 'cedula_atendido', label: 'Cédula' },
           { key: 'edad', label: 'Edad' },
           { key: 'sexo', label: 'Sexo' },
-          { key: 'tipo_atencion', label: 'Tipo de Atención' },
-          { key: 'vulnerabilidad', label: 'Vulnerabilidad' },
+          { key: 'tipo_atencion', label: 'Atención' },
+          { key: 'telefono_contacto', label: 'Teléfono' },
           { key: 'fecha_hora_atencion', label: 'Fecha' },
+          { key: 'acciones', label: '' },
         ]"
         :rows="atendidosStore.getByMision(missionId) as unknown as Record<string, unknown>[]"
       >
         <template #cell-sexo="{ value }">
-          {{ value === 'masculino' ? 'Masculino' : value === 'femenino' ? 'Femenino' : value === 'otro' ? 'Otro' : '—' }}
+          {{ labelSexo(value) }}
         </template>
         <template #cell-tipo_atencion="{ value }">
-          {{
-            value === 'medica' ? 'Médica / Primeros Auxilios'
-            : value === 'psicosocial' ? 'Apoyo Psicosocial'
-            : value === 'alimento' ? 'Alimentación / Hidratación'
-            : value === 'refugio' ? 'Refugio / Abrigo'
-            : value === 'higiene' ? 'Kits de Higiene'
-            : value === 'informacion' ? 'Orientación'
-            : value === 'traslado' ? 'Traslado / Evacuación'
-            : value === 'otro' ? 'Otro'
-            : '—'
-          }}
+          {{ labelTipoAtencion(value) }}
         </template>
-        <template #cell-vulnerabilidad="{ value }">
-          <div v-if="value" class="flex flex-wrap gap-1">
-            <template v-for="v in parseVuln(value)" :key="v">
-              <span class="text-xs px-2 py-0.5 rounded-full bg-amber-100 text-amber-800">
-                {{ labelVuln(v) }}
-              </span>
-            </template>
-          </div>
-          <span v-else class="text-text-secondary">—</span>
+        <template #cell-acciones="{ row }">
+          <BaseButton size="sm" variant="ghost" @click="openDetail(row as unknown as Atendido)">
+            <Eye :size="16" />
+          </BaseButton>
         </template>
       </BaseTable>
     </BaseCard>
@@ -266,4 +295,75 @@ onMounted(async () => {
     <p>Cargando misión...</p>
     <BaseButton variant="ghost" @click="router.push('/dashboard')">Volver</BaseButton>
   </div>
+
+  <Teleport to="body">
+    <div
+      v-if="showDetail && selectedAtendido"
+      class="fixed inset-0 bg-black/40 flex items-center justify-center z-1000"
+      @click.self="closeDetail"
+    >
+      <div class="bg-white rounded-xl p-6 w-full max-w-lg mx-4 flex flex-col gap-4 max-h-[85vh] overflow-y-auto">
+        <div class="flex items-center justify-between">
+          <h3 class="m-0 text-brand text-lg font-bold">Detalle de Atención</h3>
+          <BaseButton variant="ghost" size="sm" @click="closeDetail">✕</BaseButton>
+        </div>
+
+        <div class="grid grid-cols-2 gap-x-6 gap-y-3 text-sm">
+          <div class="col-span-2">
+            <span class="font-semibold text-text-secondary block text-xs uppercase tracking-wide">Nombre</span>
+            <span>{{ selectedAtendido.nombre_atendido }}</span>
+          </div>
+          <div>
+            <span class="font-semibold text-text-secondary block text-xs uppercase tracking-wide">Cédula</span>
+            <span>{{ selectedAtendido.cedula_atendido || '—' }}</span>
+          </div>
+          <div>
+            <span class="font-semibold text-text-secondary block text-xs uppercase tracking-wide">Teléfono</span>
+            <span>{{ selectedAtendido.telefono_contacto || '—' }}</span>
+          </div>
+          <div>
+            <span class="font-semibold text-text-secondary block text-xs uppercase tracking-wide">Edad</span>
+            <span>{{ selectedAtendido.edad ?? '—' }}</span>
+          </div>
+          <div>
+            <span class="font-semibold text-text-secondary block text-xs uppercase tracking-wide">Sexo</span>
+            <span>{{ labelSexo(selectedAtendido.sexo) }}</span>
+          </div>
+          <div class="col-span-2">
+            <span class="font-semibold text-text-secondary block text-xs uppercase tracking-wide">Tipo de Atención</span>
+            <span>{{ labelTipoAtencion(selectedAtendido.tipo_atencion) }}</span>
+          </div>
+          <div class="col-span-2">
+            <span class="font-semibold text-text-secondary block text-xs uppercase tracking-wide">Requiere Referencia</span>
+            <span>{{ selectedAtendido.referido ? 'Sí' : 'No' }}</span>
+          </div>
+          <div class="col-span-2">
+            <span class="font-semibold text-text-secondary block text-xs uppercase tracking-wide">Vulnerabilidades</span>
+            <div v-if="selectedAtendido.vulnerabilidad" class="flex flex-wrap gap-1 mt-1">
+              <span
+                v-for="v in parseVuln(selectedAtendido.vulnerabilidad)"
+                :key="v"
+                class="text-xs px-2 py-0.5 rounded-full bg-amber-100 text-amber-800"
+              >
+                {{ labelVuln(v) }}
+              </span>
+            </div>
+            <span v-else class="text-text-secondary">—</span>
+          </div>
+          <div class="col-span-2">
+            <span class="font-semibold text-text-secondary block text-xs uppercase tracking-wide">Notas</span>
+            <p class="m-0 whitespace-pre-wrap">{{ selectedAtendido.notas || '—' }}</p>
+          </div>
+          <div class="col-span-2 pt-2 border-t border-border">
+            <span class="font-semibold text-text-secondary block text-xs uppercase tracking-wide">Registrado por</span>
+            <span>{{ selectedAtendido.cedula_personal }}</span>
+          </div>
+          <div>
+            <span class="font-semibold text-text-secondary block text-xs uppercase tracking-wide">Fecha</span>
+            <span>{{ formatDate(selectedAtendido.fecha_hora_atencion) }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </Teleport>
 </template>
