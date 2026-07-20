@@ -33,6 +33,13 @@ const formEspecialidad = ref('')
 const formAreaVoluntariado = ref('')
 const formErrors = ref<Record<string, string>>({})
 
+function handleCedulaInput(val: string | number | null) {
+  const str = String(val ?? '')
+  const digits = str.replace(/\D/g, '').slice(0, 8)
+  _formCedula.value = digits ? 'V-' + digits : ''
+  formErrors.value.cedula = ''
+}
+
 watch(formRol, (val) => {
   if (val !== 'personal') {
     formCategoriaVoluntariado.value = ''
@@ -171,16 +178,18 @@ async function saveUser() {
       } else {
         await putItem('usuarios', user)
         const client = auth.accessToken ? getAuthSupabase(auth.accessToken) : getSupabase()
-        await client.from('perfiles').upsert({
-          id: user.id,
-          cedula: user.cedula,
-          nombre: user.nombre,
-          rol: user.rol,
-          categoria_voluntariado: user.categoria_voluntariado ?? null,
-          especialidad: user.especialidad ?? '',
-          area_voluntariado: user.area_voluntariado ?? '',
-          activo: true,
-        }).catch(() => {})
+        try {
+          await client.from('perfiles').upsert({
+            id: user.id,
+            cedula: user.cedula,
+            nombre: user.nombre,
+            rol: user.rol,
+            categoria_voluntariado: user.categoria_voluntariado ?? null,
+            especialidad: user.especialidad ?? '',
+            area_voluntariado: user.area_voluntariado ?? '',
+            activo: true,
+          })
+        } catch {} // fallback silencioso
         useToastStore().error('Guardado localmente. Supabase Auth: ' + error.message)
       }
     } catch {
@@ -338,7 +347,7 @@ onMounted(async () => {
         <div v-if="showUserForm" class="bg-bg p-4 rounded-lg mb-4">
           <h3 class="m-0 mb-3 text-brand">{{ editingUser ? 'Editar' : 'Nuevo' }} Usuario</h3>
           <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
-            <BaseInput v-model="formCedula" label="Cédula" required :error="formErrors.cedula" @update:model-value="val => { formCedula.value = val.replace(/\D/g, '').replace(/^/, 'V-'); formErrors.cedula = '' }" maxlength="10" />
+            <BaseInput v-model="formCedula" label="Cédula" required :error="formErrors.cedula" @update:model-value="handleCedulaInput" :maxlength="10" />
             <BaseInput v-model="formNombre" label="Nombre" required :error="formErrors.nombre" @update:model-value="formErrors.nombre = ''" />
             <BaseSelect
               v-model="formRol"

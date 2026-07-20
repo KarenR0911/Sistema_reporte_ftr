@@ -1,6 +1,6 @@
 import { ref } from 'vue'
 import { defineStore } from 'pinia'
-import type { Atendido } from '@/types'
+import type { Atendido, StatusSync } from '@/types'
 import { getAll, addItem, putItem, deleteItem, addDeletedId } from '@/db'
 import { getSupabase } from '@/lib/supabase'
 import { markNeedsSync } from '@/lib/syncTrigger'
@@ -50,7 +50,7 @@ export const useAtendidosStore = defineStore('atendidos', () => {
   }
 
   async function create(item: Atendido) {
-    const clone = { ...item, status_sync: 'pending' as const }
+    const clone = { ...item, status_sync: 'pending' as StatusSync }
 
     if (navigator.onLine) {
       const sb = getSupabase()
@@ -83,7 +83,7 @@ export const useAtendidosStore = defineStore('atendidos', () => {
   }
 
   async function update(item: Atendido) {
-    const clone = { ...item, status_sync: 'pending' as const }
+    const clone = { ...item, status_sync: 'pending' as StatusSync }
 
     if (navigator.onLine) {
       const sb = getSupabase()

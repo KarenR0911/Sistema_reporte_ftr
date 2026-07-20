@@ -1,6 +1,6 @@
 import { ref } from 'vue'
 import { defineStore } from 'pinia'
-import type { SalidaInsumo } from '@/types'
+import type { SalidaInsumo, StatusSync } from '@/types'
 import { getAll, addItem, putItem, deleteItem, addDeletedId } from '@/db'
 import { getSupabase } from '@/lib/supabase'
 import { markNeedsSync } from '@/lib/syncTrigger'
@@ -50,7 +50,7 @@ export const useSalidasInsumosStore = defineStore('salidasInsumos', () => {
   }
 
   async function create(item: SalidaInsumo) {
-    const clone = { ...item, status_sync: 'pending' as const }
+    const clone = { ...item, status_sync: 'pending' as StatusSync }
 
     if (navigator.onLine) {
       const sb = getSupabase()

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 const props = defineProps<{
   label?: string
-  modelValue: string | number
+  modelValue: string | number | null
   type?: string
   placeholder?: string
   required?: boolean
@@ -12,7 +12,7 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{
-  'update:modelValue': [value: string | number]
+  'update:modelValue': [value: string | number | null]
 }>()
 
 function handleInput(e: Event) {

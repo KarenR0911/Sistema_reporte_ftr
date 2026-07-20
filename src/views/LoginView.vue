@@ -59,7 +59,7 @@ async function handleLogin() {
       toast.success(`Bienvenido, ${auth.currentUser?.nombre ?? ''}`)
       router.replace('/dashboard')
     } else {
-      error.value = auth.error ?? 'Credenciales inválidas'
+      error.value = 'Credenciales inválidas'
     }
   }, 'Iniciando sesión...')
 }
