@@ -6,6 +6,10 @@ import tailwindcss from '@tailwindcss/vite'
 import { VitePWA } from 'vite-plugin-pwa'
 
 export default defineConfig({
+  preview: {
+    host: true,
+    allowedHosts: true,
+  },
   plugins: [
     vue(),
     vueDevTools(),

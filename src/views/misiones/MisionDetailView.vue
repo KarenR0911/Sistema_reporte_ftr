@@ -143,16 +143,16 @@ onMounted(async () => {
     <div class="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4" />
     <p>Cargando misión...</p>
   </div>
-  <div v-else-if="mission" class="flex flex-col gap-6">
-    <div class="flex justify-between items-start">
+  <div v-else-if="mission" class="flex flex-col gap-4 md:gap-6">
+    <div class="flex flex-col sm:flex-row justify-between items-start gap-3">
       <div>
         <div class="flex items-center gap-3">
           <BaseButton variant="ghost" @click="router.push('/misiones')"><ArrowLeft :size="18" /> Volver</BaseButton>
-          <h1 class="text-2xl text-brand m-0">{{ mission.municipio }}, {{ mission.estado }}</h1>
+          <h1 class="text-xl md:text-2xl text-brand m-0">{{ mission.municipio }}, {{ mission.estado }}</h1>
         </div>
         <p class="text-text-secondary mt-1 text-sm m-0 ml-12">{{ mission.direccion }}</p>
       </div>
-      <div class="flex items-center gap-3 flex-wrap">
+      <div class="flex items-center gap-2 md:gap-3 flex-wrap">
         <StatusBadge :status="mission.estatus_mision" type="mision" />
         <RouterLink v-if="canEdit" :to="`/misiones/${missionId}/necesidades`">
           <BaseButton variant="primary"><ClipboardList :size="18" /> Levantar Necesidades</BaseButton>

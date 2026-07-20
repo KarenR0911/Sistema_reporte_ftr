@@ -77,7 +77,7 @@ onMounted(async () => {
     <div class="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4" />
     <p>Cargando panel...</p>
   </div>
-  <div v-else class="flex flex-col gap-6">
+  <div v-else class="flex flex-col gap-4 md:gap-6">
     <h1 class="text-2xl text-brand m-0">Panel {{ role === 'director' ? 'del Director' : role === 'administrador' ? 'de Administración' : role === 'coordinador' ? 'del Coordinador' : 'de Voluntario' }}</h1>
 
     <!-- Stats Grid -->

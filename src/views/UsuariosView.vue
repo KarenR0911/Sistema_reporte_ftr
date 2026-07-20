@@ -301,7 +301,7 @@ onMounted(async () => {
 </script>
 
 <template>
-  <div class="flex flex-col gap-6">
+  <div class="flex flex-col gap-4 md:gap-6">
     <div class="flex justify-between items-center">
       <h1 class="text-2xl text-brand m-0">Gestión de Usuarios</h1>
       <div class="flex items-center gap-2">
@@ -311,12 +311,12 @@ onMounted(async () => {
 
     <BaseCard title="Usuarios del Sistema">
       <template #default>
-        <div class="flex justify-between items-center mb-4">
-          <BaseButton variant="primary" @click="showUserForm = true">
+        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4">
+          <BaseButton variant="primary" @click="showUserForm = true" class="w-full sm:w-auto">
             + Nuevo Usuario
           </BaseButton>
-          <div class="flex items-center gap-2">
-            <BaseInput v-model="searchQuery" placeholder="Buscar por cédula o nombre..." class="w-60" />
+          <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
+            <BaseInput v-model="searchQuery" placeholder="Buscar..." class="w-full sm:w-60" />
             <BaseSelect
               v-model="filtroRol"
               :options="[
@@ -326,7 +326,7 @@ onMounted(async () => {
                 { value: 'coordinador', label: 'Coordinador' },
                 { value: 'personal', label: 'Personal' },
               ]"
-              class="w-44"
+              class="w-full sm:w-44"
             />
             <BaseSelect
               v-model="filtroTipo"
@@ -336,14 +336,14 @@ onMounted(async () => {
                 { value: 'profesional', label: 'Profesional' },
                 { value: 'voluntario', label: 'Voluntario' },
               ]"
-              class="w-44"
+              class="w-full sm:w-44"
             />
           </div>
         </div>
 
         <div v-if="showUserForm" class="bg-bg p-4 rounded-lg mb-4">
           <h3 class="m-0 mb-3 text-brand">{{ editingUser ? 'Editar' : 'Nuevo' }} Usuario</h3>
-          <div class="grid grid-cols-2 gap-3 mb-3">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
             <BaseInput v-model="formCedula" label="Cédula" required :error="formErrors.cedula" @update:model-value="val => { formCedula.value = val.replace(/\D/g, '').replace(/^/, 'V-'); formErrors.cedula = '' }" maxlength="10" />
             <BaseInput v-model="formNombre" label="Nombre" required :error="formErrors.nombre" @update:model-value="formErrors.nombre = ''" />
             <BaseInput v-model="formEmail" label="Email" type="email" placeholder="usuario@ftr.app" :error="formErrors.email" />

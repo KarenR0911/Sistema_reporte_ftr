@@ -1,10 +1,20 @@
 <script setup lang="ts">
-import { onMounted } from 'vue'
+import { ref, onMounted } from 'vue'
 import SidebarNav from './SidebarNav.vue'
 import TopBar from './TopBar.vue'
 import { useSync } from '@/composables/useSync'
 
 const { syncAll } = useSync()
+
+const sidebarOpen = ref(false)
+
+function toggleSidebar() {
+  sidebarOpen.value = !sidebarOpen.value
+}
+
+function closeSidebar() {
+  sidebarOpen.value = false
+}
 
 onMounted(() => {
   syncAll()
@@ -13,10 +23,10 @@ onMounted(() => {
 
 <template>
   <div class="flex min-h-screen">
-    <SidebarNav />
-    <div class="flex-1 flex flex-col bg-bg">
-      <TopBar />
-      <main class="flex-1 p-6">
+    <SidebarNav :open="sidebarOpen" @close="closeSidebar" />
+    <div class="flex-1 flex flex-col bg-bg min-w-0">
+      <TopBar @toggle-sidebar="toggleSidebar" />
+      <main class="flex-1 p-4 lg:p-6">
         <RouterView v-slot="{ Component }">
           <Transition name="fade" mode="out-in">
             <component :is="Component" />

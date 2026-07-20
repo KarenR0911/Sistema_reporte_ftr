@@ -134,14 +134,14 @@ onMounted(async () => {
 </script>
 
 <template>
-  <div v-if="mission" class="flex flex-col gap-6">
-    <div class="flex justify-between items-start">
+  <div v-if="mission" class="flex flex-col gap-4 md:gap-6">
+    <div class="flex flex-col sm:flex-row justify-between items-start gap-3">
       <div>
         <div class="flex items-center gap-3">
           <BaseButton variant="ghost" @click="router.push(`/misiones/${missionId}`)">
             <ArrowLeft :size="18" /> Volver
           </BaseButton>
-          <h1 class="text-2xl text-brand m-0">Farmacía</h1>
+          <h1 class="text-2xl text-brand m-0">Farmacia</h1>
         </div>
         <p class="text-text-secondary mt-1 text-sm m-0 ml-12">{{ mission.municipio }}, {{ mission.estado }}</p>
       </div>
@@ -170,7 +170,7 @@ onMounted(async () => {
 
     <div v-if="showSalidaForm" class="bg-white rounded-xl border border-border p-5 flex flex-col gap-4">
       <h3 class="m-0 text-brand text-base font-semibold">Nueva Salida de Insumos</h3>
-      <div class="grid grid-cols-2 gap-4">
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
         <BaseSelect
           v-model="formIdInsumo"
           label="Insumo"

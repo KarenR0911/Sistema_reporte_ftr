@@ -76,7 +76,7 @@ onMounted(async () => {
 </script>
 
 <template>
-  <div class="flex flex-col gap-6">
+  <div class="flex flex-col gap-4 md:gap-6">
     <div class="flex justify-between items-start">
       <div>
         <div class="flex items-center gap-3">
@@ -88,7 +88,7 @@ onMounted(async () => {
     </div>
 
     <BaseCard title="Registrar Necesidad">
-      <div class="grid grid-cols-2 gap-4 mb-4">
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
         <BaseInput v-model="formCategoria" label="Categoría" placeholder="Medicinas, Alimentos, Agua..." :error="formErrors.categoria" @update:model-value="formErrors.categoria = ''" />
         <BaseInput v-model="formDescripcion" label="Descripción" :error="formErrors.descripcion" @update:model-value="formErrors.descripcion = ''" />
         <BaseInput v-model="formCantidad" label="Cantidad Requerida" type="number" :error="formErrors.cantidad_requerida" @update:model-value="formErrors.cantidad_requerida = ''" />
