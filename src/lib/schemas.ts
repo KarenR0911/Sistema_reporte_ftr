@@ -11,9 +11,8 @@ export const usuarioSchema = z.object({
     .min(1, 'Cédula es requerida')
     .regex(/^V-\d+$/, 'Cédula debe tener formato V-12345678'),
   nombre: z.string().min(1, 'Nombre es requerido'),
-  email: z.string().email('Email inválido').optional().or(z.literal('')),
   rol: z.enum(['director', 'administrador', 'coordinador', 'personal'], {
-    errorMap: () => ({ message: 'Selecciona un rol válido' }),
+    message: 'Selecciona un rol válido',
   }),
   categoria_voluntariado: z.enum(['estudiante', 'profesional', 'voluntario']).optional(),
   especialidad: z.string().optional(),
@@ -54,7 +53,7 @@ export const atencionSchema = z.object({
   edad: z.number().int().positive('Edad debe ser un número positivo').nullable().optional(),
   sexo: z.enum(['masculino', 'femenino', 'otro']).nullable().optional(),
   tipo_atencion: z.enum(['medica', 'psicosocial', 'alimento', 'refugio', 'higiene', 'informacion', 'traslado', 'otro'], {
-    errorMap: () => ({ message: 'Selecciona un tipo de atención válido' }),
+    message: 'Selecciona un tipo de atención válido',
   }).nullable().optional(),
   referido: z.boolean().optional(),
   vulnerabilidad: z.array(z.enum(['embarazada', 'discapacidad', 'adulto_mayor', 'menor_no_acompanado', 'enfermedad_cronica', 'otro'])).optional(),
@@ -75,6 +74,6 @@ export const necesidadSchema = z.object({
   unidad: z.string().optional(),
   observaciones: z.string().optional(),
   prioridad: z.enum(['baja', 'media', 'alta', 'critica'], {
-    errorMap: () => ({ message: 'Selecciona una prioridad válida' }),
+    message: 'Selecciona una prioridad válida',
   }),
 })

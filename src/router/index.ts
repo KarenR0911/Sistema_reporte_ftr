@@ -50,7 +50,7 @@ const router = createRouter({
           path: 'misiones/:id/farmacia',
           name: 'farmacia',
           component: () => import('@/views/farmacia/FarmaciaView.vue'),
-          meta: { roles: ['director', 'administrador', 'coordinador'] },
+          meta: { roles: ['director', 'administrador'] },
         },
         {
           path: 'atencion/nueva/:id_mision',
@@ -63,6 +63,11 @@ const router = createRouter({
           name: 'usuarios',
           component: () => import('@/views/UsuariosView.vue'),
           meta: { roles: ['director', 'administrador'] },
+        },
+        {
+          path: 'perfil',
+          name: 'perfil',
+          component: () => import('@/views/perfil/MiPerfilView.vue'),
         },
       ],
     },

@@ -2,7 +2,7 @@
 import { computed } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import { useRoute } from 'vue-router'
-import { LayoutDashboard, Users, ClipboardList, Rocket, type LucideIcon } from '@lucide/vue'
+import { LayoutDashboard, Users, User, ClipboardList, Rocket, type LucideIcon } from '@lucide/vue'
 
 defineProps<{
   open: boolean
@@ -32,6 +32,7 @@ const menuItems = computed<NavItem[]>(() => {
   if (role === 'director' || role === 'administrador') {
     items.push({ label: 'Usuarios', icon: Users, to: '/usuarios' })
   }
+  items.push({ label: 'Mi Perfil', icon: User, to: '/perfil' })
   return items
 })
 </script>
@@ -46,7 +47,7 @@ const menuItems = computed<NavItem[]>(() => {
   </Teleport>
 
   <nav
-    class="h-screen w-60 bg-brand text-white flex flex-col shrink-0 transition-transform duration-300 ease-in-out z-50
+    class="min-h-screen w-60 bg-brand text-white flex flex-col shrink-0 transition-transform duration-300 ease-in-out z-50
       fixed left-0 top-0
       md:sticky md:left-auto md:top-auto
       max-md:data-[open=false]:-translate-x-full

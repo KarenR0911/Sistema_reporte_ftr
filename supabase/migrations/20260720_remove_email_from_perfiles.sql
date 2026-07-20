@@ -1,0 +1,1 @@
+ALTER TABLE perfiles DROP COLUMN IF EXISTS email;

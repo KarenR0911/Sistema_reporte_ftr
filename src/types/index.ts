@@ -15,6 +15,7 @@ export interface Mision {
   estado: string
   fecha_inicio: string
   estatus_mision: EstatusMision
+  status_sync?: StatusSync
 }
 
 export interface InsumoLlevado {
@@ -26,6 +27,7 @@ export interface InsumoLlevado {
   unidad: string
   observaciones: string
   estatus_cargamento: EstatusCargamento
+  status_sync?: StatusSync
 }
 
 export interface Transporte {
@@ -44,6 +46,7 @@ export interface PersonalMision {
   categoria_voluntariado: CategoriaVoluntariado
   especialidad: string
   area_voluntariado?: string
+  status_sync?: StatusSync
 }
 
 export interface Atendido {

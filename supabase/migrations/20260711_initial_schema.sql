@@ -48,7 +48,6 @@ CREATE TABLE IF NOT EXISTS perfiles (
   categoria_voluntariado categoria_voluntariado DEFAULT NULL,
   especialidad TEXT DEFAULT '',
   area_voluntariado TEXT DEFAULT '',
-  email TEXT DEFAULT '',
   activo BOOLEAN NOT NULL DEFAULT true,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );

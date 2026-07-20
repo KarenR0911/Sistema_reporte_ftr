@@ -8,7 +8,7 @@ import BaseTable from '@/components/ui/BaseTable.vue'
 import PersonalSelector from '@/components/ui/PersonalSelector.vue'
 import ConfirmDialog from '@/components/ui/ConfirmDialog.vue'
 import StatusBadge from '@/components/ui/StatusBadge.vue'
-import { ClipboardList, CheckCircle, ArrowLeft, Plus, Package } from '@lucide/vue'
+import { ClipboardList, CheckCircle, ArrowLeft, Plus, Package, Eye } from '@lucide/vue'
 import { useMisionesStore } from '@/stores/misiones'
 import { useTransporteStore } from '@/stores/transporte'
 import { usePersonalStore } from '@/stores/personal'
@@ -17,7 +17,7 @@ import { useAtendidosStore } from '@/stores/atendidos'
 import { useNecesidadesStore } from '@/stores/necesidades'
 import { useAuthStore } from '@/stores/auth'
 import { useLoading } from '@/composables/useLoading'
-import type { Mision, Transporte, PersonalMision, InsumoLlevado, Usuario } from '@/types'
+import type { Mision, Transporte, PersonalMision, InsumoLlevado, Usuario, Atendido } from '@/types'
 
 const route = useRoute()
 const router = useRouter()
@@ -36,6 +36,10 @@ const storesReady = computed(() =>
   && insumosStore.loaded && (atendidosStore.loaded ?? true) && (necesidadesStore.loaded ?? true)
 )
 
+const canAccessFarmacia = computed(() =>
+  role.value === 'director' || role.value === 'administrador',
+)
+
 const missionId = route.params.id as string
 const mission = computed(() => misionesStore.getById(missionId))
 const transportes = computed(() => transporteStore.getByMision(missionId))
@@ -46,6 +50,62 @@ const necesidades = computed(() => necesidadesStore.getByMision(missionId))
 
 const role = computed(() => auth.userRole)
 const canEdit = computed(() => role.value === 'director' || role.value === 'administrador' || role.value === 'coordinador')
+
+const showDetail = ref(false)
+const selectedAtendido = ref<Atendido | null>(null)
+
+function openDetail(a: Atendido) {
+  selectedAtendido.value = a
+  showDetail.value = true
+}
+
+function closeDetail() {
+  showDetail.value = false
+  selectedAtendido.value = null
+}
+
+function formatDate(iso: string): string {
+  if (!iso) return '—'
+  return new Date(iso).toLocaleString('es-VE', {
+    day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit',
+  })
+}
+
+function labelTipoAtencion(val: unknown): string {
+  return val === 'medica' ? 'Médica / Primeros Auxilios'
+    : val === 'psicosocial' ? 'Apoyo Psicosocial'
+    : val === 'alimento' ? 'Alimentación / Hidratación'
+    : val === 'refugio' ? 'Refugio / Abrigo'
+    : val === 'higiene' ? 'Kits de Higiene'
+    : val === 'informacion' ? 'Orientación'
+    : val === 'traslado' ? 'Traslado / Evacuación'
+    : val === 'otro' ? 'Otro' : '—'
+}
+
+function labelSexo(val: unknown): string {
+  return val === 'masculino' ? 'Masculino'
+    : val === 'femenino' ? 'Femenino'
+    : val === 'otro' ? 'Otro' : '—'
+}
+
+function parseVuln(value: unknown): string[] {
+  if (!value) return []
+  try {
+    const s = String(value)
+    return s.startsWith('[') ? JSON.parse(s) : [s]
+  } catch {
+    return [String(value)]
+  }
+}
+
+function labelVuln(v: string): string {
+  return v === 'embarazada' ? 'Embarazada'
+    : v === 'discapacidad' ? 'Discapacidad'
+    : v === 'adulto_mayor' ? 'Adulto Mayor'
+    : v === 'menor_no_acompanado' ? 'Menor solo'
+    : v === 'enfermedad_cronica' ? 'Enf. Crónica'
+    : v === 'otro' ? 'Otra' : v
+}
 
 const selectedUserList = ref<Usuario[]>([])
 
@@ -139,11 +199,12 @@ onMounted(async () => {
 </script>
 
 <template>
-  <div v-if="!storesReady" class="py-12 text-center text-text-secondary">
-    <div class="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-    <p>Cargando misión...</p>
-  </div>
-  <div v-else-if="mission" class="flex flex-col gap-4 md:gap-6">
+  <div>
+    <div v-if="!storesReady" class="py-12 text-center text-text-secondary">
+      <div class="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+      <p>Cargando misión...</p>
+    </div>
+    <div v-else-if="mission" class="flex flex-col gap-4 md:gap-6">
     <div class="flex flex-col sm:flex-row justify-between items-start gap-3">
       <div>
         <div class="flex items-center gap-3">
@@ -157,7 +218,7 @@ onMounted(async () => {
         <RouterLink v-if="canEdit" :to="`/misiones/${missionId}/necesidades`">
           <BaseButton variant="primary"><ClipboardList :size="18" /> Levantar Necesidades</BaseButton>
         </RouterLink>
-        <RouterLink v-if="canEdit" :to="`/misiones/${missionId}/farmacia`">
+        <RouterLink v-if="canAccessFarmacia" :to="`/misiones/${missionId}/farmacia`">
           <BaseButton variant="primary"><Package :size="18" /> Farmacia</BaseButton>
         </RouterLink>
         <BaseButton v-if="canEdit && mission.estatus_mision === 'activa'" variant="secondary" @click="openCompleteModal">
@@ -245,13 +306,27 @@ onMounted(async () => {
         :columns="[
           { key: 'nombre_atendido', label: 'Nombre' },
           { key: 'cedula_atendido', label: 'Cédula' },
-          { key: 'tipo_atencion', label: 'Tipo' },
           { key: 'edad', label: 'Edad' },
           { key: 'sexo', label: 'Sexo' },
+          { key: 'tipo_atencion', label: 'Atención' },
+          { key: 'telefono_contacto', label: 'Teléfono' },
           { key: 'fecha_hora_atencion', label: 'Fecha' },
+          { key: 'acciones', label: '' },
         ]"
         :rows="atendidos as unknown as Record<string, unknown>[]"
-      />
+      >
+        <template #cell-sexo="{ value }">
+          {{ labelSexo(value) }}
+        </template>
+        <template #cell-tipo_atencion="{ value }">
+          {{ labelTipoAtencion(value) }}
+        </template>
+        <template #cell-acciones="{ row }">
+          <BaseButton size="sm" variant="ghost" @click="openDetail(row as unknown as Atendido)">
+            <Eye :size="16" />
+          </BaseButton>
+        </template>
+      </BaseTable>
     </BaseCard>
 
     <BaseCard title="Necesidades">
@@ -294,6 +369,77 @@ onMounted(async () => {
       </div>
     </Teleport>
 
+    <Teleport to="body">
+      <div
+        v-if="showDetail && selectedAtendido"
+        class="fixed inset-0 bg-black/40 flex items-center justify-center z-1000"
+        @click.self="closeDetail"
+      >
+        <div class="bg-white rounded-xl p-6 w-full max-w-lg mx-4 flex flex-col gap-4 max-h-[85vh] overflow-y-auto">
+          <div class="flex items-center justify-between">
+            <h3 class="m-0 text-brand text-lg font-bold">Detalle de Atención</h3>
+            <BaseButton variant="ghost" size="sm" @click="closeDetail">✕</BaseButton>
+          </div>
+
+          <div class="grid grid-cols-2 gap-x-6 gap-y-3 text-sm">
+            <div class="col-span-2">
+              <span class="font-semibold text-text-secondary block text-xs uppercase tracking-wide">Nombre</span>
+              <span>{{ selectedAtendido.nombre_atendido }}</span>
+            </div>
+            <div>
+              <span class="font-semibold text-text-secondary block text-xs uppercase tracking-wide">Cédula</span>
+              <span>{{ selectedAtendido.cedula_atendido || '—' }}</span>
+            </div>
+            <div>
+              <span class="font-semibold text-text-secondary block text-xs uppercase tracking-wide">Teléfono</span>
+              <span>{{ selectedAtendido.telefono_contacto || '—' }}</span>
+            </div>
+            <div>
+              <span class="font-semibold text-text-secondary block text-xs uppercase tracking-wide">Edad</span>
+              <span>{{ selectedAtendido.edad ?? '—' }}</span>
+            </div>
+            <div>
+              <span class="font-semibold text-text-secondary block text-xs uppercase tracking-wide">Sexo</span>
+              <span>{{ labelSexo(selectedAtendido.sexo) }}</span>
+            </div>
+            <div class="col-span-2">
+              <span class="font-semibold text-text-secondary block text-xs uppercase tracking-wide">Tipo de Atención</span>
+              <span>{{ labelTipoAtencion(selectedAtendido.tipo_atencion) }}</span>
+            </div>
+            <div class="col-span-2">
+              <span class="font-semibold text-text-secondary block text-xs uppercase tracking-wide">Requiere Referencia</span>
+              <span>{{ selectedAtendido.referido ? 'Sí' : 'No' }}</span>
+            </div>
+            <div class="col-span-2">
+              <span class="font-semibold text-text-secondary block text-xs uppercase tracking-wide">Vulnerabilidades</span>
+              <div v-if="selectedAtendido.vulnerabilidad" class="flex flex-wrap gap-1 mt-1">
+                <span
+                  v-for="v in parseVuln(selectedAtendido.vulnerabilidad)"
+                  :key="v"
+                  class="text-xs px-2 py-0.5 rounded-full bg-amber-100 text-amber-800"
+                >
+                  {{ labelVuln(v) }}
+                </span>
+              </div>
+              <span v-else class="text-text-secondary">—</span>
+            </div>
+            <div class="col-span-2">
+              <span class="font-semibold text-text-secondary block text-xs uppercase tracking-wide">Notas</span>
+              <p class="m-0 whitespace-pre-wrap">{{ selectedAtendido.notas || '—' }}</p>
+            </div>
+            <div class="col-span-2 pt-2 border-t border-border">
+              <span class="font-semibold text-text-secondary block text-xs uppercase tracking-wide">Registrado por</span>
+              <span>{{ selectedAtendido.cedula_personal }}</span>
+            </div>
+            <div>
+              <span class="font-semibold text-text-secondary block text-xs uppercase tracking-wide">Fecha</span>
+              <span>{{ formatDate(selectedAtendido.fecha_hora_atencion) }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </Teleport>
+
     <ConfirmDialog
       :show="showRemovePersonalDialog"
       title="Quitar personal"
@@ -308,5 +454,6 @@ onMounted(async () => {
   <div v-else class="py-12 text-center text-text-secondary">
     <p>Misión no encontrada.</p>
     <BaseButton variant="ghost" @click="router.push('/misiones')">Volver a misiones</BaseButton>
+  </div>
   </div>
 </template>

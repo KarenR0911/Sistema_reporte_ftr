@@ -34,6 +34,6 @@ defineEmits<{
       <span v-if="loadingText">{{ loadingText }}</span>
       <span v-else>Cargando...</span>
     </span>
-    <span v-else><slot /></span>
+    <slot v-else />
   </button>
 </template>

@@ -27,12 +27,18 @@ const formCedula = computed({
   },
 })
 const formNombre = ref('')
-const formEmail = ref('')
 const formRol = ref('')
 const formCategoriaVoluntariado = ref<string>('')
 const formEspecialidad = ref('')
 const formAreaVoluntariado = ref('')
 const formErrors = ref<Record<string, string>>({})
+
+function handleCedulaInput(val: string | number | null) {
+  const str = String(val ?? '')
+  const digits = str.replace(/\D/g, '').slice(0, 8)
+  _formCedula.value = digits ? 'V-' + digits : ''
+  formErrors.value.cedula = ''
+}
 
 watch(formRol, (val) => {
   if (val !== 'personal') {
@@ -93,7 +99,7 @@ async function loadUsuarios() {
           id: p.id as string,
           cedula: p.cedula as string,
           nombre: p.nombre as string,
-          email: (p.email as string) ?? `${p.cedula}@ftr.app`,
+          email: `${p.cedula}@ftr.app`,
           rol: p.rol as Usuario['rol'],
           activo: p.activo as boolean,
           categoria_voluntariado: p.categoria_voluntariado as CategoriaVoluntariado | undefined,
@@ -114,7 +120,6 @@ function validateForm(): boolean {
   const payload: Record<string, unknown> = {
     cedula: formCedula.value,
     nombre: formNombre.value,
-    email: formEmail.value || `${formCedula.value}@ftr.app`,
     rol: formRol.value,
   }
   if (formRol.value === 'personal') {
@@ -137,7 +142,7 @@ async function saveUser() {
   if (!validateForm()) return
   const isNew = !editingUser.value
   const esPersonal = formRol.value === 'personal'
-  const email = formEmail.value || `${formCedula.value}@ftr.app`
+  const email = `${formCedula.value}@ftr.app`
   const user: Usuario = {
     id: editingUser.value?.id ?? crypto.randomUUID(),
     cedula: formCedula.value,
@@ -173,17 +178,18 @@ async function saveUser() {
       } else {
         await putItem('usuarios', user)
         const client = auth.accessToken ? getAuthSupabase(auth.accessToken) : getSupabase()
-        await client.from('perfiles').upsert({
-          id: user.id,
-          cedula: user.cedula,
-          nombre: user.nombre,
-          email: user.email,
-          rol: user.rol,
-          categoria_voluntariado: user.categoria_voluntariado ?? null,
-          especialidad: user.especialidad ?? '',
-          area_voluntariado: user.area_voluntariado ?? '',
-          activo: true,
-        }).catch(() => {})
+        try {
+          await client.from('perfiles').upsert({
+            id: user.id,
+            cedula: user.cedula,
+            nombre: user.nombre,
+            rol: user.rol,
+            categoria_voluntariado: user.categoria_voluntariado ?? null,
+            especialidad: user.especialidad ?? '',
+            area_voluntariado: user.area_voluntariado ?? '',
+            activo: true,
+          })
+        } catch {} // fallback silencioso
         useToastStore().error('Guardado localmente. Supabase Auth: ' + error.message)
       }
     } catch {
@@ -197,7 +203,6 @@ async function saveUser() {
     await client.from('perfiles').update({
       cedula: user.cedula,
       nombre: user.nombre,
-      email: user.email,
       rol: user.rol,
       categoria_voluntariado: user.categoria_voluntariado ?? null,
       especialidad: user.especialidad ?? '',
@@ -222,7 +227,6 @@ function editUser(u: Usuario) {
   editingUser.value = u
   formCedula.value = u.cedula
   formNombre.value = u.nombre
-  formEmail.value = u.email
   formRol.value = u.rol
   formCategoriaVoluntariado.value = u.categoria_voluntariado ?? ''
   formEspecialidad.value = u.especialidad ?? ''
@@ -288,7 +292,6 @@ function resetForm() {
   editingUser.value = null
   formCedula.value = ''
   formNombre.value = ''
-  formEmail.value = ''
   formRol.value = ''
   formCategoriaVoluntariado.value = ''
   formEspecialidad.value = ''
@@ -344,9 +347,8 @@ onMounted(async () => {
         <div v-if="showUserForm" class="bg-bg p-4 rounded-lg mb-4">
           <h3 class="m-0 mb-3 text-brand">{{ editingUser ? 'Editar' : 'Nuevo' }} Usuario</h3>
           <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
-            <BaseInput v-model="formCedula" label="Cédula" required :error="formErrors.cedula" @update:model-value="val => { formCedula.value = val.replace(/\D/g, '').replace(/^/, 'V-'); formErrors.cedula = '' }" maxlength="10" />
+            <BaseInput v-model="formCedula" label="Cédula" required :error="formErrors.cedula" @update:model-value="handleCedulaInput" :maxlength="10" />
             <BaseInput v-model="formNombre" label="Nombre" required :error="formErrors.nombre" @update:model-value="formErrors.nombre = ''" />
-            <BaseInput v-model="formEmail" label="Email" type="email" placeholder="usuario@ftr.app" :error="formErrors.email" />
             <BaseSelect
               v-model="formRol"
               label="Rol"
