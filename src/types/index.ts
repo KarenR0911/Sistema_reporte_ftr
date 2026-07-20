@@ -15,6 +15,7 @@ export interface Mision {
   estado: string
   fecha_inicio: string
   estatus_mision: EstatusMision
+  status_sync?: StatusSync
 }
 
 export interface InsumoLlevado {

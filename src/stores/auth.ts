@@ -87,6 +87,11 @@ export const useAuthStore = defineStore('auth', () => {
 
     if (session) {
       accessToken.value = session.access_token
+      if (!navigator.onLine) {
+        const users = await getAll<Usuario>('usuarios')
+        currentUser.value = users.find((u) => u.id === session.user.id) ?? null
+        return
+      }
       try {
         const { data: perfil } = await sb.from('perfiles').select('*').eq('id', session.user.id).maybeSingle()
         if (perfil) {
