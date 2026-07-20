@@ -2,6 +2,12 @@ import { useOnlineStatus } from './useOnlineStatus'
 import { getPending, markAsSynced, putItem, getAll, getDeletedIds, clearDeletedId } from '@/db'
 import { getAuthSupabase } from '@/lib/supabase'
 import { useAuthStore } from '@/stores/auth'
+import { useAtendidosStore } from '@/stores/atendidos'
+import { useNecesidadesStore } from '@/stores/necesidades'
+import { useSalidasInsumosStore } from '@/stores/salidasInsumos'
+import { useMisionesStore } from '@/stores/misiones'
+import { usePersonalStore } from '@/stores/personal'
+import { useInsumosStore } from '@/stores/insumos'
 import { useNeedsSync } from '@/lib/syncTrigger'
 import type { StoreName } from '@/db'
 import { ref, watch, onUnmounted } from 'vue'
@@ -99,6 +105,18 @@ export function useSync() {
   const { isOnline } = useOnlineStatus()
   const auth = useAuthStore()
 
+  async function refreshAllStores() {
+    const stores = [
+      useAtendidosStore(),
+      useNecesidadesStore(),
+      useSalidasInsumosStore(),
+      useMisionesStore(),
+      usePersonalStore(),
+      useInsumosStore(),
+    ]
+    await Promise.allSettled(stores.map((s) => s.load()))
+  }
+
   async function syncAll() {
     if (!navigator.onLine) return
     const token = auth.accessToken
@@ -110,6 +128,7 @@ export function useSync() {
         await pullFromSupabase(store, table, token)
         await syncStoreToSupabase(store, table, token)
       }
+      await refreshAllStores()
       await refreshPendingCount()
     } finally {
       isSyncing.value = false

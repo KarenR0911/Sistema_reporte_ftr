@@ -27,9 +27,9 @@ onMounted(() => {
     <div class="flex-1 flex flex-col bg-bg min-w-0">
       <TopBar @toggle-sidebar="toggleSidebar" />
       <main class="flex-1 p-4 lg:p-6">
-        <RouterView v-slot="{ Component }">
+        <RouterView v-slot="{ Component, route }">
           <Transition name="fade" mode="out-in">
-            <component :is="Component" />
+            <component :is="Component" :key="route.fullPath" />
           </Transition>
         </RouterView>
       </main>

@@ -17,7 +17,8 @@ function labelRol(r: string | undefined): string {
 </script>
 
 <template>
-  <div v-if="user" class="flex flex-col gap-6 max-w-2xl mx-auto">
+  <div>
+    <div v-if="user" class="flex flex-col gap-6 max-w-2xl mx-auto">
     <h1 class="text-2xl text-brand m-0">Mi Perfil</h1>
 
     <BaseCard title="Información General">
@@ -64,5 +65,6 @@ function labelRol(r: string | undefined): string {
   </div>
   <div v-else class="py-12 text-center text-text-secondary">
     <p>No se encontró información del perfil.</p>
+    </div>
   </div>
 </template>

@@ -1,9 +1,9 @@
 import { openDB, deleteDB, type IDBPDatabase } from 'idb'
 
 const DB_NAME = 'sistema-reporte-ftr'
-const DB_VERSION = 6
+const DB_VERSION = 7
 
-type StoreName = 'atendidos' | 'necesidades' | 'usuarios' | 'salidas' | 'misiones'
+type StoreName = 'atendidos' | 'necesidades' | 'usuarios' | 'salidas' | 'misiones' | 'personal' | 'insumos'
 
 interface DeletedRecord {
   id: string
@@ -14,7 +14,7 @@ interface DeletedRecord {
 let dbInstance: IDBPDatabase | null = null
 
 function createStores(db: IDBPDatabase) {
-  const stores = ['atendidos', 'necesidades', 'usuarios', 'salidas', 'misiones']
+  const stores = ['atendidos', 'necesidades', 'usuarios', 'salidas', 'misiones', 'personal', 'insumos']
   for (const name of stores) {
     if (!db.objectStoreNames.contains(name)) {
       db.createObjectStore(name, { keyPath: 'id' })
@@ -26,7 +26,7 @@ function createStores(db: IDBPDatabase) {
 }
 
 function deleteObsoleteStores(db: IDBPDatabase) {
-  const obsolete = ['misiones', 'insumos', 'transporte', 'personal']
+  const obsolete = ['transporte']
   for (const name of obsolete) {
     if (db.objectStoreNames.contains(name)) {
       db.deleteObjectStore(name)
@@ -78,6 +78,11 @@ export async function putItem<T>(store: StoreName, item: T): Promise<void> {
 export async function deleteItem(store: StoreName, id: string): Promise<void> {
   const db = await getDB()
   await db.delete(store, id)
+}
+
+export async function clearStore(store: StoreName): Promise<void> {
+  const db = await getDB()
+  await db.clear(store)
 }
 
 export async function getPending<T>(store: StoreName): Promise<T[]> {

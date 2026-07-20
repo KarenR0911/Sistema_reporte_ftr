@@ -198,172 +198,174 @@ onMounted(async () => {
 </script>
 
 <template>
-  <div v-if="mission" class="flex flex-col gap-4 md:gap-6">
-    <div class="flex justify-between items-start">
-      <div>
-        <div class="flex items-center gap-3">
-          <BaseButton variant="ghost" @click="router.push('/dashboard')"><ArrowLeft :size="18" /> Volver</BaseButton>
-          <h1 class="text-2xl text-brand m-0">Registrar Atención</h1>
+  <div>
+    <div v-if="mission" class="flex flex-col gap-4 md:gap-6">
+      <div class="flex justify-between items-start">
+        <div>
+          <div class="flex items-center gap-3">
+            <BaseButton variant="ghost" @click="router.push('/dashboard')"><ArrowLeft :size="18" /> Volver</BaseButton>
+            <h1 class="text-2xl text-brand m-0">Registrar Atención</h1>
+          </div>
+          <p class="text-text-secondary mt-1 text-sm m-0 ml-12">{{ mission.municipio }}, {{ mission.estado }}</p>
         </div>
-        <p class="text-text-secondary mt-1 text-sm m-0 ml-12">{{ mission.municipio }}, {{ mission.estado }}</p>
       </div>
-    </div>
 
-    <BaseCard title="Datos de la Persona Atendida">
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-        <BaseInput v-model="formCedula" label="Cédula de Identidad" required :error="formErrors.cedula_atendido" @update:model-value="formErrors.cedula_atendido = ''" />
-        <BaseInput v-model="formNombre" label="Nombre Completo" required :error="formErrors.nombre_atendido" @update:model-value="formErrors.nombre_atendido = ''" />
-        <BaseInput v-model="formEdad" label="Edad" type="number" min="0" max="150" :error="formErrors.edad" />
-        <BaseSelect v-model="formSexo" label="Sexo" :options="sexoOptions" :error="formErrors.sexo" />
-      </div>
-    </BaseCard>
-
-    <BaseCard title="Atención Brindada">
-      <div class="grid grid-cols-1 gap-4">
-        <BaseSelect v-model="formTipoAtencion" label="Tipo de Atención" required :options="tipoAtencionOptions" :error="formErrors.tipo_atencion" />
-
-        <div class="flex items-center gap-3">
-          <input
-            id="referido"
-            type="checkbox"
-            v-model="formReferido"
-            class="w-4.5 h-4.5 accent-primary"
-          />
-          <label for="referido" class="text-sm font-medium cursor-pointer">Requiere referencia / derivación a otro servicio</label>
+      <BaseCard title="Datos de la Persona Atendida">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+          <BaseInput v-model="formCedula" label="Cédula de Identidad" required :error="formErrors.cedula_atendido" @update:model-value="formErrors.cedula_atendido = ''" />
+          <BaseInput v-model="formNombre" label="Nombre Completo" required :error="formErrors.nombre_atendido" @update:model-value="formErrors.nombre_atendido = ''" />
+          <BaseInput v-model="formEdad" label="Edad" type="number" min="0" max="150" :error="formErrors.edad" />
+          <BaseSelect v-model="formSexo" label="Sexo" :options="sexoOptions" :error="formErrors.sexo" />
         </div>
+      </BaseCard>
 
-        <fieldset class="border border-border rounded-lg p-4">
-          <legend class="text-sm font-semibold text-text-secondary px-1">Vulnerabilidades (selecciona todas que apliquen)</legend>
-          <div class="flex flex-wrap gap-x-6 gap-y-1.5 mt-2">
-            <label
-              v-for="opt in vulnerabilidadOptions"
-              :key="opt.value"
-              class="flex items-center gap-2 cursor-pointer text-sm py-0.5"
-            >
-              <input
-                type="checkbox"
-                :value="opt.value"
-                :checked="formVulnerabilidades.includes(opt.value)"
-                @change="toggleVulnerabilidad(opt.value)"
-                class="w-4 h-4 accent-primary"
-              />
-              {{ opt.label }}
-            </label>
-          </div>
-        </fieldset>
+      <BaseCard title="Atención Brindada">
+        <div class="grid grid-cols-1 gap-4">
+          <BaseSelect v-model="formTipoAtencion" label="Tipo de Atención" required :options="tipoAtencionOptions" :error="formErrors.tipo_atencion" />
 
-        <BaseInput v-model="formTelefono" label="Teléfono de Contacto" />
-        <BaseInput v-model="formNotas" label="Notas de la Atención" />
-      </div>
-    </BaseCard>
+          <div class="flex items-center gap-3">
+            <input
+              id="referido"
+              type="checkbox"
+              v-model="formReferido"
+              class="w-4.5 h-4.5 accent-primary"
+            />
+            <label for="referido" class="text-sm font-medium cursor-pointer">Requiere referencia / derivación a otro servicio</label>
+          </div>
 
-    <BaseCard title="Atenciones Registradas en esta Misión">
-      <BaseTable
-        :columns="[
-          { key: 'nombre_atendido', label: 'Nombre' },
-          { key: 'cedula_atendido', label: 'Cédula' },
-          { key: 'edad', label: 'Edad' },
-          { key: 'sexo', label: 'Sexo' },
-          { key: 'tipo_atencion', label: 'Atención' },
-          { key: 'telefono_contacto', label: 'Teléfono' },
-          { key: 'fecha_hora_atencion', label: 'Fecha' },
-          { key: 'acciones', label: '' },
-        ]"
-        :rows="atendidosStore.getByMision(missionId) as unknown as Record<string, unknown>[]"
-      >
-        <template #cell-sexo="{ value }">
-          {{ labelSexo(value) }}
-        </template>
-        <template #cell-tipo_atencion="{ value }">
-          {{ labelTipoAtencion(value) }}
-        </template>
-        <template #cell-acciones="{ row }">
-          <BaseButton size="sm" variant="ghost" @click="openDetail(row as unknown as Atendido)">
-            <Eye :size="16" />
-          </BaseButton>
-        </template>
-      </BaseTable>
-    </BaseCard>
-
-    <div class="flex justify-end">
-      <BaseButton variant="primary" size="lg" @click="registerAttendee" :loading="saving">
-        <UserPlus :size="20" /> Registrar Atención
-      </BaseButton>
-    </div>
-  </div>
-  <div v-else class="py-12 text-center text-text-secondary">
-    <p>Cargando misión...</p>
-    <BaseButton variant="ghost" @click="router.push('/dashboard')">Volver</BaseButton>
-  </div>
-
-  <Teleport to="body">
-    <div
-      v-if="showDetail && selectedAtendido"
-      class="fixed inset-0 bg-black/40 flex items-center justify-center z-1000"
-      @click.self="closeDetail"
-    >
-      <div class="bg-white rounded-xl p-6 w-full max-w-lg mx-4 flex flex-col gap-4 max-h-[85vh] overflow-y-auto">
-        <div class="flex items-center justify-between">
-          <h3 class="m-0 text-brand text-lg font-bold">Detalle de Atención</h3>
-          <BaseButton variant="ghost" size="sm" @click="closeDetail">✕</BaseButton>
-        </div>
-
-        <div class="grid grid-cols-2 gap-x-6 gap-y-3 text-sm">
-          <div class="col-span-2">
-            <span class="font-semibold text-text-secondary block text-xs uppercase tracking-wide">Nombre</span>
-            <span>{{ selectedAtendido.nombre_atendido }}</span>
-          </div>
-          <div>
-            <span class="font-semibold text-text-secondary block text-xs uppercase tracking-wide">Cédula</span>
-            <span>{{ selectedAtendido.cedula_atendido || '—' }}</span>
-          </div>
-          <div>
-            <span class="font-semibold text-text-secondary block text-xs uppercase tracking-wide">Teléfono</span>
-            <span>{{ selectedAtendido.telefono_contacto || '—' }}</span>
-          </div>
-          <div>
-            <span class="font-semibold text-text-secondary block text-xs uppercase tracking-wide">Edad</span>
-            <span>{{ selectedAtendido.edad ?? '—' }}</span>
-          </div>
-          <div>
-            <span class="font-semibold text-text-secondary block text-xs uppercase tracking-wide">Sexo</span>
-            <span>{{ labelSexo(selectedAtendido.sexo) }}</span>
-          </div>
-          <div class="col-span-2">
-            <span class="font-semibold text-text-secondary block text-xs uppercase tracking-wide">Tipo de Atención</span>
-            <span>{{ labelTipoAtencion(selectedAtendido.tipo_atencion) }}</span>
-          </div>
-          <div class="col-span-2">
-            <span class="font-semibold text-text-secondary block text-xs uppercase tracking-wide">Requiere Referencia</span>
-            <span>{{ selectedAtendido.referido ? 'Sí' : 'No' }}</span>
-          </div>
-          <div class="col-span-2">
-            <span class="font-semibold text-text-secondary block text-xs uppercase tracking-wide">Vulnerabilidades</span>
-            <div v-if="selectedAtendido.vulnerabilidad" class="flex flex-wrap gap-1 mt-1">
-              <span
-                v-for="v in parseVuln(selectedAtendido.vulnerabilidad)"
-                :key="v"
-                class="text-xs px-2 py-0.5 rounded-full bg-amber-100 text-amber-800"
+          <fieldset class="border border-border rounded-lg p-4">
+            <legend class="text-sm font-semibold text-text-secondary px-1">Vulnerabilidades (selecciona todas que apliquen)</legend>
+            <div class="flex flex-wrap gap-x-6 gap-y-1.5 mt-2">
+              <label
+                v-for="opt in vulnerabilidadOptions"
+                :key="opt.value"
+                class="flex items-center gap-2 cursor-pointer text-sm py-0.5"
               >
-                {{ labelVuln(v) }}
-              </span>
+                <input
+                  type="checkbox"
+                  :value="opt.value"
+                  :checked="formVulnerabilidades.includes(opt.value)"
+                  @change="toggleVulnerabilidad(opt.value)"
+                  class="w-4 h-4 accent-primary"
+                />
+                {{ opt.label }}
+              </label>
             </div>
-            <span v-else class="text-text-secondary">—</span>
+          </fieldset>
+
+          <BaseInput v-model="formTelefono" label="Teléfono de Contacto" />
+          <BaseInput v-model="formNotas" label="Notas de la Atención" />
+        </div>
+      </BaseCard>
+
+      <BaseCard title="Atenciones Registradas en esta Misión">
+        <BaseTable
+          :columns="[
+            { key: 'nombre_atendido', label: 'Nombre' },
+            { key: 'cedula_atendido', label: 'Cédula' },
+            { key: 'edad', label: 'Edad' },
+            { key: 'sexo', label: 'Sexo' },
+            { key: 'tipo_atencion', label: 'Atención' },
+            { key: 'telefono_contacto', label: 'Teléfono' },
+            { key: 'fecha_hora_atencion', label: 'Fecha' },
+            { key: 'acciones', label: '' },
+          ]"
+          :rows="atendidosStore.getByMision(missionId) as unknown as Record<string, unknown>[]"
+        >
+          <template #cell-sexo="{ value }">
+            {{ labelSexo(value) }}
+          </template>
+          <template #cell-tipo_atencion="{ value }">
+            {{ labelTipoAtencion(value) }}
+          </template>
+          <template #cell-acciones="{ row }">
+            <BaseButton size="sm" variant="ghost" @click="openDetail(row as unknown as Atendido)">
+              <Eye :size="16" />
+            </BaseButton>
+          </template>
+        </BaseTable>
+      </BaseCard>
+
+      <div class="flex justify-end">
+        <BaseButton variant="primary" size="lg" @click="registerAttendee" :loading="saving">
+          <UserPlus :size="20" /> Registrar Atención
+        </BaseButton>
+      </div>
+    </div>
+    <div v-else class="py-12 text-center text-text-secondary">
+      <p>Cargando misión...</p>
+      <BaseButton variant="ghost" @click="router.push('/dashboard')">Volver</BaseButton>
+    </div>
+
+    <Teleport to="body">
+      <div
+        v-if="showDetail && selectedAtendido"
+        class="fixed inset-0 bg-black/40 flex items-center justify-center z-1000"
+        @click.self="closeDetail"
+      >
+        <div class="bg-white rounded-xl p-6 w-full max-w-lg mx-4 flex flex-col gap-4 max-h-[85vh] overflow-y-auto">
+          <div class="flex items-center justify-between">
+            <h3 class="m-0 text-brand text-lg font-bold">Detalle de Atención</h3>
+            <BaseButton variant="ghost" size="sm" @click="closeDetail">✕</BaseButton>
           </div>
-          <div class="col-span-2">
-            <span class="font-semibold text-text-secondary block text-xs uppercase tracking-wide">Notas</span>
-            <p class="m-0 whitespace-pre-wrap">{{ selectedAtendido.notas || '—' }}</p>
-          </div>
-          <div class="col-span-2 pt-2 border-t border-border">
-            <span class="font-semibold text-text-secondary block text-xs uppercase tracking-wide">Registrado por</span>
-            <span>{{ selectedAtendido.cedula_personal }}</span>
-          </div>
-          <div>
-            <span class="font-semibold text-text-secondary block text-xs uppercase tracking-wide">Fecha</span>
-            <span>{{ formatDate(selectedAtendido.fecha_hora_atencion) }}</span>
+
+          <div class="grid grid-cols-2 gap-x-6 gap-y-3 text-sm">
+            <div class="col-span-2">
+              <span class="font-semibold text-text-secondary block text-xs uppercase tracking-wide">Nombre</span>
+              <span>{{ selectedAtendido.nombre_atendido }}</span>
+            </div>
+            <div>
+              <span class="font-semibold text-text-secondary block text-xs uppercase tracking-wide">Cédula</span>
+              <span>{{ selectedAtendido.cedula_atendido || '—' }}</span>
+            </div>
+            <div>
+              <span class="font-semibold text-text-secondary block text-xs uppercase tracking-wide">Teléfono</span>
+              <span>{{ selectedAtendido.telefono_contacto || '—' }}</span>
+            </div>
+            <div>
+              <span class="font-semibold text-text-secondary block text-xs uppercase tracking-wide">Edad</span>
+              <span>{{ selectedAtendido.edad ?? '—' }}</span>
+            </div>
+            <div>
+              <span class="font-semibold text-text-secondary block text-xs uppercase tracking-wide">Sexo</span>
+              <span>{{ labelSexo(selectedAtendido.sexo) }}</span>
+            </div>
+            <div class="col-span-2">
+              <span class="font-semibold text-text-secondary block text-xs uppercase tracking-wide">Tipo de Atención</span>
+              <span>{{ labelTipoAtencion(selectedAtendido.tipo_atencion) }}</span>
+            </div>
+            <div class="col-span-2">
+              <span class="font-semibold text-text-secondary block text-xs uppercase tracking-wide">Requiere Referencia</span>
+              <span>{{ selectedAtendido.referido ? 'Sí' : 'No' }}</span>
+            </div>
+            <div class="col-span-2">
+              <span class="font-semibold text-text-secondary block text-xs uppercase tracking-wide">Vulnerabilidades</span>
+              <div v-if="selectedAtendido.vulnerabilidad" class="flex flex-wrap gap-1 mt-1">
+                <span
+                  v-for="v in parseVuln(selectedAtendido.vulnerabilidad)"
+                  :key="v"
+                  class="text-xs px-2 py-0.5 rounded-full bg-amber-100 text-amber-800"
+                >
+                  {{ labelVuln(v) }}
+                </span>
+              </div>
+              <span v-else class="text-text-secondary">—</span>
+            </div>
+            <div class="col-span-2">
+              <span class="font-semibold text-text-secondary block text-xs uppercase tracking-wide">Notas</span>
+              <p class="m-0 whitespace-pre-wrap">{{ selectedAtendido.notas || '—' }}</p>
+            </div>
+            <div class="col-span-2 pt-2 border-t border-border">
+              <span class="font-semibold text-text-secondary block text-xs uppercase tracking-wide">Registrado por</span>
+              <span>{{ selectedAtendido.cedula_personal }}</span>
+            </div>
+            <div>
+              <span class="font-semibold text-text-secondary block text-xs uppercase tracking-wide">Fecha</span>
+              <span>{{ formatDate(selectedAtendido.fecha_hora_atencion) }}</span>
+            </div>
           </div>
         </div>
       </div>
-    </div>
-  </Teleport>
+    </Teleport>
+  </div>
 </template>

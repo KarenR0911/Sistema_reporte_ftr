@@ -1,8 +1,9 @@
 import { ref, computed } from 'vue'
 import { defineStore } from 'pinia'
 import type { Usuario, RolUsuario, CategoriaVoluntariado } from '@/types'
-import { getAll, addItem } from '@/db'
+import { getAll, addItem, clearStore } from '@/db'
 import { getSupabase } from '@/lib/supabase'
+import { withTimeout } from '@/lib/async'
 
 export const useAuthStore = defineStore('auth', () => {
   const currentUser = ref<Usuario | null>(null)
@@ -30,43 +31,24 @@ export const useAuthStore = defineStore('auth', () => {
     usuarios.value = await getAll<Usuario>('usuarios')
   }
 
-  async function refreshUsuariosFromSupabase() {
+  async function login(email: string, password: string): Promise<boolean> {
+    if (!navigator.onLine) return false
+
     try {
       const sb = getSupabase()
-      const { data } = await sb.from('perfiles').select('*')
-      if (data) {
-        for (const p of data) {
-          await addItem('usuarios', mapPerfilToUser(p)).catch(() => {})
+      const { data, error } = await withTimeout(sb.auth.signInWithPassword({ email, password }), 3000)
+      if (!error && data.session) {
+        accessToken.value = data.session.access_token
+        const { data: perfil } = await withTimeout(sb.from('perfiles').select('*').eq('id', data.user.id).maybeSingle(), 3000)
+        if (perfil) {
+          const user = mapPerfilToUser(perfil)
+          await addItem('usuarios', user).catch(() => {})
+          currentUser.value = user
+          return true
         }
-        usuarios.value = await getAll<Usuario>('usuarios')
       }
     } catch {
-      // fallback silencioso
-    }
-  }
-
-  async function login(email: string, password: string, recordar = true): Promise<boolean> {
-    if (navigator.onLine) {
-      try {
-        const sb = getSupabase()
-        const { data, error } = await sb.auth.signInWithPassword({ email, password })
-        if (!error && data.session) {
-          accessToken.value = data.session.access_token
-          const { data: perfil } = await sb.from('perfiles').select('*').eq('id', data.user.id).maybeSingle()
-          if (perfil) {
-            const user = mapPerfilToUser(perfil)
-            await addItem('usuarios', user).catch(() => {})
-            await refreshUsuariosFromSupabase()
-            currentUser.value = user
-            if (!recordar) {
-              localStorage.removeItem('ftr-auth-session')
-            }
-            return true
-          }
-        }
-      } catch {
-        // fallback a offline
-      }
+      // fallback a offline
     }
     return false
   }
@@ -79,45 +61,56 @@ export const useAuthStore = defineStore('auth', () => {
     } catch {
       // ignore offline
     }
+    // Limpiar cache offline para que restoreSession no re-autentique
+    await clearStore('usuarios')
   }
 
   async function restoreSession() {
-    const sb = getSupabase()
-    const { data: { session } } = await sb.auth.getSession()
+    // Siempre cargar de IndexedDB primero (instantáneo)
+    const users = await getAll<Usuario>('usuarios')
+    const cached = users[0] ?? null
 
-    if (session) {
-      accessToken.value = session.access_token
-      if (!navigator.onLine) {
-        const users = await getAll<Usuario>('usuarios')
-        currentUser.value = users.find((u) => u.id === session.user.id) ?? null
-        return
-      }
-      try {
-        const { data: perfil } = await sb.from('perfiles').select('*').eq('id', session.user.id).maybeSingle()
-        if (perfil) {
-          currentUser.value = mapPerfilToUser(perfil)
-          return
-        }
-      } catch {
-        // fallback a cache
-      }
-      const users = await getAll<Usuario>('usuarios')
-      currentUser.value = users.find((u) => u.id === session.user.id) ?? null
+    if (!navigator.onLine) {
+      currentUser.value = cached
       return
     }
 
-    // Migración: si había sesión guardada con el formato anterior
+    // Intentar refrescar desde Supabase (con timeout corto)
+    try {
+      const sb = getSupabase()
+      const { data: { session } } = await withTimeout(sb.auth.getSession(), 3000)
+
+      if (session) {
+        accessToken.value = session.access_token
+        const { data: perfil } = await withTimeout(sb.from('perfiles').select('*').eq('id', session.user.id).maybeSingle(), 3000)
+        if (perfil) {
+          const user = mapPerfilToUser(perfil)
+          await addItem('usuarios', user).catch(() => {})
+          currentUser.value = user
+          return
+        }
+      }
+    } catch {
+      // timeout o error de red — usar cache
+    }
+
+    currentUser.value = cached
+
+    // Migración: sesión guardada con formato anterior
     const stored = localStorage.getItem('auth_session')
-    if (!stored) return
+    if (!stored || currentUser.value) return
     try {
       const old = JSON.parse(stored)
-      const { data, error } = await sb.auth.setSession({
+      const sb = getSupabase()
+      const { data, error } = await withTimeout(sb.auth.setSession({
         access_token: old.access_token,
         refresh_token: old.refresh_token,
-      })
+      }), 3000)
       if (!error && data.session) {
         accessToken.value = data.session.access_token
-        currentUser.value = old.user
+        const user = old.user as Usuario
+        await addItem('usuarios', user).catch(() => {})
+        currentUser.value = user
         localStorage.removeItem('auth_session')
       }
     } catch {

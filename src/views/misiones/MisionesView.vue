@@ -34,11 +34,12 @@ onMounted(async () => {
 </script>
 
 <template>
-  <div v-if="cargando" class="py-12 text-center text-text-secondary">
-    <div class="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-    <p>Cargando misiones...</p>
-  </div>
-  <div v-else class="flex flex-col gap-4 md:gap-6">
+  <div>
+    <div v-if="cargando" class="py-12 text-center text-text-secondary">
+      <div class="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+      <p>Cargando misiones...</p>
+    </div>
+    <div v-else class="flex flex-col gap-4 md:gap-6">
     <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
       <h1 class="text-2xl text-brand m-0">Misiones</h1>
       <BaseButton variant="primary" @click="router.push('/misiones/nueva')">
@@ -63,5 +64,6 @@ onMounted(async () => {
         </template>
       </BaseTable>
     </BaseCard>
+    </div>
   </div>
 </template>
