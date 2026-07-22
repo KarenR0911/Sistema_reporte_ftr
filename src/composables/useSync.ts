@@ -1,6 +1,6 @@
 import { useOnlineStatus } from './useOnlineStatus'
 import { getPending, markAsSynced, putItem, getAll, getDeletedIds, clearDeletedId } from '@/db'
-import { getAuthSupabase } from '@/lib/supabase'
+import { getSupabase } from '@/lib/supabase'
 import { useAuthStore } from '@/stores/auth'
 import { useAtendidosStore } from '@/stores/atendidos'
 import { useNecesidadesStore } from '@/stores/necesidades'
@@ -41,10 +41,10 @@ async function refreshPendingCount() {
   pendingCount.value = total
 }
 
-async function syncDeletesToSupabase(token: string) {
+async function syncDeletesToSupabase() {
   const deleted = await getDeletedIds()
   if (deleted.length === 0) return
-  const client = getAuthSupabase(token)
+  const client = getSupabase()
   for (const record of deleted) {
     const table = tableForStore(record.store)
     try {
@@ -58,8 +58,8 @@ async function syncDeletesToSupabase(token: string) {
   }
 }
 
-async function syncStoreToSupabase(store: StoreName, table: string, token: string, retries = 3) {
-  const client = getAuthSupabase(token)
+async function syncStoreToSupabase(store: StoreName, table: string, retries = 3) {
+  const client = getSupabase()
   const pending = await getPending(store)
   for (const item of pending) {
     const { status_sync: _, ...record } = { ...item as Record<string, unknown> }
@@ -78,10 +78,10 @@ async function syncStoreToSupabase(store: StoreName, table: string, token: strin
   }
 }
 
-async function pullFromSupabase(store: StoreName, table: string, token: string) {
+async function pullFromSupabase(store: StoreName, table: string) {
   if (!navigator.onLine) return
   try {
-    const client = getAuthSupabase(token)
+    const client = getSupabase()
     const [remoteData, localData] = await Promise.all([
       client.from(table).select('*'),
       getAll<Record<string, unknown>>(store),
@@ -126,10 +126,10 @@ export function useSync() {
     if (!token) return
     isSyncing.value = true
     try {
-      await syncDeletesToSupabase(token)
+      await syncDeletesToSupabase()
       for (const { store, table } of STORES) {
-        await pullFromSupabase(store, table, token)
-        await syncStoreToSupabase(store, table, token)
+        await pullFromSupabase(store, table)
+        await syncStoreToSupabase(store, table)
       }
       await refreshAllStores()
       await refreshPendingCount()

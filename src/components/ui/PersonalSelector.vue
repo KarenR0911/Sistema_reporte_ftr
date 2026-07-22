@@ -2,7 +2,7 @@
 import { ref, computed, onMounted, useId } from 'vue'
 import { Search } from '@lucide/vue'
 import BaseButton from '@/components/ui/BaseButton.vue'
-import { getSupabase, getAuthSupabase } from '@/lib/supabase'
+import { getSupabase } from '@/lib/supabase'
 import { getAll, addItem } from '@/db'
 import type { Usuario } from '@/types'
 
@@ -67,10 +67,8 @@ function toggleAllPersonal() {
 }
 
 async function loadFromSupabase() {
-  const { data: { session } } = await getSupabase().auth.getSession()
-  if (!session) return
-  const client = getAuthSupabase(session.access_token)
-  const { data } = await client.from('perfiles').select('*').eq('rol', 'personal')
+  const sb = getSupabase()
+  const { data } = await sb.from('perfiles').select('*').eq('rol', 'personal')
   if (!data) return
   const users: Usuario[] = data.map((p: Record<string, unknown>) => ({
     id: p.id as string,

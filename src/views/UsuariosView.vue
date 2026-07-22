@@ -8,7 +8,7 @@ import BaseTable from '@/components/ui/BaseTable.vue'
 import ConfirmDialog from '@/components/ui/ConfirmDialog.vue'
 import StatusBadge from '@/components/ui/StatusBadge.vue'
 import { getAll, addItem, putItem, deleteItem } from '@/db'
-import { getSupabase, getAuthSupabase } from '@/lib/supabase'
+import { getSupabase } from '@/lib/supabase'
 import { useAuthStore } from '@/stores/auth'
 import { useToastStore } from '@/stores/toast'
 import { usuarioSchema } from '@/lib/schemas'
@@ -177,9 +177,8 @@ async function saveUser() {
         showCreatedDialog.value = true
       } else {
         await putItem('usuarios', user)
-        const client = auth.accessToken ? getAuthSupabase(auth.accessToken) : getSupabase()
         try {
-          await client.from('perfiles').upsert({
+          await getSupabase().from('perfiles').upsert({
             id: user.id,
             cedula: user.cedula,
             nombre: user.nombre,
@@ -197,10 +196,7 @@ async function saveUser() {
       useToastStore().error('Guardado localmente. Error de red al crear en Supabase Auth.')
     }
   } else if (navigator.onLine && !isNew) {
-    const client = auth.accessToken
-      ? getAuthSupabase(auth.accessToken)
-      : getSupabase()
-    await client.from('perfiles').update({
+    await getSupabase().from('perfiles').update({
       cedula: user.cedula,
       nombre: user.nombre,
       rol: user.rol,
@@ -237,10 +233,7 @@ function editUser(u: Usuario) {
 async function toggleActivo(u: Usuario) {
   const updated = { ...u, activo: !u.activo }
   if (navigator.onLine) {
-    const client = auth.accessToken
-      ? getAuthSupabase(auth.accessToken)
-      : getSupabase()
-    await client.from('perfiles').update({ activo: updated.activo }).eq('id', updated.id)
+    await getSupabase().from('perfiles').update({ activo: updated.activo }).eq('id', updated.id)
   }
   await putItem('usuarios', updated)
   await loadUsuarios()
