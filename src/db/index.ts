@@ -1,9 +1,9 @@
 import { openDB, deleteDB, type IDBPDatabase } from 'idb'
 
 const DB_NAME = 'sistema-reporte-ftr'
-const DB_VERSION = 7
+const DB_VERSION = 8
 
-type StoreName = 'atendidos' | 'necesidades' | 'usuarios' | 'salidas' | 'misiones' | 'personal' | 'insumos'
+type StoreName = 'atendidos' | 'necesidades' | 'usuarios' | 'salidas' | 'misiones' | 'personal' | 'insumos' | 'transporte'
 
 interface DeletedRecord {
   id: string
@@ -14,7 +14,7 @@ interface DeletedRecord {
 let dbInstance: IDBPDatabase | null = null
 
 function createStores(db: IDBPDatabase) {
-  const stores = ['atendidos', 'necesidades', 'usuarios', 'salidas', 'misiones', 'personal', 'insumos']
+  const stores = ['atendidos', 'necesidades', 'usuarios', 'salidas', 'misiones', 'personal', 'insumos', 'transporte']
   for (const name of stores) {
     if (!db.objectStoreNames.contains(name)) {
       db.createObjectStore(name, { keyPath: 'id' })
@@ -26,7 +26,7 @@ function createStores(db: IDBPDatabase) {
 }
 
 function deleteObsoleteStores(db: IDBPDatabase) {
-  const obsolete = ['transporte']
+  const obsolete: string[] = []
   for (const name of obsolete) {
     if (db.objectStoreNames.contains(name)) {
       db.deleteObjectStore(name)

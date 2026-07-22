@@ -19,7 +19,7 @@ const STORES: { store: StoreName; table: string }[] = [
   { store: 'insumos', table: 'insumos' },
 ]
 
-const ALL_STORES: StoreName[] = ['atendidos', 'necesidades', 'salidas', 'insumos', 'misiones', 'personal']
+const ALL_STORES: StoreName[] = ['atendidos', 'necesidades', 'salidas', 'insumos', 'misiones', 'personal', 'transporte']
 
 const STORE_TABLE_MAP = new Map(STORES.map((s) => [s.store, s.table]))
 
