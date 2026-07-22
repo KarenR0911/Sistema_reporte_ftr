@@ -16,7 +16,10 @@ const STORES: { store: StoreName; table: string }[] = [
   { store: 'atendidos', table: 'atendidos' },
   { store: 'necesidades', table: 'necesidades' },
   { store: 'salidas', table: 'salidas_insumos' },
+  { store: 'insumos', table: 'insumos' },
 ]
+
+const ALL_STORES: StoreName[] = ['atendidos', 'necesidades', 'salidas', 'insumos', 'misiones', 'personal']
 
 const STORE_TABLE_MAP = new Map(STORES.map((s) => [s.store, s.table]))
 
@@ -29,7 +32,7 @@ const pendingCount = ref(0)
 
 async function refreshPendingCount() {
   let total = 0
-  for (const { store } of STORES) {
+  for (const store of ALL_STORES) {
     const items = await getPending(store)
     total += items.length
   }
