@@ -180,7 +180,7 @@ onMounted(async () => {
           :error="formErrors.id_insumo"
         />
         <div class="flex flex-col gap-1.5">
-          <label class="text-sm font-semibold text-text">
+          <label for="cantidad-salida" class="text-sm font-semibold text-text">
             Cantidad<span class="text-danger ml-0.5">*</span>
           </label>
           <div
@@ -195,6 +195,7 @@ onMounted(async () => {
               @click="formCantidad = formCantidad ? formCantidad - 1 : null"
             >−</button>
             <input
+              id="cantidad-salida"
               type="number"
               min="1"
               :max="insumoSeleccionado ? stockDisponible(insumoSeleccionado) : undefined"

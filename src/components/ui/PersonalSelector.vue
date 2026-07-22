@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, useId } from 'vue'
 import { Search } from '@lucide/vue'
 import BaseButton from '@/components/ui/BaseButton.vue'
 import { getSupabase, getAuthSupabase } from '@/lib/supabase'
@@ -18,6 +18,9 @@ const personalDisponible = ref<Usuario[]>([])
 const searchPersonal = ref('')
 const filtroTipo = ref('')
 const filtroArea = ref('')
+const searchId = useId()
+const tipoId = useId()
+const areaId = useId()
 
 const selectedIds = computed(() => new Set(props.modelValue.map((u) => u.id)))
 
@@ -107,14 +110,18 @@ onMounted(async () => {
       <div class="flex items-center gap-3 mb-3">
         <div class="relative flex-1">
           <Search class="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted pointer-events-none" :size="18" />
+          <label :for="searchId" class="sr-only">Buscar personal</label>
           <input
+            :id="searchId"
             v-model="searchPersonal"
             type="text"
             placeholder="Buscar por nombre o cédula..."
             class="w-full pl-10 pr-3.5 py-2.5 border border-border rounded-lg text-sm bg-white focus:outline-none focus:border-primary focus:ring-3 focus:ring-primary/10 font-sans"
           />
         </div>
+        <label :for="tipoId" class="sr-only">Filtrar por tipo</label>
         <select
+          :id="tipoId"
           v-model="filtroTipo"
           class="border border-border rounded-lg text-sm bg-white px-3 py-2.5 focus:outline-none focus:border-primary font-sans"
         >
@@ -123,7 +130,9 @@ onMounted(async () => {
           <option value="profesional">Profesional</option>
           <option value="voluntario">Voluntario</option>
         </select>
+        <label :for="areaId" class="sr-only">Filtrar por área</label>
         <select
+          :id="areaId"
           v-model="filtroArea"
           class="border border-border rounded-lg text-sm bg-white px-3 py-2.5 focus:outline-none focus:border-primary font-sans"
         >
