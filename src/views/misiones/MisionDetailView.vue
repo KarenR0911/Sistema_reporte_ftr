@@ -8,7 +8,8 @@ import BaseTable from '@/components/ui/BaseTable.vue'
 import PersonalSelector from '@/components/ui/PersonalSelector.vue'
 import ConfirmDialog from '@/components/ui/ConfirmDialog.vue'
 import StatusBadge from '@/components/ui/StatusBadge.vue'
-import { ClipboardList, CheckCircle, ArrowLeft, Plus, Package, Eye } from '@lucide/vue'
+import { ClipboardList, CheckCircle, ArrowLeft, Plus, Package, Eye, ChevronDown } from '@lucide/vue'
+import MisionCharts from '@/components/charts/MisionCharts.vue'
 import { useMisionesStore } from '@/stores/misiones'
 import { useTransporteStore } from '@/stores/transporte'
 import { usePersonalStore } from '@/stores/personal'
@@ -57,6 +58,7 @@ const canEdit = computed(() => role.value === 'director' || role.value === 'admi
 
 const showDetail = ref(false)
 const selectedAtendido = ref<Atendido | null>(null)
+const showCharts = ref(false)
 
 function openDetail(a: Atendido) {
   selectedAtendido.value = a
@@ -220,6 +222,31 @@ onMounted(async () => {
         <BaseButton v-if="canEdit && mission.estatus_mision === 'activa'" variant="secondary" @click="openCompleteModal" :disabled="!isOnline">
           <CheckCircle :size="18" /> {{ isOnline ? 'Completar Misión' : 'Requiere conexión' }}
         </BaseButton>
+      </div>
+    </div>
+
+    <div class="bg-white rounded-xl shadow-[0_1px_3px_rgba(0,0,0,0.08)] border border-border-light">
+      <button
+        class="w-full flex items-center justify-between px-6 py-4 cursor-pointer hover:bg-surface/50 transition-colors border-0 bg-transparent"
+        @click="showCharts = !showCharts"
+      >
+        <h3 class="m-0 text-lg text-brand font-bold">Estadísticas</h3>
+        <ChevronDown
+          :size="20"
+          class="text-text-secondary transition-transform duration-200"
+          :class="{ 'rotate-180': showCharts }"
+        />
+      </button>
+      <div
+        v-show="showCharts"
+        class="px-6 pb-6 border-t border-border-light pt-4"
+      >
+        <MisionCharts
+          :atendidos="atendidos"
+          :insumos="insumosMision"
+          :necesidades="necesidades"
+          :personales="personales"
+        />
       </div>
     </div>
 
