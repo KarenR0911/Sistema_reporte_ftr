@@ -16,12 +16,16 @@ import { useInsumosStore } from '@/stores/insumos'
 import { useAtendidosStore } from '@/stores/atendidos'
 import { useNecesidadesStore } from '@/stores/necesidades'
 import { useAuthStore } from '@/stores/auth'
+import { useOnlineStatus } from '@/composables/useOnlineStatus'
+import { useToastStore } from '@/stores/toast'
 import { useLoading } from '@/composables/useLoading'
 import type { Mision, Transporte, PersonalMision, InsumoLlevado, Usuario, Atendido } from '@/types'
 
 const route = useRoute()
 const router = useRouter()
 const auth = useAuthStore()
+const toast = useToastStore()
+const { isOnline } = useOnlineStatus()
 const { loading, withLoading, saving } = useLoading()
 
 const misionesStore = useMisionesStore()
@@ -172,6 +176,10 @@ function openCompleteModal() {
 
 async function confirmComplete() {
   if (!mission.value) return
+  if (!navigator.onLine) {
+    toast.error('Necesitas conexión a internet para completar la misión')
+    return
+  }
   await withLoading(async () => {
     for (const ins of insumosMision.value) {
       if (returnItems.value[ins.id]) {
@@ -221,8 +229,8 @@ onMounted(async () => {
         <RouterLink v-if="canAccessFarmacia" :to="`/misiones/${missionId}/farmacia`">
           <BaseButton variant="primary"><Package :size="18" /> Farmacia</BaseButton>
         </RouterLink>
-        <BaseButton v-if="canEdit && mission.estatus_mision === 'activa'" variant="secondary" @click="openCompleteModal">
-          <CheckCircle :size="18" /> Completar Misión
+        <BaseButton v-if="canEdit && mission.estatus_mision === 'activa'" variant="secondary" @click="openCompleteModal" :disabled="!isOnline">
+          <CheckCircle :size="18" /> {{ isOnline ? 'Completar Misión' : 'Requiere conexión' }}
         </BaseButton>
       </div>
     </div>
