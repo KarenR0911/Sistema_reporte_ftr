@@ -41,7 +41,14 @@ export const usePersonalStore = defineStore('personal', () => {
 
   async function create(item: PersonalMision) {
     const sb = getSupabase()
-    const { error } = await withTimeout(sb.from('personal_mision').insert(item))
+    const { error } = await withTimeout(sb.from('personal_mision').insert({
+      id: item.id,
+      id_mision: item.id_mision,
+      cedula: item.cedula,
+      nombre: item.nombre,
+      categoria_voluntariado: item.categoria_voluntariado,
+      especialidad: item.especialidad,
+    }))
     if (error) throw error
     await putItem('personal', { ...item, status_sync: 'synced' as const })
     list.value.push(item)

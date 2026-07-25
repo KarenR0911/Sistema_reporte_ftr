@@ -140,7 +140,6 @@ const showPersonalForm = ref(false)
 const transportForm = ref({ tipo_transporte: '', numero_placa: '', nombre_conductor: '' })
 
 const showCompleteModal = ref(false)
-const returnItems = ref<Record<string, boolean>>({})
 const showRemovePersonalDialog = ref(false)
 const personalToRemove = ref<string | null>(null)
 
@@ -166,11 +165,6 @@ async function addTransporte() {
 }
 
 function openCompleteModal() {
-  const r: Record<string, boolean> = {}
-  for (const ins of insumosMision.value) {
-    r[ins.id] = false
-  }
-  returnItems.value = r
   showCompleteModal.value = true
 }
 
@@ -181,12 +175,6 @@ async function confirmComplete() {
     return
   }
   await withLoading(async () => {
-    for (const ins of insumosMision.value) {
-      if (returnItems.value[ins.id]) {
-        const updated = { ...ins, estatus_cargamento: 'retorno' as const }
-        await insumosStore.update(updated)
-      }
-    }
     const updatedMission = { ...mission.value, estatus_mision: 'completada' as const }
     await misionesStore.update(updatedMission as Mision)
   }, 'Completando misión...')
@@ -361,14 +349,8 @@ onMounted(async () => {
       <div v-if="showCompleteModal" class="fixed inset-0 bg-black/40 flex items-center justify-center z-1000" @click.self="showCompleteModal = false">
         <div class="bg-white rounded-xl p-8 max-w-125 w-90% flex flex-col gap-4">
           <h2 class="m-0 text-brand">Completar Misión</h2>
-          <p>Marca los insumos que retornan (no fueron entregados):</p>
-          <div v-for="ins in insumosMision" :key="ins.id">
-            <label class="flex items-center gap-2.5 cursor-pointer py-1.5">
-              <input type="checkbox" v-model="returnItems[ins.id]" class="accent-primary w-4.5 h-4.5" />
-              <span>{{ ins.categoria }} — {{ ins.descripcion }} ({{ ins.cantidad }} {{ ins.unidad }})</span>
-            </label>
-          </div>
-          <p v-if="insumosMision.length === 0" class="text-text-secondary italic">No hay insumos registrados.</p>
+          <p>¿Estás seguro de completar esta misión?</p>
+          <p class="text-text-secondary text-sm">La misión se marcará como completada y no podrá recibir más modificaciones.</p>
           <div class="flex gap-2 justify-end mt-2">
             <BaseButton variant="primary" @click="confirmComplete" :loading="saving">Confirmar y Completar</BaseButton>
             <BaseButton variant="ghost" @click="showCompleteModal = false">Cancelar</BaseButton>

@@ -37,7 +37,14 @@ export const useMisionesStore = defineStore('misiones', () => {
 
   async function create(mision: Mision) {
     const sb = getSupabase()
-    const { error } = await withTimeout(sb.from('misiones').insert(mision))
+    const { error } = await withTimeout(sb.from('misiones').insert({
+      id: mision.id,
+      direccion: mision.direccion,
+      municipio: mision.municipio,
+      estado: mision.estado,
+      fecha_inicio: mision.fecha_inicio,
+      estatus_mision: mision.estatus_mision,
+    }))
     if (error) throw error
     await putItem('misiones', { ...mision, status_sync: 'synced' as const })
     list.value.push(mision)
@@ -45,7 +52,13 @@ export const useMisionesStore = defineStore('misiones', () => {
 
   async function update(mision: Mision) {
     const sb = getSupabase()
-    const { error } = await withTimeout(sb.from('misiones').update(mision).eq('id', mision.id))
+    const { error } = await withTimeout(sb.from('misiones').update({
+      direccion: mision.direccion,
+      municipio: mision.municipio,
+      estado: mision.estado,
+      fecha_inicio: mision.fecha_inicio,
+      estatus_mision: mision.estatus_mision,
+    }).eq('id', mision.id))
     if (error) throw error
     await putItem('misiones', { ...mision, status_sync: 'synced' as const })
     const idx = list.value.findIndex((m) => m.id === mision.id)
