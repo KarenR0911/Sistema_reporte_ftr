@@ -1,4 +1,4 @@
-import { openDB, deleteDB, type IDBPDatabase } from 'idb'
+import { openDB, type IDBPDatabase } from 'idb'
 
 const DB_NAME = 'sistema-reporte-ftr'
 const DB_VERSION = 8
@@ -44,13 +44,21 @@ export async function getDB(): Promise<IDBPDatabase> {
         createStores(db)
       },
     })
+    dbInstance.addEventListener('versionchange', () => {
+      dbInstance?.close()
+      dbInstance = null
+    })
   } catch (err) {
     if (err instanceof Error && err.name === 'VersionError') {
-      await deleteDB(DB_NAME)
+      dbInstance = null
       dbInstance = await openDB(DB_NAME, DB_VERSION, {
         upgrade(db) {
           createStores(db)
         },
+      })
+      dbInstance.addEventListener('versionchange', () => {
+        dbInstance?.close()
+        dbInstance = null
       })
     } else {
       throw err

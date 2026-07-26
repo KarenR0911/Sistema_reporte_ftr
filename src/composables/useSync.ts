@@ -17,6 +17,9 @@ const STORES: { store: StoreName; table: string }[] = [
   { store: 'necesidades', table: 'necesidades' },
   { store: 'salidas', table: 'salidas_insumos' },
   { store: 'insumos', table: 'insumos' },
+  { store: 'misiones', table: 'misiones' },
+  { store: 'personal', table: 'personal_mision' },
+  { store: 'transporte', table: 'transporte' },
 ]
 
 const ALL_STORES: StoreName[] = ['atendidos', 'necesidades', 'salidas', 'insumos', 'misiones', 'personal', 'transporte']
