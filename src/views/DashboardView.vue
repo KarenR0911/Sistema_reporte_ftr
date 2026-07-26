@@ -4,6 +4,8 @@ import BaseCard from '@/components/ui/BaseCard.vue'
 import BaseButton from '@/components/ui/BaseButton.vue'
 import BaseTable from '@/components/ui/BaseTable.vue'
 import StatusBadge from '@/components/ui/StatusBadge.vue'
+import GlobalCharts from '@/components/charts/GlobalCharts.vue'
+import AdminCharts from '@/components/charts/AdminCharts.vue'
 import { Rocket, CheckCircle, User, Package, Users } from '@lucide/vue'
 import { useAuthStore } from '@/stores/auth'
 import { useMisionesStore } from '@/stores/misiones'
@@ -11,6 +13,7 @@ import { useAtendidosStore } from '@/stores/atendidos'
 import { useNecesidadesStore } from '@/stores/necesidades'
 import { useInsumosStore } from '@/stores/insumos'
 import { usePersonalStore } from '@/stores/personal'
+import { useSalidasInsumosStore } from '@/stores/salidasInsumos'
 import { useRouter } from 'vue-router'
 
 const auth = useAuthStore()
@@ -19,6 +22,7 @@ const atendidosStore = useAtendidosStore()
 const necesidadesStore = useNecesidadesStore()
 const insumosStore = useInsumosStore()
 const personalStore = usePersonalStore()
+const salidasInsumosStore = useSalidasInsumosStore()
 const router = useRouter()
 
 const role = computed(() => auth.userRole)
@@ -38,6 +42,46 @@ const misionesActivas = computed(() =>
   misionesStore.list.filter((m) => m.estatus_mision === 'activa').length,
 )
 
+const rendimientoMisiones = computed(() => {
+  const personalCount = new Map<string, number>()
+  for (const p of personalStore.list) {
+    personalCount.set(p.id_mision, (personalCount.get(p.id_mision) ?? 0) + 1)
+  }
+  const atendidosCount = new Map<string, number>()
+  for (const a of atendidosStore.list) {
+    atendidosCount.set(a.id_mision, (atendidosCount.get(a.id_mision) ?? 0) + 1)
+  }
+  const necCount = new Map<string, number>()
+  const necAtendidasCount = new Map<string, number>()
+  for (const n of necesidadesStore.list) {
+    necCount.set(n.id_mision, (necCount.get(n.id_mision) ?? 0) + 1)
+    if (n.estatus === 'atendido') {
+      necAtendidasCount.set(n.id_mision, (necAtendidasCount.get(n.id_mision) ?? 0) + 1)
+    }
+  }
+  return misionesStore.list.map(m => ({
+    id: m.id,
+    direccion: m.direccion,
+    municipio: m.municipio,
+    fecha: m.fecha_inicio,
+    personal: personalCount.get(m.id) ?? 0,
+    atendidos: atendidosCount.get(m.id) ?? 0,
+    necesidades: necCount.get(m.id) ?? 0,
+    necesidadesAtendidas: necAtendidasCount.get(m.id) ?? 0,
+    estatus: m.estatus_mision,
+  }))
+})
+
+const rendimientoColumns = [
+  { key: 'direccion', label: 'Dirección' },
+  { key: 'municipio', label: 'Municipio' },
+  { key: 'personal', label: 'Personal' },
+  { key: 'atendidos', label: 'Atendidos' },
+  { key: 'necesidades', label: 'Nec. Reportadas' },
+  { key: 'necesidadesAtendidas', label: 'Nec. Atendidas' },
+  { key: 'estatus', label: 'Estatus' },
+]
+
 const misionColumns = [
   { key: 'direccion', label: 'Dirección' },
   { key: 'municipio', label: 'Municipio' },
@@ -52,6 +96,7 @@ onMounted(async () => {
     loads.push(
       necesidadesStore.load(),
       insumosStore.load(),
+      salidasInsumosStore.load(),
     )
   }
 
@@ -156,6 +201,55 @@ onMounted(async () => {
       <div class="mt-4" v-if="role === 'director' || role === 'administrador' || role === 'coordinador'">
         <BaseButton variant="primary" @click="router.push('/misiones')">Ver todas las misiones</BaseButton>
       </div>
+    </BaseCard>
+
+    <!-- Global Charts (director/admin) -->
+    <div v-if="role === 'director' || role === 'administrador'">
+      <h2 class="text-xl text-brand font-bold mb-2">Estadísticas Globales</h2>
+      <GlobalCharts
+        :misiones="misionesStore.list"
+        :atendidos="atendidosStore.list"
+        :insumos="insumosStore.list"
+        :salidas="salidasInsumosStore.list"
+        :necesidades="necesidadesStore.list"
+        :personales="personalStore.list"
+      />
+    </div>
+
+    <!-- Admin-only Charts -->
+    <div v-if="role === 'administrador'">
+      <h2 class="text-xl text-brand font-bold mb-2">Panel de Administración</h2>
+      <AdminCharts
+        :misiones="misionesStore.list"
+        :atendidos="atendidosStore.list"
+        :necesidades="necesidadesStore.list"
+        :personales="personalStore.list"
+      />
+    </div>
+
+    <!-- Rendimiento por Misión (director/admin) -->
+    <BaseCard v-if="role === 'director' || role === 'administrador'" title="Rendimiento por Misión">
+      <BaseTable
+        :columns="rendimientoColumns"
+        :rows="rendimientoMisiones as unknown as Record<string, unknown>[]"
+      >
+        <template #cell-personal="{ value }">
+          <span class="font-semibold">{{ value }}</span>
+        </template>
+        <template #cell-atendidos="{ value }">
+          <span class="font-semibold text-primary">{{ value }}</span>
+        </template>
+        <template #cell-necesidades="{ value }">
+          <span>{{ value }}</span>
+        </template>
+        <template #cell-necesidadesAtendidas="{ value }">
+          <span v-if="(value as number) > 0" class="font-semibold text-green-600">{{ value }}</span>
+          <span v-else class="text-text-muted">0</span>
+        </template>
+        <template #cell-estatus="{ value }">
+          <StatusBadge :status="value as string" type="mision" />
+        </template>
+      </BaseTable>
     </BaseCard>
 
     <!-- Coordinator: missions summary -->
