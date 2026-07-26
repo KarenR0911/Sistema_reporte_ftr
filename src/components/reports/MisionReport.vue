@@ -30,6 +30,11 @@ function labelSexo(val: string | null): string {
   return val === 'masculino' ? 'M' : val === 'femenino' ? 'F' : val
 }
 
+function insumoNombre(id: string): string {
+  const ins = props.insumos.find((i) => i.id === id)
+  return ins ? `${ins.categoria} — ${ins.descripcion}` : id.slice(0, 8)
+}
+
 function formatDate(iso: string): string {
   if (!iso) return '—'
   return new Date(iso).toLocaleDateString('es-VE', {
@@ -45,13 +50,7 @@ function formatDateTime(iso: string): string {
   })
 }
 
-function insumoNombre(id: string): string {
-  const ins = props.insumos.find((i) => i.id === id)
-  return ins ? `${ins.categoria} — ${ins.descripcion}` : id.slice(0, 8)
-}
 
-const insumosEntregados = props.insumos.filter((i) => i.estatus_cargamento === 'entregado')
-const insumosRetorno = props.insumos.filter((i) => i.estatus_cargamento === 'retorno')
 </script>
 
 <template>
@@ -163,7 +162,6 @@ const insumosRetorno = props.insumos.filter((i) => i.estatus_cargamento === 'ret
               <th>Descripción</th>
               <th>Cantidad</th>
               <th>Unidad</th>
-              <th>Estatus</th>
             </tr>
           </thead>
           <tbody>
@@ -172,13 +170,9 @@ const insumosRetorno = props.insumos.filter((i) => i.estatus_cargamento === 'ret
               <td>{{ i.descripcion }}</td>
               <td class="text-center">{{ i.cantidad }}</td>
               <td class="text-center">{{ i.unidad }}</td>
-              <td>{{ i.estatus_cargamento === 'entregado' ? 'Entregado' : 'Retorno' }}</td>
             </tr>
           </tbody>
         </table>
-        <p class="summary-text">
-          {{ insumosEntregados.length }} entregados, {{ insumosRetorno.length }} devueltos
-        </p>
       </div>
 
       <div v-if="salidas.length > 0" class="mt-4">

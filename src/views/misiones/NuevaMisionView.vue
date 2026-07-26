@@ -125,7 +125,7 @@ function addInsumo() {
     toast.error('Completa correctamente los datos del insumo.')
     return
   }
-  insumos.value.push({ ...insumoForm.value, cantidad, estatus_cargamento: 'entregado' })
+  insumos.value.push({ ...insumoForm.value, cantidad } as InsumoLlevado)
   insumoForm.value = { categoria: '', descripcion: '', cantidad: '', unidad: '', observaciones: '' }
   insumoErrors.value = {}
 }
@@ -172,7 +172,6 @@ async function saveMision() {
         id: crypto.randomUUID(),
         id_mision,
         ...i,
-        estatus_cargamento: 'entregado',
       }
       await insumosStore.create(item)
     }

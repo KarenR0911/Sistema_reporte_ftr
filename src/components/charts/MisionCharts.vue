@@ -10,13 +10,14 @@ import {
   BarElement,
 } from 'chart.js'
 import { Doughnut, Bar } from 'vue-chartjs'
-import type { Atendido, InsumoLlevado, Necesidad, PersonalMision } from '@/types'
+import type { Atendido, InsumoLlevado, Necesidad, PersonalMision, SalidaInsumo } from '@/types'
 
 ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement)
 
 const props = defineProps<{
   atendidos: Atendido[]
   insumos: InsumoLlevado[]
+  salidas: SalidaInsumo[]
   necesidades: Necesidad[]
   personales: PersonalMision[]
 }>()
@@ -156,14 +157,23 @@ const necesidadesPorPrioridad = computed(() => {
   }
 })
 
-const insumosPorEstatus = computed(() => {
-  const entregado = props.insumos.filter((i) => i.estatus_cargamento === 'entregado').length
-  const retorno = props.insumos.filter((i) => i.estatus_cargamento === 'retorno').length
+const insumosStock = computed(() => {
+  const salidasMap = new Map<string, number>()
+  for (const s of props.salidas) {
+    salidasMap.set(s.id_insumo, (salidasMap.get(s.id_insumo) ?? 0) + s.cantidad)
+  }
+  let totalDispensado = 0
+  let totalDisponible = 0
+  for (const i of props.insumos) {
+    const salidas = salidasMap.get(i.id) ?? 0
+    totalDispensado += salidas
+    totalDisponible += i.cantidad - salidas
+  }
   return {
-    labels: ['Entregado', 'Retorno'],
+    labels: ['Disponible', 'Dispensado'],
     datasets: [{
-      data: [entregado, retorno],
-      backgroundColor: [palette.green, palette.amber],
+      data: [totalDisponible, totalDispensado],
+      backgroundColor: [palette.blue, palette.amber],
       borderWidth: 0,
     }],
   }
@@ -239,9 +249,9 @@ const hasAnyData = computed(() =>
       </div>
     </div>
     <div v-if="insumos.length > 0" class="flex flex-col items-center">
-      <h4 class="text-sm font-semibold text-text-secondary uppercase tracking-wide mb-3">Insumos: Entregado vs Retorno</h4>
+      <h4 class="text-sm font-semibold text-text-secondary uppercase tracking-wide mb-3">Stock: Disponible vs Dispensado</h4>
       <div class="w-full max-w-52">
-        <Doughnut :data="insumosPorEstatus" :options="defaultOptions" />
+        <Doughnut :data="insumosStock" :options="defaultOptions" />
       </div>
     </div>
     <div v-if="personales.length > 0" class="flex flex-col items-center">

@@ -71,7 +71,6 @@ export const useInsumosStore = defineStore('insumos', () => {
           cantidad: clone.cantidad,
           unidad: clone.unidad,
           observaciones: clone.observaciones,
-          estatus_cargamento: clone.estatus_cargamento,
         })
         const { error } = await withTimeout(insertPromise)
         if (!error) {
@@ -101,7 +100,6 @@ export const useInsumosStore = defineStore('insumos', () => {
           cantidad: clone.cantidad,
           unidad: clone.unidad,
           observaciones: clone.observaciones,
-          estatus_cargamento: clone.estatus_cargamento,
         }).eq('id', clone.id)
         const { error } = await withTimeout(updatePromise)
         if (!error) {

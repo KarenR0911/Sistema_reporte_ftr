@@ -216,7 +216,6 @@ async function addInsumoToMission() {
     cantidad,
     unidad: newInsumo.value.unidad,
     observaciones: newInsumo.value.observaciones,
-    estatus_cargamento: 'entregado',
   }
   await withLoading(() => insumosStore.create(item), 'Agregando insumo...')
   newInsumo.value = { categoria: '', descripcion: '', cantidad: '', unidad: '', observaciones: '' }
@@ -305,6 +304,7 @@ onUnmounted(() => {
         <MisionCharts
           :atendidos="atendidos"
           :insumos="insumosMision"
+          :salidas="salidasMision"
           :necesidades="necesidades"
           :personales="personales"
         />
@@ -403,14 +403,9 @@ onUnmounted(() => {
           { key: 'descripcion', label: 'Descripción' },
           { key: 'cantidad', label: 'Cant.' },
           { key: 'unidad', label: 'Unidad' },
-          { key: 'estatus_cargamento', label: 'Estatus' },
         ]"
         :rows="insumosMision as unknown as Record<string, unknown>[]"
-      >
-        <template #cell-estatus_cargamento="{ value }">
-          <StatusBadge :status="value as string" type="cargamento" />
-        </template>
-      </BaseTable>
+      />
     </BaseCard>
 
     <BaseCard title="Atendidos">

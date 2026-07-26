@@ -1,7 +1,6 @@
 export type StatusSync = 'pending' | 'synced'
 export type RolUsuario = 'director' | 'administrador' | 'coordinador' | 'personal'
 export type EstatusMision = 'activa' | 'completada' | 'cancelada'
-export type EstatusCargamento = 'entregado' | 'retorno'
 export type CategoriaVoluntariado = 'estudiante' | 'profesional' | 'voluntario'
 export type Prioridad = 'baja' | 'media' | 'alta' | 'critica'
 export type EstatusNecesidad = 'reportado' | 'enproceso' | 'atendido'
@@ -40,7 +39,6 @@ export interface InsumoLlevado {
   cantidad: number
   unidad: string
   observaciones: string
-  estatus_cargamento: EstatusCargamento
   status_sync?: StatusSync
 }
 
