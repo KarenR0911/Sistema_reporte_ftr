@@ -1,4 +1,4 @@
-import { getSupabase, getAuthSupabase } from './supabase'
+import { getSupabase } from './supabase'
 import { addItem, getAll } from '@/db'
 import type { Usuario, RolUsuario, CategoriaVoluntariado } from '@/types'
 
@@ -26,8 +26,8 @@ export async function seedUsuariosIfNeeded(accessToken?: string | null) {
 
   if (accessToken) {
     try {
-      const client = getAuthSupabase(accessToken)
-      const { data } = await client.from('perfiles').select('*')
+      const sb = getSupabase()
+      const { data } = await sb.from('perfiles').select('*')
       if (data && data.length > 0) {
         for (const p of data) {
           await addItem('usuarios', {

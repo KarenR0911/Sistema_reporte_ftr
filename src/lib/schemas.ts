@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { INSUMO_CATEGORIAS } from '@/types'
 
 export const loginSchema = z.object({
   email: z.string().min(1, 'Email es requerido').email('Email inválido'),
@@ -40,10 +41,10 @@ export const personalSchema = z.object({
 })
 
 export const insumoSchema = z.object({
-  categoria: z.string().min(1, 'Categoría es requerida'),
+  categoria: z.enum(INSUMO_CATEGORIAS, { message: 'Selecciona una categoría' }),
   descripcion: z.string().min(1, 'Descripción es requerida'),
   cantidad: z.number().positive('Cantidad debe ser mayor a 0'),
-  unidad: z.string().optional(),
+  unidad: z.string().min(1, 'Unidad es requerida'),
   observaciones: z.string().optional(),
 })
 

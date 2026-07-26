@@ -57,3 +57,30 @@
 .fade-leave-to {
   opacity: 0;
 }
+
+@media print {
+  body > *:not(.printing-overlay) {
+    display: none !important;
+  }
+
+  .printing-overlay {
+    position: static !important;
+    overflow: visible !important;
+    background: white !important;
+    display: block !important;
+  }
+
+  .printing-overlay .no-print {
+    display: none !important;
+  }
+
+  body {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  @page {
+    margin: 1.2cm;
+    size: A4;
+  }
+}

@@ -1,25 +1,31 @@
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, onUnmounted, nextTick, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import BaseCard from '@/components/ui/BaseCard.vue'
 import BaseInput from '@/components/ui/BaseInput.vue'
 import BaseButton from '@/components/ui/BaseButton.vue'
+import BaseSelect from '@/components/ui/BaseSelect.vue'
 import BaseTable from '@/components/ui/BaseTable.vue'
 import PersonalSelector from '@/components/ui/PersonalSelector.vue'
 import ConfirmDialog from '@/components/ui/ConfirmDialog.vue'
 import StatusBadge from '@/components/ui/StatusBadge.vue'
-import { ClipboardList, CheckCircle, ArrowLeft, Plus, Package, Eye } from '@lucide/vue'
+import { ClipboardList, CheckCircle, ArrowLeft, Plus, Package, Eye, ChevronDown, FileText } from '@lucide/vue'
+import MisionCharts from '@/components/charts/MisionCharts.vue'
+import MisionReport from '@/components/reports/MisionReport.vue'
 import { useMisionesStore } from '@/stores/misiones'
 import { useTransporteStore } from '@/stores/transporte'
 import { usePersonalStore } from '@/stores/personal'
 import { useInsumosStore } from '@/stores/insumos'
 import { useAtendidosStore } from '@/stores/atendidos'
 import { useNecesidadesStore } from '@/stores/necesidades'
+import { useSalidasInsumosStore } from '@/stores/salidasInsumos'
 import { useAuthStore } from '@/stores/auth'
 import { useOnlineStatus } from '@/composables/useOnlineStatus'
 import { useToastStore } from '@/stores/toast'
 import { useLoading } from '@/composables/useLoading'
-import type { Mision, Transporte, PersonalMision, InsumoLlevado, Usuario, Atendido } from '@/types'
+import { insumoSchema } from '@/lib/schemas'
+import { INSUMO_CATEGORIAS } from '@/types'
+import type { Mision, Transporte, PersonalMision, InsumoLlevado, Usuario, Atendido, SalidaInsumo } from '@/types'
 
 const route = useRoute()
 const router = useRouter()
@@ -34,13 +40,14 @@ const personalStore = usePersonalStore()
 const insumosStore = useInsumosStore()
 const atendidosStore = useAtendidosStore()
 const necesidadesStore = useNecesidadesStore()
+const salidasStore = useSalidasInsumosStore()
 
 const storesReady = computed(() =>
   misionesStore.loaded && transporteStore.loaded && personalStore.loaded
   && insumosStore.loaded && (atendidosStore.loaded ?? true) && (necesidadesStore.loaded ?? true)
 )
 
-const canAccessFarmacia = computed(() =>
+const canManageInsumos = computed(() =>
   role.value === 'director' || role.value === 'administrador',
 )
 
@@ -51,12 +58,14 @@ const personales = computed(() => personalStore.getByMision(missionId))
 const insumosMision = computed(() => insumosStore.getByMision(missionId))
 const atendidos = computed(() => atendidosStore.getByMision(missionId))
 const necesidades = computed(() => necesidadesStore.getByMision(missionId))
+const salidasMision = computed(() => salidasStore.getByMision(missionId))
 
 const role = computed(() => auth.userRole)
 const canEdit = computed(() => role.value === 'director' || role.value === 'administrador' || role.value === 'coordinador')
 
 const showDetail = ref(false)
 const selectedAtendido = ref<Atendido | null>(null)
+const showCharts = ref(false)
 
 function openDetail(a: Atendido) {
   selectedAtendido.value = a
@@ -140,7 +149,6 @@ const showPersonalForm = ref(false)
 const transportForm = ref({ tipo_transporte: '', numero_placa: '', nombre_conductor: '' })
 
 const showCompleteModal = ref(false)
-const returnItems = ref<Record<string, boolean>>({})
 const showRemovePersonalDialog = ref(false)
 const personalToRemove = ref<string | null>(null)
 
@@ -166,11 +174,6 @@ async function addTransporte() {
 }
 
 function openCompleteModal() {
-  const r: Record<string, boolean> = {}
-  for (const ins of insumosMision.value) {
-    r[ins.id] = false
-  }
-  returnItems.value = r
   showCompleteModal.value = true
 }
 
@@ -181,12 +184,6 @@ async function confirmComplete() {
     return
   }
   await withLoading(async () => {
-    for (const ins of insumosMision.value) {
-      if (returnItems.value[ins.id]) {
-        const updated = { ...ins, estatus_cargamento: 'retorno' as const }
-        await insumosStore.update(updated)
-      }
-    }
     const updatedMission = { ...mission.value, estatus_mision: 'completada' as const }
     await misionesStore.update(updatedMission as Mision)
   }, 'Completando misión...')
@@ -194,7 +191,52 @@ async function confirmComplete() {
   router.push('/misiones')
 }
 
+const printing = ref(false)
+
+const showAddInsumoForm = ref(false)
+const newInsumo = ref({ categoria: '', descripcion: '', cantidad: '' as string | number, unidad: '', observaciones: '' })
+const insumoFormErrors = ref<Record<string, string>>({})
+
+async function addInsumoToMission() {
+  insumoFormErrors.value = {}
+  const cantidad = Number(newInsumo.value.cantidad) || 0
+  const result = insumoSchema.safeParse({ ...newInsumo.value, cantidad })
+  if (!result.success) {
+    for (const issue of result.error.issues) {
+      insumoFormErrors.value[issue.path[0] as string] = issue.message
+    }
+    toast.error('Completa correctamente los datos del insumo.')
+    return
+  }
+  const item: InsumoLlevado = {
+    id: crypto.randomUUID(),
+    id_mision: missionId,
+    categoria: newInsumo.value.categoria,
+    descripcion: newInsumo.value.descripcion,
+    cantidad,
+    unidad: newInsumo.value.unidad,
+    observaciones: newInsumo.value.observaciones,
+  }
+  await withLoading(() => insumosStore.create(item), 'Agregando insumo...')
+  newInsumo.value = { categoria: '', descripcion: '', cantidad: '', unidad: '', observaciones: '' }
+  insumoFormErrors.value = {}
+  showAddInsumoForm.value = false
+  toast.success('Insumo agregado a la misión')
+}
+
+async function printReport() {
+  printing.value = true
+  await nextTick()
+  await new Promise((r) => setTimeout(r, 300))
+  window.print()
+}
+
+function onAfterPrint() {
+  printing.value = false
+}
+
 onMounted(async () => {
+  window.addEventListener('afterprint', onAfterPrint)
   await Promise.all([
     misionesStore.load(),
     transporteStore.load(),
@@ -202,7 +244,12 @@ onMounted(async () => {
     insumosStore.load(),
     atendidosStore.load(),
     necesidadesStore.load(),
+    salidasStore.load(),
   ])
+})
+
+onUnmounted(() => {
+  window.removeEventListener('afterprint', onAfterPrint)
 })
 </script>
 
@@ -226,12 +273,41 @@ onMounted(async () => {
         <RouterLink v-if="canEdit" :to="`/misiones/${missionId}/necesidades`">
           <BaseButton variant="primary"><ClipboardList :size="18" /> Levantar Necesidades</BaseButton>
         </RouterLink>
-        <RouterLink v-if="canAccessFarmacia" :to="`/misiones/${missionId}/farmacia`">
-          <BaseButton variant="primary"><Package :size="18" /> Farmacia</BaseButton>
+        <RouterLink v-if="canManageInsumos" :to="`/misiones/${missionId}/dispensacion`">
+          <BaseButton variant="primary"><Package :size="18" /> Dispensación</BaseButton>
         </RouterLink>
+        <BaseButton variant="ghost" @click="printReport">
+          <FileText :size="18" /> Reporte
+        </BaseButton>
         <BaseButton v-if="canEdit && mission.estatus_mision === 'activa'" variant="secondary" @click="openCompleteModal" :disabled="!isOnline">
           <CheckCircle :size="18" /> {{ isOnline ? 'Completar Misión' : 'Requiere conexión' }}
         </BaseButton>
+      </div>
+    </div>
+
+    <div class="bg-white rounded-xl shadow-[0_1px_3px_rgba(0,0,0,0.08)] border border-border-light">
+      <button
+        class="w-full flex items-center justify-between px-6 py-4 cursor-pointer hover:bg-surface/50 transition-colors border-0 bg-transparent"
+        @click="showCharts = !showCharts"
+      >
+        <h3 class="m-0 text-lg text-brand font-bold">Estadísticas</h3>
+        <ChevronDown
+          :size="20"
+          class="text-text-secondary transition-transform duration-200"
+          :class="{ 'rotate-180': showCharts }"
+        />
+      </button>
+      <div
+        v-show="showCharts"
+        class="px-6 pb-6 border-t border-border-light pt-4"
+      >
+        <MisionCharts
+          :atendidos="atendidos"
+          :insumos="insumosMision"
+          :salidas="salidasMision"
+          :necesidades="necesidades"
+          :personales="personales"
+        />
       </div>
     </div>
 
@@ -274,6 +350,8 @@ onMounted(async () => {
             { key: 'cedula', label: 'Cédula' },
             { key: 'nombre', label: 'Nombre' },
             { key: 'categoria_voluntariado', label: 'Categoría' },
+            { key: 'especialidad', label: 'Especialidad' },
+            { key: 'area_voluntariado', label: 'Área' },
             { key: 'acciones', label: '' },
           ]"
           :rows="personales as unknown as Record<string, unknown>[]"
@@ -293,20 +371,43 @@ onMounted(async () => {
     </BaseCard>
 
     <BaseCard title="Insumos Llevados">
+      <BaseButton
+        v-if="canManageInsumos"
+        variant="secondary"
+        size="sm"
+        class="mb-3"
+        @click="showAddInsumoForm = !showAddInsumoForm"
+      >
+        <Plus :size="16" /> Agregar Insumo
+      </BaseButton>
+      <div v-if="showAddInsumoForm && canManageInsumos" class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4 p-4 bg-bg rounded-lg">
+        <BaseSelect
+          v-model="newInsumo.categoria"
+          label="Categoría"
+          required
+          :options="INSUMO_CATEGORIAS.map(c => ({ value: c, label: c }))"
+          :error="insumoFormErrors.categoria"
+        />
+        <BaseInput v-model="newInsumo.descripcion" label="Descripción" :error="insumoFormErrors.descripcion" />
+        <BaseInput v-model="newInsumo.cantidad" label="Cantidad" type="number" :error="insumoFormErrors.cantidad" />
+        <BaseInput v-model="newInsumo.unidad" label="Unidad" placeholder="kg, unidades, litros..." :error="insumoFormErrors.unidad" />
+        <div class="col-span-2">
+          <BaseInput v-model="newInsumo.observaciones" label="Observaciones" />
+        </div>
+        <div class="col-span-2 flex gap-2 justify-end">
+          <BaseButton variant="primary" size="sm" @click="addInsumoToMission" :loading="saving">Guardar Insumo</BaseButton>
+          <BaseButton variant="ghost" size="sm" @click="showAddInsumoForm = false; insumoFormErrors = {}">Cancelar</BaseButton>
+        </div>
+      </div>
       <BaseTable
         :columns="[
           { key: 'categoria', label: 'Categoría' },
           { key: 'descripcion', label: 'Descripción' },
           { key: 'cantidad', label: 'Cant.' },
           { key: 'unidad', label: 'Unidad' },
-          { key: 'estatus_cargamento', label: 'Estatus' },
         ]"
         :rows="insumosMision as unknown as Record<string, unknown>[]"
-      >
-        <template #cell-estatus_cargamento="{ value }">
-          <StatusBadge :status="value as string" type="cargamento" />
-        </template>
-      </BaseTable>
+      />
     </BaseCard>
 
     <BaseCard title="Atendidos">
@@ -361,14 +462,8 @@ onMounted(async () => {
       <div v-if="showCompleteModal" class="fixed inset-0 bg-black/40 flex items-center justify-center z-1000" @click.self="showCompleteModal = false">
         <div class="bg-white rounded-xl p-8 max-w-125 w-90% flex flex-col gap-4">
           <h2 class="m-0 text-brand">Completar Misión</h2>
-          <p>Marca los insumos que retornan (no fueron entregados):</p>
-          <div v-for="ins in insumosMision" :key="ins.id">
-            <label class="flex items-center gap-2.5 cursor-pointer py-1.5">
-              <input type="checkbox" v-model="returnItems[ins.id]" class="accent-primary w-4.5 h-4.5" />
-              <span>{{ ins.categoria }} — {{ ins.descripcion }} ({{ ins.cantidad }} {{ ins.unidad }})</span>
-            </label>
-          </div>
-          <p v-if="insumosMision.length === 0" class="text-text-secondary italic">No hay insumos registrados.</p>
+          <p>¿Estás seguro de completar esta misión?</p>
+          <p class="text-text-secondary text-sm">La misión se marcará como completada y no podrá recibir más modificaciones.</p>
           <div class="flex gap-2 justify-end mt-2">
             <BaseButton variant="primary" @click="confirmComplete" :loading="saving">Confirmar y Completar</BaseButton>
             <BaseButton variant="ghost" @click="showCompleteModal = false">Cancelar</BaseButton>
@@ -458,6 +553,26 @@ onMounted(async () => {
       @confirm="confirmRemovePersonal"
       @cancel="showRemovePersonalDialog = false; personalToRemove = null"
     />
+
+    <Teleport to="body">
+      <div v-if="printing" class="printing-overlay">
+        <div class="no-print flex items-center justify-center min-h-screen bg-white">
+          <div class="text-center py-20">
+            <div class="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+            <p class="text-text-secondary">Preparando reporte para impresión...</p>
+          </div>
+        </div>
+        <MisionReport
+          :mission="mission!"
+          :atendidos="atendidos"
+          :insumos="insumosMision"
+          :necesidades="necesidades"
+          :personales="personales"
+          :salidas="salidasMision"
+          :transportes="transportes"
+        />
+      </div>
+    </Teleport>
   </div>
   <div v-else class="py-12 text-center text-text-secondary">
     <p>Misión no encontrada.</p>
@@ -465,3 +580,21 @@ onMounted(async () => {
   </div>
   </div>
 </template>
+
+<style scoped>
+.printing-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: white;
+  overflow: auto;
+}
+
+@media print {
+  .printing-overlay {
+    position: static !important;
+    overflow: visible !important;
+    background: white !important;
+  }
+}
+</style>

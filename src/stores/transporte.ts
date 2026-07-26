@@ -44,7 +44,13 @@ export const useTransporteStore = defineStore('transporte', () => {
 
   async function create(item: Transporte) {
     const sb = getSupabase()
-    const { error } = await sb.from('transporte').insert(item)
+    const { error } = await sb.from('transporte').insert({
+      id: item.id,
+      id_mision: item.id_mision,
+      tipo_transporte: item.tipo_transporte,
+      numero_placa: item.numero_placa,
+      nombre_conductor: item.nombre_conductor,
+    })
     if (error) throw error
     await putItem('transporte', { ...item, status_sync: 'synced' as const })
     list.value.push(item)
@@ -52,7 +58,11 @@ export const useTransporteStore = defineStore('transporte', () => {
 
   async function update(item: Transporte) {
     const sb = getSupabase()
-    const { error } = await sb.from('transporte').update(item).eq('id', item.id)
+    const { error } = await sb.from('transporte').update({
+      tipo_transporte: item.tipo_transporte,
+      numero_placa: item.numero_placa,
+      nombre_conductor: item.nombre_conductor,
+    }).eq('id', item.id)
     if (error) throw error
     await putItem('transporte', { ...item, status_sync: 'synced' as const })
     const idx = list.value.findIndex((t) => t.id === item.id)

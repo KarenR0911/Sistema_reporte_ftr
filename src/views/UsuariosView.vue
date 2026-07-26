@@ -8,7 +8,7 @@ import BaseTable from '@/components/ui/BaseTable.vue'
 import ConfirmDialog from '@/components/ui/ConfirmDialog.vue'
 import StatusBadge from '@/components/ui/StatusBadge.vue'
 import { getAll, addItem, putItem, deleteItem } from '@/db'
-import { getSupabase, getAuthSupabase } from '@/lib/supabase'
+import { getSupabase } from '@/lib/supabase'
 import { useAuthStore } from '@/stores/auth'
 import { useToastStore } from '@/stores/toast'
 import { usuarioSchema } from '@/lib/schemas'
@@ -123,6 +123,15 @@ function validateForm(): boolean {
     rol: formRol.value,
   }
   if (formRol.value === 'personal') {
+    if (!formCategoriaVoluntariado.value) {
+      formErrors.value.categoria_voluntariado = 'Selecciona un tipo'
+    }
+    if (formCategoriaVoluntariado.value === 'profesional' && !formEspecialidad.value) {
+      formErrors.value.especialidad = 'Selecciona una especialidad'
+    }
+    if (!formAreaVoluntariado.value) {
+      formErrors.value.area_voluntariado = 'Selecciona un área'
+    }
     payload.categoria_voluntariado = formCategoriaVoluntariado.value
     payload.especialidad = formEspecialidad.value
     payload.area_voluntariado = formAreaVoluntariado.value
@@ -132,6 +141,8 @@ function validateForm(): boolean {
     for (const issue of result.error.issues) {
       formErrors.value[issue.path[0] as string] = issue.message
     }
+  }
+  if (Object.keys(formErrors.value).length > 0) {
     useToastStore().error('Corrige los errores del formulario')
     return false
   }
@@ -177,9 +188,8 @@ async function saveUser() {
         showCreatedDialog.value = true
       } else {
         await putItem('usuarios', user)
-        const client = auth.accessToken ? getAuthSupabase(auth.accessToken) : getSupabase()
         try {
-          await client.from('perfiles').upsert({
+          await getSupabase().from('perfiles').upsert({
             id: user.id,
             cedula: user.cedula,
             nombre: user.nombre,
@@ -197,10 +207,7 @@ async function saveUser() {
       useToastStore().error('Guardado localmente. Error de red al crear en Supabase Auth.')
     }
   } else if (navigator.onLine && !isNew) {
-    const client = auth.accessToken
-      ? getAuthSupabase(auth.accessToken)
-      : getSupabase()
-    await client.from('perfiles').update({
+    await getSupabase().from('perfiles').update({
       cedula: user.cedula,
       nombre: user.nombre,
       rol: user.rol,
@@ -237,10 +244,7 @@ function editUser(u: Usuario) {
 async function toggleActivo(u: Usuario) {
   const updated = { ...u, activo: !u.activo }
   if (navigator.onLine) {
-    const client = auth.accessToken
-      ? getAuthSupabase(auth.accessToken)
-      : getSupabase()
-    await client.from('perfiles').update({ activo: updated.activo }).eq('id', updated.id)
+    await getSupabase().from('perfiles').update({ activo: updated.activo }).eq('id', updated.id)
   }
   await putItem('usuarios', updated)
   await loadUsuarios()
@@ -365,6 +369,8 @@ onMounted(async () => {
               <BaseSelect
                 v-model="formCategoriaVoluntariado"
                 label="Tipo"
+                required
+                :error="formErrors.categoria_voluntariado"
                 :options="[
                   { value: 'estudiante', label: 'Estudiante' },
                   { value: 'profesional', label: 'Profesional' },
@@ -375,8 +381,12 @@ onMounted(async () => {
                 v-if="formCategoriaVoluntariado === 'profesional'"
                 v-model="formEspecialidad"
                 label="Especialidad"
+                required
+                :error="formErrors.especialidad"
                 :options="[
                   { value: 'medico', label: 'Médico' },
+                  { value: 'medico_veterinario', label: 'Médico Veterinario' },
+                  { value: 'odontologo', label: 'Odontólogo' },
                   { value: 'enfermero', label: 'Enfermero' },
                   { value: 'paramedico', label: 'Paramédico' },
                   { value: 'psicologo', label: 'Psicólogo' },
@@ -396,6 +406,8 @@ onMounted(async () => {
               <BaseSelect
                 v-model="formAreaVoluntariado"
                 label="Área / Categoría del voluntariado"
+                required
+                :error="formErrors.area_voluntariado"
                 :options="[
                   { value: 'medicina_salud', label: 'Medicina / Salud' },
                   { value: 'atencion_psicosocial', label: 'Atención Psicosocial' },
