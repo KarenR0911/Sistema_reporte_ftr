@@ -370,6 +370,8 @@ onMounted(async () => {
                 label="Especialidad"
                 :options="[
                   { value: 'medico', label: 'Médico' },
+                  { value: 'medico_veterinario', label: 'Médico Veterinario' },
+                  { value: 'odontologo', label: 'Odontólogo' },
                   { value: 'enfermero', label: 'Enfermero' },
                   { value: 'paramedico', label: 'Paramédico' },
                   { value: 'psicologo', label: 'Psicólogo' },

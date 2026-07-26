@@ -48,6 +48,7 @@ export const usePersonalStore = defineStore('personal', () => {
       nombre: item.nombre,
       categoria_voluntariado: item.categoria_voluntariado,
       especialidad: item.especialidad,
+      area_voluntariado: item.area_voluntariado,
     }))
     if (error) throw error
     await putItem('personal', { ...item, status_sync: 'synced' as const })

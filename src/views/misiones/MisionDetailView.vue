@@ -350,6 +350,8 @@ onUnmounted(() => {
             { key: 'cedula', label: 'Cédula' },
             { key: 'nombre', label: 'Nombre' },
             { key: 'categoria_voluntariado', label: 'Categoría' },
+            { key: 'especialidad', label: 'Especialidad' },
+            { key: 'area_voluntariado', label: 'Área' },
             { key: 'acciones', label: '' },
           ]"
           :rows="personales as unknown as Record<string, unknown>[]"
