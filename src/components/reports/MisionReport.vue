@@ -1,6 +1,5 @@
 <script setup lang="ts">
-import { onMounted, nextTick, ref } from 'vue'
-import MisionCharts from '@/components/charts/MisionCharts.vue'
+import { onMounted } from 'vue'
 import type { Mision, Atendido, InsumoLlevado, Necesidad, PersonalMision, SalidaInsumo } from '@/types'
 
 const props = defineProps<{
@@ -13,23 +12,7 @@ const props = defineProps<{
   transportes: { tipo_transporte: string; numero_placa: string; nombre_conductor: string }[]
 }>()
 
-const ready = ref(false)
-
-onMounted(async () => {
-  await nextTick()
-  await new Promise((r) => setTimeout(r, 800))
-  const canvases = document.querySelectorAll('.report-charts canvas')
-  canvases.forEach((el) => {
-    const canvas = el as HTMLCanvasElement
-    try {
-      const img = document.createElement('img')
-      img.src = canvas.toDataURL('image/png')
-      img.className = 'chart-img'
-      canvas.parentNode?.replaceChild(img, canvas)
-    } catch {
-    }
-  })
-  ready.value = true
+onMounted(() => {
   window.print()
 })
 
@@ -254,15 +237,7 @@ const insumosRetorno = props.insumos.filter((i) => i.estatus_cargamento === 'ret
       </table>
     </div>
 
-    <div v-if="atendidos.length > 0 || insumos.length > 0 || necesidades.length > 0 || personales.length > 0" class="report-section report-charts">
-      <h2 class="section-title">Estadísticas</h2>
-      <MisionCharts
-        :atendidos="atendidos"
-        :insumos="insumos"
-        :necesidades="necesidades"
-        :personales="personales"
-      />
-    </div>
+
   </div>
 </template>
 
