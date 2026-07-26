@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import { onMounted } from 'vue'
 import type { Mision, Atendido, InsumoLlevado, Necesidad, PersonalMision, SalidaInsumo } from '@/types'
 
 const props = defineProps<{
@@ -11,10 +10,6 @@ const props = defineProps<{
   salidas: SalidaInsumo[]
   transportes: { tipo_transporte: string; numero_placa: string; nombre_conductor: string }[]
 }>()
-
-onMounted(() => {
-  window.print()
-})
 
 function labelTipoAtencion(val: string | null): string {
   const labels: Record<string, string> = {

@@ -193,7 +193,7 @@ const printing = ref(false)
 async function printReport() {
   printing.value = true
   await nextTick()
-  await new Promise((r) => setTimeout(r, 1000))
+  await new Promise((r) => setTimeout(r, 300))
   window.print()
 }
 
