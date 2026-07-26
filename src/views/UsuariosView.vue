@@ -123,6 +123,15 @@ function validateForm(): boolean {
     rol: formRol.value,
   }
   if (formRol.value === 'personal') {
+    if (!formCategoriaVoluntariado.value) {
+      formErrors.value.categoria_voluntariado = 'Selecciona un tipo'
+    }
+    if (formCategoriaVoluntariado.value === 'profesional' && !formEspecialidad.value) {
+      formErrors.value.especialidad = 'Selecciona una especialidad'
+    }
+    if (!formAreaVoluntariado.value) {
+      formErrors.value.area_voluntariado = 'Selecciona un área'
+    }
     payload.categoria_voluntariado = formCategoriaVoluntariado.value
     payload.especialidad = formEspecialidad.value
     payload.area_voluntariado = formAreaVoluntariado.value
@@ -132,6 +141,8 @@ function validateForm(): boolean {
     for (const issue of result.error.issues) {
       formErrors.value[issue.path[0] as string] = issue.message
     }
+  }
+  if (Object.keys(formErrors.value).length > 0) {
     useToastStore().error('Corrige los errores del formulario')
     return false
   }
@@ -358,6 +369,8 @@ onMounted(async () => {
               <BaseSelect
                 v-model="formCategoriaVoluntariado"
                 label="Tipo"
+                required
+                :error="formErrors.categoria_voluntariado"
                 :options="[
                   { value: 'estudiante', label: 'Estudiante' },
                   { value: 'profesional', label: 'Profesional' },
@@ -368,6 +381,8 @@ onMounted(async () => {
                 v-if="formCategoriaVoluntariado === 'profesional'"
                 v-model="formEspecialidad"
                 label="Especialidad"
+                required
+                :error="formErrors.especialidad"
                 :options="[
                   { value: 'medico', label: 'Médico' },
                   { value: 'medico_veterinario', label: 'Médico Veterinario' },
@@ -391,6 +406,8 @@ onMounted(async () => {
               <BaseSelect
                 v-model="formAreaVoluntariado"
                 label="Área / Categoría del voluntariado"
+                required
+                :error="formErrors.area_voluntariado"
                 :options="[
                   { value: 'medicina_salud', label: 'Medicina / Salud' },
                   { value: 'atencion_psicosocial', label: 'Atención Psicosocial' },
