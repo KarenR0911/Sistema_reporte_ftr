@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, onUnmounted, nextTick, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import BaseCard from '@/components/ui/BaseCard.vue'
 import BaseInput from '@/components/ui/BaseInput.vue'
@@ -8,19 +8,21 @@ import BaseTable from '@/components/ui/BaseTable.vue'
 import PersonalSelector from '@/components/ui/PersonalSelector.vue'
 import ConfirmDialog from '@/components/ui/ConfirmDialog.vue'
 import StatusBadge from '@/components/ui/StatusBadge.vue'
-import { ClipboardList, CheckCircle, ArrowLeft, Plus, Package, Eye, ChevronDown } from '@lucide/vue'
+import { ClipboardList, CheckCircle, ArrowLeft, Plus, Package, Eye, ChevronDown, FileText } from '@lucide/vue'
 import MisionCharts from '@/components/charts/MisionCharts.vue'
+import MisionReport from '@/components/reports/MisionReport.vue'
 import { useMisionesStore } from '@/stores/misiones'
 import { useTransporteStore } from '@/stores/transporte'
 import { usePersonalStore } from '@/stores/personal'
 import { useInsumosStore } from '@/stores/insumos'
 import { useAtendidosStore } from '@/stores/atendidos'
 import { useNecesidadesStore } from '@/stores/necesidades'
+import { useSalidasInsumosStore } from '@/stores/salidasInsumos'
 import { useAuthStore } from '@/stores/auth'
 import { useOnlineStatus } from '@/composables/useOnlineStatus'
 import { useToastStore } from '@/stores/toast'
 import { useLoading } from '@/composables/useLoading'
-import type { Mision, Transporte, PersonalMision, InsumoLlevado, Usuario, Atendido } from '@/types'
+import type { Mision, Transporte, PersonalMision, InsumoLlevado, Usuario, Atendido, SalidaInsumo } from '@/types'
 
 const route = useRoute()
 const router = useRouter()
@@ -35,6 +37,7 @@ const personalStore = usePersonalStore()
 const insumosStore = useInsumosStore()
 const atendidosStore = useAtendidosStore()
 const necesidadesStore = useNecesidadesStore()
+const salidasStore = useSalidasInsumosStore()
 
 const storesReady = computed(() =>
   misionesStore.loaded && transporteStore.loaded && personalStore.loaded
@@ -52,6 +55,7 @@ const personales = computed(() => personalStore.getByMision(missionId))
 const insumosMision = computed(() => insumosStore.getByMision(missionId))
 const atendidos = computed(() => atendidosStore.getByMision(missionId))
 const necesidades = computed(() => necesidadesStore.getByMision(missionId))
+const salidasMision = computed(() => salidasStore.getByMision(missionId))
 
 const role = computed(() => auth.userRole)
 const canEdit = computed(() => role.value === 'director' || role.value === 'administrador' || role.value === 'coordinador')
@@ -184,7 +188,21 @@ async function confirmComplete() {
   router.push('/misiones')
 }
 
+const printing = ref(false)
+
+async function printReport() {
+  printing.value = true
+  await nextTick()
+  await new Promise((r) => setTimeout(r, 1000))
+  window.print()
+}
+
+function onAfterPrint() {
+  printing.value = false
+}
+
 onMounted(async () => {
+  window.addEventListener('afterprint', onAfterPrint)
   await Promise.all([
     misionesStore.load(),
     transporteStore.load(),
@@ -192,7 +210,12 @@ onMounted(async () => {
     insumosStore.load(),
     atendidosStore.load(),
     necesidadesStore.load(),
+    salidasStore.load(),
   ])
+})
+
+onUnmounted(() => {
+  window.removeEventListener('afterprint', onAfterPrint)
 })
 </script>
 
@@ -219,6 +242,9 @@ onMounted(async () => {
         <RouterLink v-if="canAccessFarmacia" :to="`/misiones/${missionId}/farmacia`">
           <BaseButton variant="primary"><Package :size="18" /> Farmacia</BaseButton>
         </RouterLink>
+        <BaseButton variant="ghost" @click="printReport">
+          <FileText :size="18" /> Reporte
+        </BaseButton>
         <BaseButton v-if="canEdit && mission.estatus_mision === 'activa'" variant="secondary" @click="openCompleteModal" :disabled="!isOnline">
           <CheckCircle :size="18" /> {{ isOnline ? 'Completar Misión' : 'Requiere conexión' }}
         </BaseButton>
@@ -467,6 +493,26 @@ onMounted(async () => {
       @confirm="confirmRemovePersonal"
       @cancel="showRemovePersonalDialog = false; personalToRemove = null"
     />
+
+    <Teleport to="body">
+      <div v-if="printing" class="printing-overlay">
+        <div class="no-print flex items-center justify-center min-h-screen bg-white">
+          <div class="text-center py-20">
+            <div class="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+            <p class="text-text-secondary">Preparando reporte para impresión...</p>
+          </div>
+        </div>
+        <MisionReport
+          :mission="mission!"
+          :atendidos="atendidos"
+          :insumos="insumosMision"
+          :necesidades="necesidades"
+          :personales="personales"
+          :salidas="salidasMision"
+          :transportes="transportes"
+        />
+      </div>
+    </Teleport>
   </div>
   <div v-else class="py-12 text-center text-text-secondary">
     <p>Misión no encontrada.</p>
@@ -474,3 +520,21 @@ onMounted(async () => {
   </div>
   </div>
 </template>
+
+<style scoped>
+.printing-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: white;
+  overflow: auto;
+}
+
+@media print {
+  .printing-overlay {
+    position: static !important;
+    overflow: visible !important;
+    background: white !important;
+  }
+}
+</style>
