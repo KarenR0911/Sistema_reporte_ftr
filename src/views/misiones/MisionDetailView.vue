@@ -4,6 +4,7 @@ import { useRoute, useRouter } from 'vue-router'
 import BaseCard from '@/components/ui/BaseCard.vue'
 import BaseInput from '@/components/ui/BaseInput.vue'
 import BaseButton from '@/components/ui/BaseButton.vue'
+import BaseSelect from '@/components/ui/BaseSelect.vue'
 import BaseTable from '@/components/ui/BaseTable.vue'
 import PersonalSelector from '@/components/ui/PersonalSelector.vue'
 import ConfirmDialog from '@/components/ui/ConfirmDialog.vue'
@@ -22,6 +23,8 @@ import { useAuthStore } from '@/stores/auth'
 import { useOnlineStatus } from '@/composables/useOnlineStatus'
 import { useToastStore } from '@/stores/toast'
 import { useLoading } from '@/composables/useLoading'
+import { insumoSchema } from '@/lib/schemas'
+import { INSUMO_CATEGORIAS } from '@/types'
 import type { Mision, Transporte, PersonalMision, InsumoLlevado, Usuario, Atendido, SalidaInsumo } from '@/types'
 
 const route = useRoute()
@@ -44,7 +47,7 @@ const storesReady = computed(() =>
   && insumosStore.loaded && (atendidosStore.loaded ?? true) && (necesidadesStore.loaded ?? true)
 )
 
-const canAccessFarmacia = computed(() =>
+const canManageInsumos = computed(() =>
   role.value === 'director' || role.value === 'administrador',
 )
 
@@ -190,6 +193,38 @@ async function confirmComplete() {
 
 const printing = ref(false)
 
+const showAddInsumoForm = ref(false)
+const newInsumo = ref({ categoria: '', descripcion: '', cantidad: '' as string | number, unidad: '', observaciones: '' })
+const insumoFormErrors = ref<Record<string, string>>({})
+
+async function addInsumoToMission() {
+  insumoFormErrors.value = {}
+  const cantidad = Number(newInsumo.value.cantidad) || 0
+  const result = insumoSchema.safeParse({ ...newInsumo.value, cantidad })
+  if (!result.success) {
+    for (const issue of result.error.issues) {
+      insumoFormErrors.value[issue.path[0] as string] = issue.message
+    }
+    toast.error('Completa correctamente los datos del insumo.')
+    return
+  }
+  const item: InsumoLlevado = {
+    id: crypto.randomUUID(),
+    id_mision: missionId,
+    categoria: newInsumo.value.categoria,
+    descripcion: newInsumo.value.descripcion,
+    cantidad,
+    unidad: newInsumo.value.unidad,
+    observaciones: newInsumo.value.observaciones,
+    estatus_cargamento: 'entregado',
+  }
+  await withLoading(() => insumosStore.create(item), 'Agregando insumo...')
+  newInsumo.value = { categoria: '', descripcion: '', cantidad: '', unidad: '', observaciones: '' }
+  insumoFormErrors.value = {}
+  showAddInsumoForm.value = false
+  toast.success('Insumo agregado a la misión')
+}
+
 async function printReport() {
   printing.value = true
   await nextTick()
@@ -239,8 +274,8 @@ onUnmounted(() => {
         <RouterLink v-if="canEdit" :to="`/misiones/${missionId}/necesidades`">
           <BaseButton variant="primary"><ClipboardList :size="18" /> Levantar Necesidades</BaseButton>
         </RouterLink>
-        <RouterLink v-if="canAccessFarmacia" :to="`/misiones/${missionId}/farmacia`">
-          <BaseButton variant="primary"><Package :size="18" /> Farmacia</BaseButton>
+        <RouterLink v-if="canManageInsumos" :to="`/misiones/${missionId}/dispensacion`">
+          <BaseButton variant="primary"><Package :size="18" /> Dispensación</BaseButton>
         </RouterLink>
         <BaseButton variant="ghost" @click="printReport">
           <FileText :size="18" /> Reporte
@@ -334,6 +369,34 @@ onUnmounted(() => {
     </BaseCard>
 
     <BaseCard title="Insumos Llevados">
+      <BaseButton
+        v-if="canManageInsumos"
+        variant="secondary"
+        size="sm"
+        class="mb-3"
+        @click="showAddInsumoForm = !showAddInsumoForm"
+      >
+        <Plus :size="16" /> Agregar Insumo
+      </BaseButton>
+      <div v-if="showAddInsumoForm && canManageInsumos" class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4 p-4 bg-bg rounded-lg">
+        <BaseSelect
+          v-model="newInsumo.categoria"
+          label="Categoría"
+          required
+          :options="INSUMO_CATEGORIAS.map(c => ({ value: c, label: c }))"
+          :error="insumoFormErrors.categoria"
+        />
+        <BaseInput v-model="newInsumo.descripcion" label="Descripción" :error="insumoFormErrors.descripcion" />
+        <BaseInput v-model="newInsumo.cantidad" label="Cantidad" type="number" :error="insumoFormErrors.cantidad" />
+        <BaseInput v-model="newInsumo.unidad" label="Unidad" placeholder="kg, unidades, litros..." :error="insumoFormErrors.unidad" />
+        <div class="col-span-2">
+          <BaseInput v-model="newInsumo.observaciones" label="Observaciones" />
+        </div>
+        <div class="col-span-2 flex gap-2 justify-end">
+          <BaseButton variant="primary" size="sm" @click="addInsumoToMission" :loading="saving">Guardar Insumo</BaseButton>
+          <BaseButton variant="ghost" size="sm" @click="showAddInsumoForm = false; insumoFormErrors = {}">Cancelar</BaseButton>
+        </div>
+      </div>
       <BaseTable
         :columns="[
           { key: 'categoria', label: 'Categoría' },

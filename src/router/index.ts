@@ -47,9 +47,9 @@ const router = createRouter({
           meta: { roles: ['director', 'administrador', 'coordinador'] },
         },
         {
-          path: 'misiones/:id/farmacia',
-          name: 'farmacia',
-          component: () => import('@/views/farmacia/FarmaciaView.vue'),
+          path: 'misiones/:id/dispensacion',
+          name: 'dispensacion',
+          component: () => import('@/views/dispensacion/DispensacionView.vue'),
           meta: { roles: ['director', 'administrador'] },
         },
         {

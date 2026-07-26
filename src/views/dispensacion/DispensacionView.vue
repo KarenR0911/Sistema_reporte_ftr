@@ -142,7 +142,7 @@ onMounted(async () => {
           <BaseButton variant="ghost" @click="router.push(`/misiones/${missionId}`)">
             <ArrowLeft :size="18" /> Volver
           </BaseButton>
-          <h1 class="text-2xl text-brand m-0">Farmacia</h1>
+          <h1 class="text-2xl text-brand m-0">Dispensación de Insumos</h1>
         </div>
         <p class="text-text-secondary mt-1 text-sm m-0 ml-12">{{ mission.municipio }}, {{ mission.estado }}</p>
       </div>

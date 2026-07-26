@@ -8,6 +8,20 @@ export type EstatusNecesidad = 'reportado' | 'enproceso' | 'atendido'
 export type TipoAtencion = 'medica' | 'psicosocial' | 'alimento' | 'refugio' | 'higiene' | 'informacion' | 'traslado' | 'otro'
 export type Vulnerabilidad = 'embarazada' | 'discapacidad' | 'adulto_mayor' | 'menor_no_acompanado' | 'enfermedad_cronica' | 'otro'
 
+export const INSUMO_CATEGORIAS = [
+  'Alimentos / Hidratación',
+  'Higiene / Aseo Personal',
+  'Limpieza / Desinfección',
+  'Ropa / Abrigo / Mantas',
+  'Medicamentos',
+  'Equipo Médico / Primeros Auxilios',
+  'Herramientas / Logística',
+  'Pañales / Cuidado Infantil',
+  'Otros',
+] as const
+
+export type InsumoCategoria = typeof INSUMO_CATEGORIAS[number]
+
 export interface Mision {
   id: string
   direccion: string

@@ -152,7 +152,7 @@ const insumosRetorno = props.insumos.filter((i) => i.estatus_cargamento === 'ret
     </div>
 
     <div v-if="insumos.length > 0 || salidas.length > 0" class="report-section">
-      <h2 class="section-title">Farmacia / Insumos</h2>
+      <h2 class="section-title">Insumos / Dispensación</h2>
 
       <div v-if="insumos.length > 0">
         <h3 class="subsection-title">Insumos llevados ({{ insumos.length }})</h3>

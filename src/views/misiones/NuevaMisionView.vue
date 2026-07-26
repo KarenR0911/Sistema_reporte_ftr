@@ -4,6 +4,7 @@ import { useRouter } from 'vue-router'
 import BaseInput from '@/components/ui/BaseInput.vue'
 import BaseButton from '@/components/ui/BaseButton.vue'
 import BaseCard from '@/components/ui/BaseCard.vue'
+import BaseSelect from '@/components/ui/BaseSelect.vue'
 import BaseTable from '@/components/ui/BaseTable.vue'
 import PersonalSelector from '@/components/ui/PersonalSelector.vue'
 import { MapPin, Truck, Users, Package, Plus, ArrowLeft, Save } from '@lucide/vue'
@@ -14,6 +15,7 @@ import { useInsumosStore } from '@/stores/insumos'
 import { useToastStore } from '@/stores/toast'
 import { useLoading } from '@/composables/useLoading'
 import { misionSchema, transporteSchema, insumoSchema } from '@/lib/schemas'
+import { INSUMO_CATEGORIAS } from '@/types'
 import type { Mision, Transporte, PersonalMision, InsumoLlevado, Usuario } from '@/types'
 
 const router = useRouter()
@@ -290,7 +292,7 @@ async function saveMision() {
     <BaseCard v-if="step === 4" title="Insumos Llevados">
       <p class="text-sm text-text-secondary mb-3">Registra los insumos que se llevan a la misión. El estatus se definirá al finalizar.</p>
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-        <BaseInput v-model="insumoForm.categoria" label="Categoría" placeholder="Medicinas, Alimentos..." :error="insumoErrors.categoria" @update:model-value="insumoErrors.categoria = ''" />
+        <BaseSelect v-model="insumoForm.categoria" label="Categoría" required :options="INSUMO_CATEGORIAS.map(c => ({ value: c, label: c }))" :error="insumoErrors.categoria" />
         <BaseInput v-model="insumoForm.descripcion" label="Descripción" :error="insumoErrors.descripcion" @update:model-value="insumoErrors.descripcion = ''" />
         <BaseInput v-model="insumoForm.cantidad" label="Cantidad" type="number" :error="insumoErrors.cantidad" @update:model-value="insumoErrors.cantidad = ''" />
         <BaseInput v-model="insumoForm.unidad" label="Unidad" placeholder="kg, unidades, litros..." />
