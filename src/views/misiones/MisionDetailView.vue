@@ -12,6 +12,8 @@ import StatusBadge from '@/components/ui/StatusBadge.vue'
 import { ClipboardList, CheckCircle, ArrowLeft, Plus, Package, Eye, ChevronDown, FileText } from '@lucide/vue'
 import MisionCharts from '@/components/charts/MisionCharts.vue'
 import MisionReport from '@/components/reports/MisionReport.vue'
+import PlanMision from '@/components/reports/PlanMision.vue'
+import FichaAtencion from '@/components/reports/FichaAtencion.vue'
 import { useMisionesStore } from '@/stores/misiones'
 import { useTransporteStore } from '@/stores/transporte'
 import { usePersonalStore } from '@/stores/personal'
@@ -191,9 +193,10 @@ async function confirmComplete() {
   router.push('/misiones')
 }
 
-const printing = ref(false)
-
+const printing = ref<'none' | 'report' | 'plan'>('none')
 const showAddInsumoForm = ref(false)
+const fichaAtendido = ref<Atendido | null>(null)
+const printFicha = ref(false)
 const newInsumo = ref({ categoria: '', descripcion: '', cantidad: '' as string | number, unidad: '', observaciones: '' })
 const insumoFormErrors = ref<Record<string, string>>({})
 
@@ -225,14 +228,31 @@ async function addInsumoToMission() {
 }
 
 async function printReport() {
-  printing.value = true
+  printing.value = 'report'
   await nextTick()
   await new Promise((r) => setTimeout(r, 300))
   window.print()
 }
 
+async function printPlan() {
+  printing.value = 'plan'
+  await nextTick()
+  await new Promise((r) => setTimeout(r, 300))
+  window.print()
+}
+
+function showFicha(a: Atendido) {
+  fichaAtendido.value = a
+  printFicha.value = true
+  nextTick().then(() => {
+    setTimeout(() => window.print(), 300)
+  })
+}
+
 function onAfterPrint() {
-  printing.value = false
+  printing.value = 'none'
+  printFicha.value = false
+  fichaAtendido.value = null
 }
 
 onMounted(async () => {
@@ -278,6 +298,9 @@ onUnmounted(() => {
         </RouterLink>
         <BaseButton variant="ghost" @click="printReport">
           <FileText :size="18" /> Reporte
+        </BaseButton>
+        <BaseButton v-if="canEdit" variant="ghost" @click="printPlan">
+          <ClipboardList :size="18" /> Plan
         </BaseButton>
         <BaseButton v-if="canEdit && mission.estatus_mision === 'activa'" variant="secondary" @click="openCompleteModal" :disabled="!isOnline">
           <CheckCircle :size="18" /> {{ isOnline ? 'Completar Misión' : 'Requiere conexión' }}
@@ -431,9 +454,14 @@ onUnmounted(() => {
           {{ labelTipoAtencion(value) }}
         </template>
         <template #cell-acciones="{ row }">
-          <BaseButton size="sm" variant="ghost" @click="openDetail(row as unknown as Atendido)">
-            <Eye :size="16" />
-          </BaseButton>
+          <div class="flex gap-1">
+            <BaseButton size="sm" variant="ghost" @click="openDetail(row as unknown as Atendido)">
+              <Eye :size="16" />
+            </BaseButton>
+            <BaseButton size="sm" variant="ghost" @click="showFicha(row as unknown as Atendido)">
+              <FileText :size="16" />
+            </BaseButton>
+          </div>
         </template>
       </BaseTable>
     </BaseCard>
@@ -555,7 +583,7 @@ onUnmounted(() => {
     />
 
     <Teleport to="body">
-      <div v-if="printing" class="printing-overlay">
+      <div v-if="printing !== 'none'" class="printing-overlay">
         <div class="no-print flex items-center justify-center min-h-screen bg-white">
           <div class="text-center py-20">
             <div class="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4" />
@@ -563,6 +591,7 @@ onUnmounted(() => {
           </div>
         </div>
         <MisionReport
+          v-if="printing === 'report'"
           :mission="mission!"
           :atendidos="atendidos"
           :insumos="insumosMision"
@@ -570,6 +599,29 @@ onUnmounted(() => {
           :personales="personales"
           :salidas="salidasMision"
           :transportes="transportes"
+        />
+        <PlanMision
+          v-if="printing === 'plan'"
+          :mission="mission!"
+          :transportes="transportes"
+          :personales="personales"
+          :insumos="insumosMision"
+        />
+      </div>
+    </Teleport>
+
+    <Teleport to="body">
+      <div v-if="printFicha && fichaAtendido" class="printing-overlay">
+        <div class="no-print flex items-center justify-center min-h-screen bg-white">
+          <div class="text-center py-20">
+            <div class="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+            <p class="text-text-secondary">Preparando ficha para impresión...</p>
+          </div>
+        </div>
+        <FichaAtencion
+          :atendido="fichaAtendido"
+          :mission="mission!"
+          :personal="personales.find(p => p.cedula === fichaAtendido.cedula_personal) ?? null"
         />
       </div>
     </Teleport>
