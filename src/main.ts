@@ -4,11 +4,10 @@ import { createApp } from 'vue'
 import { createPinia } from 'pinia'
 import App from './App.vue'
 import router from './router'
-import { initializeApp, seedUsuariosIfNeeded } from './lib/setup'
+import { initializeApp } from './lib/setup'
 
 async function bootstrap() {
   await initializeApp()
-  await seedUsuariosIfNeeded()
 
   const app = createApp(App)
   const pinia = createPinia()

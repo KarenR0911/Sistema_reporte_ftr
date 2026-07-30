@@ -15,6 +15,11 @@ export const useNecesidadesStore = defineStore('necesidades', () => {
     loaded.value = true
   }
 
+  async function refresh() {
+    list.value = await getAll<Necesidad>('necesidades')
+    loaded.value = true
+  }
+
   function getByMision(id_mision: string) {
     return list.value.filter((n) => n.id_mision === id_mision)
   }
@@ -41,5 +46,5 @@ export const useNecesidadesStore = defineStore('necesidades', () => {
     markNeedsSync()
   }
 
-  return { list, loaded, load, getByMision, create, update, remove }
+  return { list, loaded, load, refresh, getByMision, create, update, remove }
 })
