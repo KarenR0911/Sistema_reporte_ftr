@@ -52,25 +52,25 @@ const actividadReciente = computed(() => {
   const now = new Date()
   const inicio = new Date(now)
   inicio.setDate(inicio.getDate() - inicio.getDay() - 56)
-  const counts = { atenciones: Array.from<number>({ length: 9 }, () => 0), misiones: Array.from<number>({ length: 9 }, () => 0), necesidades: Array.from<number>({ length: 9 }, () => 0) }
+  const counts: { atenciones: number[]; misiones: number[]; necesidades: number[] } = { atenciones: Array.from({ length: 9 }, () => 0), misiones: Array.from({ length: 9 }, () => 0), necesidades: Array.from({ length: 9 }, () => 0) }
 
   for (const a of props.atendidos) {
     if (!a.fecha_hora_atencion) continue
     const d = new Date(a.fecha_hora_atencion)
     const diff = Math.floor((now.getTime() - d.getTime()) / (7 * 86400000))
-    if (diff >= 0 && diff < 9) counts.atenciones[8 - diff]++
+    if (diff >= 0 && diff < 9) counts.atenciones[8 - diff]!++
   }
   for (const m of props.misiones) {
     if (!m.fecha_inicio) continue
     const d = new Date(m.fecha_inicio)
     const diff = Math.floor((now.getTime() - d.getTime()) / (7 * 86400000))
-    if (diff >= 0 && diff < 9) counts.misiones[8 - diff]++
+    if (diff >= 0 && diff < 9) counts.misiones[8 - diff]!++
   }
   for (const n of props.necesidades) {
-    if (!n.created_at && !(n as any).fecha_reporte) continue
+    if (!(n as any).created_at && !(n as any).fecha_reporte) continue
     const d = new Date((n as any).created_at ?? (n as any).fecha_reporte)
     const diff = Math.floor((now.getTime() - d.getTime()) / (7 * 86400000))
-    if (diff >= 0 && diff < 9) counts.necesidades[8 - diff]++
+    if (diff >= 0 && diff < 9) counts.necesidades[8 - diff]!++
   }
 
   return {

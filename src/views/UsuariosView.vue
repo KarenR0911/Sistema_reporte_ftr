@@ -15,6 +15,7 @@ import { usuarioSchema } from '@/lib/schemas'
 import type { Usuario, CategoriaVoluntariado } from '@/types'
 
 const auth = useAuthStore()
+const toast = useToastStore()
 const usuarios = ref<Usuario[]>([])
 const showUserForm = ref(false)
 const editingUser = ref<Usuario | null>(null)

@@ -39,11 +39,11 @@ const gruposEtarios = computed(() => {
   for (const a of props.atendidos) {
     const e = a.edad
     if (e == null) continue
-    if (e <= 12) g['0-12']++
-    else if (e <= 17) g['13-17']++
-    else if (e <= 30) g['18-30']++
-    else if (e <= 50) g['31-50']++
-    else g['51+']++
+    if (e <= 12) g['0-12']!++
+    else if (e <= 17) g['13-17']!++
+    else if (e <= 30) g['18-30']!++
+    else if (e <= 50) g['31-50']!++
+    else g['51+']!++
   }
   return Object.entries(g).map(([k, v]) => ({ grupo: k, cantidad: v }))
 })

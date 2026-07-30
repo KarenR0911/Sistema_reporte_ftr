@@ -611,7 +611,7 @@ onUnmounted(() => {
         <FichaAtencion
           :atendido="fichaAtendido"
           :mission="mission!"
-          :personal="personales.find(p => p.cedula === fichaAtendido.cedula_personal) ?? null"
+          :personal="personales.find(p => p.cedula === fichaAtendido!.cedula_personal) ?? null"
         />
       </div>
     </Teleport>

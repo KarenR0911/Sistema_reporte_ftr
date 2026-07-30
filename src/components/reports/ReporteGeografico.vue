@@ -50,7 +50,7 @@ function formatDate(iso: string): string {
       <table class="info-table">
         <tr><td class="info-label">Municipios alcanzados</td><td class="info-value">{{ totalMunicipios }}</td></tr>
         <tr><td class="info-label">Total de personas atendidas</td><td class="info-value">{{ totalAtendidos }}</td></tr>
-        <tr><td class="info-label">Período</td><td class="info-value">{{ props.misiones.length > 0 ? `${formatDate(props.misiones[props.misiones.length - 1].fecha_inicio)} — ${formatDate(props.misiones[0].fecha_inicio)}` : '—' }}</td></tr>
+        <tr><td class="info-label">Período</td><td class="info-value">{{ props.misiones.length > 0 ? `${formatDate(props.misiones[props.misiones.length - 1]!.fecha_inicio)} — ${formatDate(props.misiones[0]!.fecha_inicio)}` : '—' }}</td></tr>
       </table>
     </div>
 

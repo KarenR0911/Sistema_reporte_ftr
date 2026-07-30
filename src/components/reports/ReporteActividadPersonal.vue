@@ -15,10 +15,11 @@ const carga = computed(() => {
       const p = props.personales.find(p2 => p2.cedula === a.cedula_personal)
       map[a.cedula_personal] = { nombre: p?.nombre ?? a.cedula_personal, cedula: a.cedula_personal, misiones: new Set(), atenciones: 0, ultima: '' }
     }
-    map[a.cedula_personal].atenciones++
-    map[a.cedula_personal].misiones.add(a.id_mision)
-    if (a.fecha_hora_atencion && a.fecha_hora_atencion > map[a.cedula_personal].ultima) {
-      map[a.cedula_personal].ultima = a.fecha_hora_atencion
+    const entry = map[a.cedula_personal]!
+    entry.atenciones++
+    entry.misiones.add(a.id_mision)
+    if (a.fecha_hora_atencion && a.fecha_hora_atencion > entry.ultima) {
+      entry.ultima = a.fecha_hora_atencion
     }
   }
   return Object.values(map).sort((a, b) => b.atenciones - a.atenciones)

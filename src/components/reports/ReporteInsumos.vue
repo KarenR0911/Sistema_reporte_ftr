@@ -16,8 +16,8 @@ const porCategoria = computed(() => {
   const c: Record<string, { llevado: number; dispensado: number; misiones: Set<string> }> = {}
   for (const i of props.insumos) {
     if (!c[i.categoria]) c[i.categoria] = { llevado: 0, dispensado: 0, misiones: new Set() }
-    c[i.categoria].llevado += i.cantidad
-    c[i.categoria].misiones.add(i.id_mision)
+    c[i.categoria]!.llevado += i.cantidad
+    c[i.categoria]!.misiones.add(i.id_mision)
   }
   for (const s of props.salidas) {
     const insumo = props.insumos.find(i => i.id === s.id_insumo)
