@@ -24,7 +24,7 @@ const insumosStore = useInsumosStore()
 const salidasStore = useSalidasInsumosStore()
 const auth = useAuthStore()
 const toast = useToastStore()
-const { loading, withLoading, saving } = useLoading()
+const { withLoading, saving } = useLoading()
 
 const missionId = route.params.id as string
 const mission = computed(() => misionesStore.getById(missionId))

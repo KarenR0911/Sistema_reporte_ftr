@@ -18,7 +18,7 @@ const route = useRoute()
 const router = useRouter()
 const misionesStore = useMisionesStore()
 const necesidadesStore = useNecesidadesStore()
-const { loading, withLoading, saving } = useLoading()
+const { withLoading, saving } = useLoading()
 
 const missionId = route.params.id as string
 const mission = computed(() => misionesStore.getById(missionId))
@@ -126,10 +126,10 @@ onMounted(async () => {
           <StatusBadge :status="value as string" />
         </template>
         <template #cell-estatus="{ value }">
-          <StatusBadge :status="value as string" type="necesidad" />
+          <StatusBadge :status="value as string" />
         </template>
         <template #cell-status_sync="{ value }">
-          <StatusBadge :status="value as string" type="sync" />
+          <StatusBadge :status="value as string" />
         </template>
       </BaseTable>
     </BaseCard>

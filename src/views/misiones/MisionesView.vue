@@ -50,7 +50,7 @@ onMounted(async () => {
     <BaseCard title="Todas las Misiones">
       <BaseTable :columns="misionColumns" :rows="misionesStore.list as unknown as Record<string, unknown>[]">
         <template #cell-estatus_mision="{ value }">
-          <StatusBadge :status="value as string" type="mision" />
+          <StatusBadge :status="value as string" />
         </template>
         <template #cell-acciones="{ row }">
           <div class="flex gap-1">

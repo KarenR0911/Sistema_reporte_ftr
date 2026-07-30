@@ -24,7 +24,7 @@ const transporteStore = useTransporteStore()
 const personalStore = usePersonalStore()
 const insumosStore = useInsumosStore()
 const toast = useToastStore()
-const { loading, withLoading, saving } = useLoading()
+const { withLoading, saving } = useLoading()
 
 const step = ref(1)
 const selectedPersonal = ref<Usuario[]>([])

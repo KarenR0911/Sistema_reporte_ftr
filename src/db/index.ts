@@ -113,4 +113,4 @@ export async function clearDeletedId(id: string): Promise<void> {
   await db.delete('_deleted', id)
 }
 
-export type { StoreName, DeletedRecord }
+export type { StoreName }

@@ -195,7 +195,7 @@ onMounted(async () => {
         :rows="misionesStore.list.slice(-5).reverse() as unknown as Record<string, unknown>[]"
       >
         <template #cell-estatus_mision="{ value }">
-          <StatusBadge :status="value as string" type="mision" />
+          <StatusBadge :status="value as string" />
         </template>
       </BaseTable>
       <div class="mt-4" v-if="role === 'director' || role === 'administrador' || role === 'coordinador'">
@@ -247,7 +247,7 @@ onMounted(async () => {
           <span v-else class="text-text-muted">0</span>
         </template>
         <template #cell-estatus="{ value }">
-          <StatusBadge :status="value as string" type="mision" />
+          <StatusBadge :status="value as string" />
         </template>
       </BaseTable>
     </BaseCard>
@@ -259,7 +259,7 @@ onMounted(async () => {
         :rows="misionesStore.list.slice(-5) as unknown as Record<string, unknown>[]"
       >
         <template #cell-estatus_mision="{ value }">
-          <StatusBadge :status="value as string" type="mision" />
+          <StatusBadge :status="value as string" />
         </template>
       </BaseTable>
       <div class="flex gap-2 mt-4">
@@ -304,7 +304,7 @@ onMounted(async () => {
         :rows="misAtenciones.slice(-10).reverse() as unknown as Record<string, unknown>[]"
       >
         <template #cell-status_sync="{ value }">
-          <StatusBadge :status="value as string" type="sync" />
+          <StatusBadge :status="value as string" />
         </template>
       </BaseTable>
     </BaseCard>

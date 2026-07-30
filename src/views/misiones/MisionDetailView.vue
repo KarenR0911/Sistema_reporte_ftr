@@ -34,7 +34,7 @@ const router = useRouter()
 const auth = useAuthStore()
 const toast = useToastStore()
 const { isOnline } = useOnlineStatus()
-const { loading, withLoading, saving } = useLoading()
+const { withLoading, saving } = useLoading()
 
 const misionesStore = useMisionesStore()
 const transporteStore = useTransporteStore()
@@ -279,7 +279,7 @@ onUnmounted(() => {
         <p class="text-text-secondary mt-1 text-sm m-0 ml-12">{{ mission.direccion }}</p>
       </div>
       <div class="flex items-center gap-2 md:gap-3 flex-wrap">
-        <StatusBadge :status="mission.estatus_mision" type="mision" />
+        <StatusBadge :status="mission.estatus_mision" />
         <RouterLink v-if="canEdit" :to="`/misiones/${missionId}/necesidades`">
           <BaseButton variant="primary"><ClipboardList :size="18" /> Levantar Necesidades</BaseButton>
         </RouterLink>
@@ -471,7 +471,7 @@ onUnmounted(() => {
           <StatusBadge :status="value as string" />
         </template>
         <template #cell-estatus="{ value }">
-          <StatusBadge :status="value as string" type="necesidad" />
+          <StatusBadge :status="value as string" />
         </template>
       </BaseTable>
     </BaseCard>
