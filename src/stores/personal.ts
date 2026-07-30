@@ -111,5 +111,5 @@ export const usePersonalStore = defineStore('personal', () => {
     markNeedsSync()
   }
 
-  return { list, loaded, load, getByMision, create, remove }
+  return { list, loaded, load, refresh, getByMision, create, remove }
 })

@@ -74,7 +74,7 @@ export interface Atendido {
   sexo: string | null
   tipo_atencion: TipoAtencion | null
   referido: boolean
-  vulnerabilidad: string
+  vulnerabilidad: string[]
   notas: string
   status_sync: StatusSync
 }

@@ -143,7 +143,7 @@ function validateForm(): boolean {
     }
   }
   if (Object.keys(formErrors.value).length > 0) {
-    useToastStore().error('Corrige los errores del formulario')
+    toast.error('Corrige los errores del formulario')
     return false
   }
   return true

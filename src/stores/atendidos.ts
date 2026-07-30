@@ -21,11 +21,20 @@ export const useAtendidosStore = defineStore('atendidos', () => {
 
       for (const row of data) {
         if (!pendingIds.has(row.id)) {
-          await putItem('atendidos', { ...row, status_sync: 'synced' as const })
+          const item = {
+            ...row,
+            vulnerabilidad: typeof row.vulnerabilidad === 'string' ? JSON.parse(row.vulnerabilidad) : row.vulnerabilidad ?? [],
+            status_sync: 'synced' as const,
+          }
+          await putItem('atendidos', item)
         }
       }
 
-      const synced = data.map((r) => ({ ...r, status_sync: 'synced' as const })) as Atendido[]
+      const synced = data.map((r) => ({
+        ...r,
+        vulnerabilidad: typeof r.vulnerabilidad === 'string' ? JSON.parse(r.vulnerabilidad) : r.vulnerabilidad ?? [],
+        status_sync: 'synced' as const,
+      })) as Atendido[]
       const pending = localItems.filter((r) => r.status_sync === 'pending')
       const merged = [...synced, ...pending]
       const seen = new Set<string>()
@@ -76,7 +85,7 @@ export const useAtendidosStore = defineStore('atendidos', () => {
           sexo: clone.sexo,
           tipo_atencion: clone.tipo_atencion,
           referido: clone.referido,
-          vulnerabilidad: clone.vulnerabilidad,
+          vulnerabilidad: JSON.stringify(clone.vulnerabilidad),
           notas: clone.notas,
         })
         const { error } = await withTimeout(insertPromise)
@@ -110,7 +119,7 @@ export const useAtendidosStore = defineStore('atendidos', () => {
           sexo: clone.sexo,
           tipo_atencion: clone.tipo_atencion,
           referido: clone.referido,
-          vulnerabilidad: clone.vulnerabilidad,
+          vulnerabilidad: JSON.stringify(clone.vulnerabilidad),
           notas: clone.notas,
         }).eq('id', clone.id)
         const { error } = await withTimeout(updatePromise)

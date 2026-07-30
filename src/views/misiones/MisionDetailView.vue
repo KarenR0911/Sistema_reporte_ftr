@@ -46,7 +46,7 @@ const salidasStore = useSalidasInsumosStore()
 
 const storesReady = computed(() =>
   misionesStore.loaded && transporteStore.loaded && personalStore.loaded
-  && insumosStore.loaded && (atendidosStore.loaded ?? true) && (necesidadesStore.loaded ?? true)
+  && insumosStore.loaded && atendidosStore.loaded && necesidadesStore.loaded && salidasStore.loaded
 )
 
 const canManageInsumos = computed(() =>
@@ -103,17 +103,7 @@ function labelSexo(val: unknown): string {
     : val === 'otro' ? 'Otro' : '—'
 }
 
-function parseVuln(value: unknown): string[] {
-  if (!value) return []
-  try {
-    const s = String(value)
-    return s.startsWith('[') ? JSON.parse(s) : [s]
-  } catch {
-    return [String(value)]
-  }
-}
-
-function labelVuln(v: string): string {
+  function labelVuln(v: string): string {
   return v === 'embarazada' ? 'Embarazada'
     : v === 'discapacidad' ? 'Discapacidad'
     : v === 'adulto_mayor' ? 'Adulto Mayor'
@@ -545,7 +535,7 @@ onUnmounted(() => {
               <span class="font-semibold text-text-secondary block text-xs uppercase tracking-wide">Vulnerabilidades</span>
               <div v-if="selectedAtendido.vulnerabilidad" class="flex flex-wrap gap-1 mt-1">
                 <span
-                  v-for="v in parseVuln(selectedAtendido.vulnerabilidad)"
+                  v-for="v in (selectedAtendido.vulnerabilidad ?? [])"
                   :key="v"
                   class="text-xs px-2 py-0.5 rounded-full bg-amber-100 text-amber-800"
                 >

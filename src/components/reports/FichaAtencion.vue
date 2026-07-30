@@ -29,12 +29,7 @@ function labelVuln(v: string): string {
   return m[v] ?? v
 }
 
-function parseVuln(value: string | null): string[] {
-  if (!value) return []
-  try { return value.startsWith('[') ? JSON.parse(value) : [value] } catch { return [value] }
-}
-
-function formatDateTime(iso: string): string {
+  function formatDateTime(iso: string): string {
   if (!iso) return '—'
   return new Date(iso).toLocaleString('es-VE', {
     day: '2-digit', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit',
@@ -80,7 +75,7 @@ function formatDateTime(iso: string): string {
     <div v-if="atendido.vulnerabilidad" class="report-section">
       <h2 class="section-title">Vulnerabilidades</h2>
       <div class="flex flex-wrap gap-2 mt-1">
-        <span v-for="v in parseVuln(atendido.vulnerabilidad)" :key="v" class="vuln-badge">{{ labelVuln(v) }}</span>
+        <span v-for="v in (atendido.vulnerabilidad ?? [])" :key="v" class="vuln-badge">{{ labelVuln(v) }}</span>
       </div>
     </div>
 

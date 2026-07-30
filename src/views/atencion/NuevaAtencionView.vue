@@ -170,7 +170,7 @@ async function registerAttendee() {
     sexo: formSexo.value || null,
     tipo_atencion: (formTipoAtencion.value || null) as TipoAtencion | null,
     referido: formReferido.value,
-    vulnerabilidad: JSON.stringify(formVulnerabilidades.value),
+    vulnerabilidad: formVulnerabilidades.value,
     notas: formNotas.value,
     status_sync: 'pending',
   }

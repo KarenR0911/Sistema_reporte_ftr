@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { Mision, Atendido, InsumoLlevado, Necesidad, PersonalMision, SalidaInsumo } from '@/types'
+import type { Mision, Atendido, InsumoLlevado, Necesidad, PersonalMision, SalidaInsumo, Transporte } from '@/types'
 
 const props = defineProps<{
   mission: Mision
@@ -8,7 +8,7 @@ const props = defineProps<{
   necesidades: Necesidad[]
   personales: PersonalMision[]
   salidas: SalidaInsumo[]
-  transportes: { tipo_transporte: string; numero_placa: string; nombre_conductor: string }[]
+  transportes: Transporte[]
 }>()
 
 function labelTipoAtencion(val: string | null): string {

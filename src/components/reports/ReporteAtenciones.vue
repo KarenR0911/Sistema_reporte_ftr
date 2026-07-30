@@ -52,12 +52,8 @@ const vulnerabilidades = computed(() => {
   const c: Record<string, number> = {}
   for (const a of props.atendidos) {
     if (!a.vulnerabilidad) continue
-    try {
-      const arr = JSON.parse(a.vulnerabilidad)
-      if (Array.isArray(arr)) {
-        for (const v of arr) c[v] = (c[v] || 0) + 1
-      }
-    } catch {}
+    const arr = Array.isArray(a.vulnerabilidad) ? a.vulnerabilidad : []
+    for (const v of arr) c[v] = (c[v] || 0) + 1
   }
   return Object.entries(c).sort((a, b) => b[1] - a[1])
     .map(([k, v]) => ({ vulnerabilidad: k, cantidad: v }))

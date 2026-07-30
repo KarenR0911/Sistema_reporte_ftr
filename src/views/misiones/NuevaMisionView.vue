@@ -175,10 +175,10 @@ async function saveMision() {
       }
       await insumosStore.create(item)
     }
-  }, 'Guardando misión...')
 
-  toast.success('Misión creada exitosamente')
-  router.push('/misiones')
+    toast.success('Misión creada exitosamente')
+    router.push('/misiones')
+  }, 'Guardando misión...')
 }
 </script>
 

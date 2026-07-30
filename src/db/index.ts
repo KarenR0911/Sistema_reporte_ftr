@@ -25,22 +25,12 @@ function createStores(db: IDBPDatabase) {
   }
 }
 
-function deleteObsoleteStores(db: IDBPDatabase) {
-  const obsolete: string[] = []
-  for (const name of obsolete) {
-    if (db.objectStoreNames.contains(name)) {
-      db.deleteObjectStore(name)
-    }
-  }
-}
-
 export async function getDB(): Promise<IDBPDatabase> {
   if (dbInstance) return dbInstance
 
   try {
     dbInstance = await openDB(DB_NAME, DB_VERSION, {
       upgrade(db, _oldVersion, _newVersion) {
-        deleteObsoleteStores(db)
         createStores(db)
       },
     })

@@ -8,6 +8,7 @@ import { useSalidasInsumosStore } from '@/stores/salidasInsumos'
 import { useMisionesStore } from '@/stores/misiones'
 import { usePersonalStore } from '@/stores/personal'
 import { useInsumosStore } from '@/stores/insumos'
+import { useTransporteStore } from '@/stores/transporte'
 import { useNeedsSync } from '@/lib/syncTrigger'
 import type { StoreName } from '@/db'
 import { ref, watch, onUnmounted } from 'vue'
@@ -96,7 +97,11 @@ async function pullFromSupabase(store: StoreName, table: string) {
     )
     for (const row of data) {
       if (!localPending.has(row.id as string)) {
-        await putItem(store, { ...row, status_sync: 'synced' })
+        const normalized = { ...row, status_sync: 'synced' }
+        if (store === 'atendidos' && typeof normalized.vulnerabilidad === 'string') {
+          try { normalized.vulnerabilidad = JSON.parse(normalized.vulnerabilidad) } catch { normalized.vulnerabilidad = [] }
+        }
+        await putItem(store, normalized)
       }
     }
   } catch {
@@ -119,6 +124,7 @@ export function useSync() {
       useMisionesStore(),
       usePersonalStore(),
       useInsumosStore(),
+      useTransporteStore(),
     ]
     await Promise.allSettled(stores.map((s) => s.load()))
   }
