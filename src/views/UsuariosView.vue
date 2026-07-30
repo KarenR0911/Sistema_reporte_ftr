@@ -184,6 +184,14 @@ async function saveUser() {
       })
       if (!error) {
         await putItem('usuarios', user)
+        try {
+          await getSupabase().from('perfiles').update({
+            rol: user.rol,
+            categoria_voluntariado: user.categoria_voluntariado ?? null,
+            especialidad: user.especialidad ?? '',
+            area_voluntariado: user.area_voluntariado ?? '',
+          }).eq('id', user.id)
+        } catch {}
         createdUser.value = { cedula: user.cedula, nombre: user.nombre, email: user.email, password: tempPassword.value }
         showCreatedDialog.value = true
       } else {
