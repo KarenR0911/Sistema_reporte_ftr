@@ -49,6 +49,13 @@ watch(formRol, (val) => {
   }
 })
 
+watch(formCategoriaVoluntariado, (val) => {
+  if (val !== 'profesional') {
+    formEspecialidad.value = ''
+    formErrors.value.especialidad = ''
+  }
+})
+
 const searchQuery = ref('')
 const filtroRol = ref('')
 const filtroTipo = ref('')
@@ -430,6 +437,7 @@ onMounted(async () => {
                   { value: 'operaciones_rescate', label: 'Operaciones / Búsqueda y Rescate' },
                   { value: 'soporte_tecnico', label: 'Soporte Técnico' },
                   { value: 'administracion', label: 'Administración / Finanzas' },
+                  { value: 'veterinaria', label: 'Medicina Veterinaria' },
                   { value: 'otro', label: 'Otro' },
                 ]"
               />

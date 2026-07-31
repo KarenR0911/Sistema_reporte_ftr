@@ -153,3 +153,6 @@ Hay una Edge Function `delete-user` desplegada que sí borra de `auth.users` + `
 | 15 | `refreshAllStores()` sin `transporteStore` | `composables/useSync.ts` |
 | 16 | `initializeApp()` sin check offline | `lib/setup.ts` |
 | 17 | `PersonalSelector.vue` sin try/catch en `loadFromSupabase` | `components/ui/PersonalSelector.vue` |
+| 18 | `mapArea()` asignaba "Medicina Veterinaria" a medicina humana | `NuevaAtencionView.vue` |
+| 19 | `personal_mision` con `area_voluntariado` desactualizada; ahora se prioriza el perfil del usuario | `NuevaAtencionView.vue` |
+| 20 | Especialidad persistía al cambiar categoría de profesional a estudiante/voluntario | `UsuariosView.vue` |

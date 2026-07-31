@@ -36,14 +36,17 @@ const currentPersonal = computed(() =>
 
 function mapArea(raw: string | undefined | null): AreaRegistro {
   if (!raw) return 'general'
-  const lower = raw.toLowerCase()
+  const lower = raw.toLowerCase().replace(/_/g, ' ')
+  if (lower.includes('veterinaria')) return 'veterinaria'
   if (lower.includes('medicina')) return 'medicina_humana'
-  if (lower.includes('salud mental') || lower.includes('psicologia') || lower.includes('psicol')) return 'psicologia'
-  if (lower.includes('veterinaria') || lower.includes('veterin')) return 'veterinaria'
+  if (lower.includes('psicosocial') || lower.includes('psicologia') || lower.includes('psicol') || lower.includes('salud mental')) return 'psicologia'
   return 'general'
 }
 
-const userArea = computed<AreaRegistro>(() => mapArea(currentPersonal.value?.area_voluntariado))
+const userArea = computed<AreaRegistro>(() => {
+  const area = auth.currentUser?.area_voluntariado || currentPersonal.value?.area_voluntariado
+  return mapArea(area)
+})
 
 const areaLabel = computed(() => {
   const labels: Record<string, string> = {
