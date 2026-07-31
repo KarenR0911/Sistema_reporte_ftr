@@ -9,7 +9,7 @@ import BaseTable from '@/components/ui/BaseTable.vue'
 import PersonalSelector from '@/components/ui/PersonalSelector.vue'
 import ConfirmDialog from '@/components/ui/ConfirmDialog.vue'
 import StatusBadge from '@/components/ui/StatusBadge.vue'
-import { ClipboardList, CheckCircle, ArrowLeft, Plus, Package, Eye, ChevronDown, FileText, UserPlus } from '@lucide/vue'
+import { ClipboardList, CheckCircle, ArrowLeft, Plus, Package, Eye, ChevronDown, FileText } from '@lucide/vue'
 import MisionCharts from '@/components/charts/MisionCharts.vue'
 import MisionReport from '@/components/reports/MisionReport.vue'
 import PlanMision from '@/components/reports/PlanMision.vue'
@@ -25,7 +25,7 @@ import { useAuthStore } from '@/stores/auth'
 import { useOnlineStatus } from '@/composables/useOnlineStatus'
 import { useToastStore } from '@/stores/toast'
 import { useLoading } from '@/composables/useLoading'
-import { insumoSchema, atencionLogisticaSchema } from '@/lib/schemas'
+import { insumoSchema } from '@/lib/schemas'
 import { INSUMO_CATEGORIAS } from '@/types'
 import type { Mision, Transporte, PersonalMision, InsumoLlevado, Usuario, Atendido, SalidaInsumo } from '@/types'
 
@@ -215,60 +215,6 @@ async function addInsumoToMission() {
   insumoFormErrors.value = {}
   showAddInsumoForm.value = false
   toast.success('Insumo agregado a la misión')
-}
-
-const showLogisticaForm = ref(false)
-const logisticaForm = ref({ cedula_atendido: '', nombre_atendido: '', edad: null as number | null, sexo: '', lugar_vivia: '', lugar_actual: '', insumo_entregado: '' })
-const logisticaErrors = ref<Record<string, string>>({})
-
-const logisticaSexoOptions = [
-  { value: '', label: 'Seleccionar…' },
-  { value: 'masculino', label: 'Masculino' },
-  { value: 'femenino', label: 'Femenino' },
-  { value: 'otro', label: 'Otro' },
-]
-
-async function addLogistica() {
-  logisticaErrors.value = {}
-  const result = atencionLogisticaSchema.safeParse({ ...logisticaForm.value, edad: logisticaForm.value.edad ?? undefined })
-  if (!result.success) {
-    for (const issue of result.error.issues) {
-      logisticaErrors.value[issue.path[0] as string] = issue.message
-    }
-    toast.error('Completa correctamente los datos.')
-    return
-  }
-  const item: Atendido = {
-    id: crypto.randomUUID(),
-    id_mision: missionId,
-    cedula_personal: auth.currentUser?.cedula ?? '',
-    cedula_atendido: logisticaForm.value.cedula_atendido,
-    nombre_atendido: logisticaForm.value.nombre_atendido,
-    telefono_contacto: '',
-    fecha_hora_atencion: new Date().toISOString(),
-    edad: logisticaForm.value.edad,
-    sexo: logisticaForm.value.sexo || null,
-    tipo_atencion: null,
-    referido: false,
-    vulnerabilidad: [],
-    notas: '',
-    area_registro: 'logistica',
-    lugar_vivia: logisticaForm.value.lugar_vivia || null,
-    lugar_actual: logisticaForm.value.lugar_actual || null,
-    motivo_atencion: null,
-    insumo_entregado: logisticaForm.value.insumo_entregado || null,
-    especie: null,
-    posee_tutor: null,
-    rescatado: null,
-    en_adopcion: null,
-    diagnostico_tentativo: null,
-    status_sync: 'pending',
-  }
-  await withLoading(() => atendidosStore.create(item), 'Guardando registro logístico...')
-  logisticaForm.value = { cedula_atendido: '', nombre_atendido: '', edad: null, sexo: '', lugar_vivia: '', lugar_actual: '', insumo_entregado: '' }
-  logisticaErrors.value = {}
-  showLogisticaForm.value = false
-  toast.success('Registro logístico guardado')
 }
 
 async function printReport() {
@@ -475,29 +421,6 @@ onUnmounted(() => {
         ]"
         :rows="insumosMision as unknown as Record<string, unknown>[]"
       />
-    </BaseCard>
-
-    <BaseCard v-if="canManageInsumos" title="Registro Logístico (Admin)">
-      <template #default>
-        <BaseButton variant="primary" size="sm" @click="showLogisticaForm = !showLogisticaForm" class="mb-3">
-          <Plus :size="16" /> Nuevo Registro Logístico
-        </BaseButton>
-        <div v-if="showLogisticaForm" class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4 p-4 bg-bg rounded-lg">
-          <BaseInput v-model="logisticaForm.cedula_atendido" label="Cédula" required :error="logisticaErrors.cedula_atendido" @update:model-value="logisticaErrors.cedula_atendido = ''" />
-          <BaseInput v-model="logisticaForm.nombre_atendido" label="Nombre Completo" required :error="logisticaErrors.nombre_atendido" @update:model-value="logisticaErrors.nombre_atendido = ''" />
-          <BaseInput v-model="logisticaForm.edad" label="Edad" type="number" min="0" max="150" :error="logisticaErrors.edad" />
-          <BaseSelect v-model="logisticaForm.sexo" label="Sexo" :options="logisticaSexoOptions" :error="logisticaErrors.sexo" />
-          <BaseInput v-model="logisticaForm.lugar_vivia" label="Lugar donde vivía" required :error="logisticaErrors.lugar_vivia" @update:model-value="logisticaErrors.lugar_vivia = ''" />
-          <BaseInput v-model="logisticaForm.lugar_actual" label="Lugar actual" required :error="logisticaErrors.lugar_actual" @update:model-value="logisticaErrors.lugar_actual = ''" />
-          <div class="col-span-2">
-            <BaseInput v-model="logisticaForm.insumo_entregado" label="Insumo Entregado" required :error="logisticaErrors.insumo_entregado" @update:model-value="logisticaErrors.insumo_entregado = ''" />
-          </div>
-          <div class="col-span-2 flex gap-2 justify-end">
-            <BaseButton variant="primary" size="sm" @click="addLogistica" :loading="saving"><UserPlus :size="16" /> Guardar</BaseButton>
-            <BaseButton variant="ghost" size="sm" @click="showLogisticaForm = false; logisticaErrors = {}">Cancelar</BaseButton>
-          </div>
-        </div>
-      </template>
     </BaseCard>
 
     <BaseCard title="Atendidos / Registros">

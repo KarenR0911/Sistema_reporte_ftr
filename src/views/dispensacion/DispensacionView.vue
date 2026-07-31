@@ -7,21 +7,25 @@ import BaseSelect from '@/components/ui/BaseSelect.vue'
 import BaseButton from '@/components/ui/BaseButton.vue'
 import BaseTable from '@/components/ui/BaseTable.vue'
 import ConfirmDialog from '@/components/ui/ConfirmDialog.vue'
-import { ArrowLeft, Package, Plus, Trash2 } from '@lucide/vue'
+import { ArrowLeft, Package, Plus, Trash2, UserPlus } from '@lucide/vue'
 import { useMisionesStore } from '@/stores/misiones'
 import { useInsumosStore } from '@/stores/insumos'
 import { useSalidasInsumosStore } from '@/stores/salidasInsumos'
+import { useAtendidosStore } from '@/stores/atendidos'
 import { useAuthStore } from '@/stores/auth'
 import { useToastStore } from '@/stores/toast'
 import { useLoading } from '@/composables/useLoading'
-import { salidaInsumoSchema } from '@/lib/schemas'
-import type { InsumoLlevado, SalidaInsumo } from '@/types'
+import { salidaInsumoSchema, atencionLogisticaSchema } from '@/lib/schemas'
+import type { InsumoLlevado, SalidaInsumo, Atendido } from '@/types'
+
+
 
 const route = useRoute()
 const router = useRouter()
 const misionesStore = useMisionesStore()
 const insumosStore = useInsumosStore()
 const salidasStore = useSalidasInsumosStore()
+const atendidosStore = useAtendidosStore()
 const auth = useAuthStore()
 const toast = useToastStore()
 const { withLoading, saving } = useLoading()
@@ -124,11 +128,99 @@ async function ejecutarEliminar() {
   toast.success('Salida eliminada')
 }
 
+const showLogisticaForm = ref(false)
+const logCedula = ref('')
+const logNombre = ref('')
+const logEdad = ref<number | null>(null)
+const logSexo = ref('')
+const logLugarVivia = ref('')
+const logLugarActual = ref('')
+const logInsumo = ref('')
+const logErrors = ref<Record<string, string>>({})
+
+const logSexoOptions = [
+  { value: '', label: 'Seleccionar…' },
+  { value: 'masculino', label: 'Masculino' },
+  { value: 'femenino', label: 'Femenino' },
+  { value: 'otro', label: 'Otro' },
+]
+
+const registrosLogistica = computed(() =>
+  atendidosStore.list.filter((a) => a.id_mision === missionId && a.area_registro === 'logistica'),
+)
+
+function resetLogForm() {
+  logCedula.value = ''
+  logNombre.value = ''
+  logEdad.value = null
+  logSexo.value = ''
+  logLugarVivia.value = ''
+  logLugarActual.value = ''
+  logInsumo.value = ''
+  logErrors.value = {}
+}
+
+async function addLogistica() {
+  logErrors.value = {}
+  const result = atencionLogisticaSchema.safeParse({
+    cedula_atendido: logCedula.value,
+    nombre_atendido: logNombre.value,
+    edad: logEdad.value ?? undefined,
+    sexo: logSexo.value || null,
+    lugar_vivia: logLugarVivia.value,
+    lugar_actual: logLugarActual.value,
+    insumo_entregado: logInsumo.value,
+  })
+  if (!result.success) {
+    for (const issue of result.error.issues) {
+      logErrors.value[issue.path[0] as string] = issue.message
+    }
+    return
+  }
+  const item: Atendido = {
+    id: crypto.randomUUID(),
+    id_mision: missionId,
+    cedula_personal: auth.currentUser?.cedula ?? '',
+    cedula_atendido: logCedula.value,
+    nombre_atendido: logNombre.value,
+    telefono_contacto: '',
+    fecha_hora_atencion: new Date().toISOString(),
+    edad: logEdad.value,
+    sexo: logSexo.value || null,
+    tipo_atencion: null,
+    referido: false,
+    vulnerabilidad: [],
+    notas: '',
+    area_registro: 'logistica',
+    lugar_vivia: logLugarVivia.value || null,
+    lugar_actual: logLugarActual.value || null,
+    motivo_atencion: null,
+    insumo_entregado: logInsumo.value || null,
+    especie: null,
+    posee_tutor: null,
+    rescatado: null,
+    en_adopcion: null,
+    diagnostico_tentativo: null,
+    status_sync: 'pending',
+  }
+  await withLoading(() => atendidosStore.create(item), 'Guardando registro logístico...')
+  resetLogForm()
+  showLogisticaForm.value = false
+  toast.success('Registro logístico guardado')
+}
+
+function labelSexo(val: unknown): string {
+  return val === 'masculino' ? 'Masculino'
+    : val === 'femenino' ? 'Femenino'
+    : val === 'otro' ? 'Otro' : '—'
+}
+
 onMounted(async () => {
   await Promise.all([
     misionesStore.load(),
     insumosStore.load(),
     salidasStore.load(),
+    atendidosStore.load(),
   ])
 })
 </script>
@@ -252,6 +344,49 @@ onMounted(async () => {
       <p v-if="salidasMision.length === 0" class="text-text-secondary italic py-4 text-center">
         No hay salidas registradas.
       </p>
+    </BaseCard>
+
+    <BaseCard title="Registro de Personas Atendidas (Logística)">
+      <template #default>
+        <BaseButton variant="primary" size="sm" @click="showLogisticaForm = !showLogisticaForm" class="mb-3">
+          <Plus :size="16" /> Nuevo Registro
+        </BaseButton>
+        <div v-if="showLogisticaForm" class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4 p-4 bg-bg rounded-lg">
+          <BaseInput v-model="logCedula" label="Cédula" required :error="logErrors.cedula_atendido" @update:model-value="logErrors.cedula_atendido = ''" />
+          <BaseInput v-model="logNombre" label="Nombre Completo" required :error="logErrors.nombre_atendido" @update:model-value="logErrors.nombre_atendido = ''" />
+          <BaseInput v-model="logEdad" label="Edad" type="number" min="0" max="150" :error="logErrors.edad" />
+          <BaseSelect v-model="logSexo" label="Sexo" :options="logSexoOptions" :error="logErrors.sexo" />
+          <BaseInput v-model="logLugarVivia" label="Lugar donde vivía" required :error="logErrors.lugar_vivia" @update:model-value="logErrors.lugar_vivia = ''" />
+          <BaseInput v-model="logLugarActual" label="Lugar actual" required :error="logErrors.lugar_actual" @update:model-value="logErrors.lugar_actual = ''" />
+          <div class="col-span-2">
+            <BaseInput v-model="logInsumo" label="Insumo Entregado" required :error="logErrors.insumo_entregado" @update:model-value="logErrors.insumo_entregado = ''" />
+          </div>
+          <div class="col-span-2 flex gap-2 justify-end">
+            <BaseButton variant="primary" size="sm" @click="addLogistica" :loading="saving"><UserPlus :size="16" /> Guardar</BaseButton>
+            <BaseButton variant="ghost" size="sm" @click="showLogisticaForm = false; resetLogForm()">Cancelar</BaseButton>
+          </div>
+        </div>
+        <BaseTable
+          :columns="[
+            { key: 'nombre_atendido', label: 'Nombre' },
+            { key: 'cedula_atendido', label: 'Cédula' },
+            { key: 'edad', label: 'Edad' },
+            { key: 'sexo', label: 'Sexo' },
+            { key: 'lugar_vivia', label: 'Donde vivía' },
+            { key: 'lugar_actual', label: 'Lugar actual' },
+            { key: 'insumo_entregado', label: 'Insumo' },
+            { key: 'fecha_hora_atencion', label: 'Fecha' },
+          ]"
+          :rows="registrosLogistica as unknown as Record<string, unknown>[]"
+        >
+          <template #cell-sexo="{ value }">
+            {{ labelSexo(value) }}
+          </template>
+        </BaseTable>
+        <p v-if="registrosLogistica.length === 0" class="text-text-secondary italic py-4 text-center">
+          No hay registros logísticos.
+        </p>
+      </template>
     </BaseCard>
 
     <ConfirmDialog
