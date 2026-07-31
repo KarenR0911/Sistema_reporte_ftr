@@ -25,6 +25,23 @@ function labelTipoAtencion(val: string | null): string {
   return val ? (labels[val] ?? val) : '—'
 }
 
+import { computed } from 'vue'
+
+const areas = computed(() => {
+  const map = new Map<string, Atendido[]>()
+  for (const a of props.atendidos) {
+    const area = a.area_registro || 'general'
+    if (!map.has(area)) map.set(area, [])
+    map.get(area)!.push(a)
+  }
+  return map
+})
+
+const areaLabels: Record<string, string> = {
+  general: 'General', medicina_humana: 'Medicina Humana',
+  psicologia: 'Psicología', veterinaria: 'Veterinaria', logistica: 'Logística',
+}
+
 function labelSexo(val: string | null): string {
   if (!val) return '—'
   return val === 'masculino' ? 'M' : val === 'femenino' ? 'F' : val
@@ -125,29 +142,40 @@ function formatDateTime(iso: string): string {
     </div>
 
     <div v-if="atendidos.length > 0" class="report-section">
-      <h2 class="section-title">Personas Atendidas ({{ atendidos.length }})</h2>
-      <table class="data-table">
-        <thead>
-          <tr>
-            <th>Nombre</th>
-            <th>Cédula</th>
-            <th>Edad</th>
-            <th>Sexo</th>
-            <th>Tipo de Atención</th>
-            <th>Notas</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="a in atendidos" :key="a.id">
-            <td>{{ a.nombre_atendido }}</td>
-            <td>{{ a.cedula_atendido || '—' }}</td>
-            <td class="text-center">{{ a.edad ?? '—' }}</td>
-            <td class="text-center">{{ labelSexo(a.sexo) }}</td>
-            <td>{{ labelTipoAtencion(a.tipo_atencion) }}</td>
-            <td class="notes-cell">{{ a.notas || '—' }}</td>
-          </tr>
-        </tbody>
-      </table>
+      <h2 class="section-title">Registros por Área ({{ atendidos.length }})</h2>
+      <div v-for="[area, items] in areas" :key="area" class="mb-4">
+        <h3 class="subsection-title">{{ areaLabels[area] || area }} ({{ items.length }})</h3>
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Nombre</th>
+              <th v-if="area !== 'veterinaria'">Cédula</th>
+              <th v-if="area === 'veterinaria'">Especie</th>
+              <th>Edad</th>
+              <th>Sexo</th>
+              <th v-if="area === 'medicina_humana' || area === 'psicologia'">Motivo</th>
+              <th v-if="area === 'logistica'">Insumo</th>
+              <th v-if="area === 'veterinaria'">Diagnóstico</th>
+              <th v-if="area === 'general'">Atención</th>
+              <th>Notas</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="a in items" :key="a.id">
+              <td>{{ a.nombre_atendido }}</td>
+              <td v-if="area !== 'veterinaria'">{{ a.cedula_atendido || '—' }}</td>
+              <td v-if="area === 'veterinaria'">{{ a.especie || '—' }}</td>
+              <td class="text-center">{{ a.edad ?? '—' }}</td>
+              <td class="text-center">{{ labelSexo(a.sexo) }}</td>
+              <td v-if="area === 'medicina_humana' || area === 'psicologia'">{{ a.motivo_atencion || '—' }}</td>
+              <td v-if="area === 'logistica'">{{ a.insumo_entregado || '—' }}</td>
+              <td v-if="area === 'veterinaria'">{{ a.diagnostico_tentativo || '—' }}</td>
+              <td v-if="area === 'general'">{{ labelTipoAtencion(a.tipo_atencion) }}</td>
+              <td class="notes-cell">{{ a.notas || '—' }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
     </div>
 
     <div v-if="insumos.length > 0 || salidas.length > 0" class="report-section">

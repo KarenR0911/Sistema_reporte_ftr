@@ -73,21 +73,31 @@ export const useAtendidosStore = defineStore('atendidos', () => {
     if (navigator.onLine) {
       try {
         const sb = getSupabase()
-        const insertPromise = sb.from('atendidos').insert({
-          id: clone.id,
-          id_mision: clone.id_mision,
-          cedula_personal: clone.cedula_personal,
-          cedula_atendido: clone.cedula_atendido,
-          nombre_atendido: clone.nombre_atendido,
-          telefono_contacto: clone.telefono_contacto,
-          fecha_hora_atencion: clone.fecha_hora_atencion,
-          edad: clone.edad,
-          sexo: clone.sexo,
-          tipo_atencion: clone.tipo_atencion,
-          referido: clone.referido,
-          vulnerabilidad: JSON.stringify(clone.vulnerabilidad),
-          notas: clone.notas,
-        })
+          const insertPromise = sb.from('atendidos').insert({
+            id: clone.id,
+            id_mision: clone.id_mision,
+            cedula_personal: clone.cedula_personal,
+            cedula_atendido: clone.cedula_atendido,
+            nombre_atendido: clone.nombre_atendido,
+            telefono_contacto: clone.telefono_contacto,
+            fecha_hora_atencion: clone.fecha_hora_atencion,
+            edad: clone.edad,
+            sexo: clone.sexo,
+            tipo_atencion: clone.tipo_atencion,
+            referido: clone.referido,
+            vulnerabilidad: JSON.stringify(clone.vulnerabilidad),
+            notas: clone.notas,
+            area_registro: clone.area_registro,
+            lugar_vivia: clone.lugar_vivia,
+            lugar_actual: clone.lugar_actual,
+            motivo_atencion: clone.motivo_atencion,
+            insumo_entregado: clone.insumo_entregado,
+            especie: clone.especie,
+            posee_tutor: clone.posee_tutor,
+            rescatado: clone.rescatado,
+            en_adopcion: clone.en_adopcion,
+            diagnostico_tentativo: clone.diagnostico_tentativo,
+          })
         const { error } = await withTimeout(insertPromise)
         if (!error) {
           clone.status_sync = 'synced'
@@ -121,6 +131,16 @@ export const useAtendidosStore = defineStore('atendidos', () => {
           referido: clone.referido,
           vulnerabilidad: JSON.stringify(clone.vulnerabilidad),
           notas: clone.notas,
+          area_registro: clone.area_registro,
+          lugar_vivia: clone.lugar_vivia,
+          lugar_actual: clone.lugar_actual,
+          motivo_atencion: clone.motivo_atencion,
+          insumo_entregado: clone.insumo_entregado,
+          especie: clone.especie,
+          posee_tutor: clone.posee_tutor,
+          rescatado: clone.rescatado,
+          en_adopcion: clone.en_adopcion,
+          diagnostico_tentativo: clone.diagnostico_tentativo,
         }).eq('id', clone.id)
         const { error } = await withTimeout(updatePromise)
         if (!error) {

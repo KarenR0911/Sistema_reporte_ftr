@@ -15,6 +15,21 @@ const tipoLabels: Record<string, string> = {
 
 const sexoLabels: Record<string, string> = { masculino: 'Masculino', femenino: 'Femenino', otro: 'Otro' }
 
+const areaLabels: Record<string, string> = {
+  general: 'General', medicina_humana: 'Medicina Humana',
+  psicologia: 'Psicología', veterinaria: 'Veterinaria', logistica: 'Logística',
+}
+
+const porArea = computed(() => {
+  const c: Record<string, number> = {}
+  for (const a of props.atendidos) {
+    const k = a.area_registro || 'general'
+    c[k] = (c[k] || 0) + 1
+  }
+  return Object.entries(c).sort((a, b) => b[1] - a[1])
+    .map(([k, v]) => ({ area: areaLabels[k] || k, cantidad: v }))
+})
+
 const porTipo = computed(() => {
   const c: Record<string, number> = {}
   for (const a of props.atendidos) {
@@ -90,6 +105,21 @@ function formatDate(iso: string): string {
         <tr><td class="info-label">Total de personas atendidas</td><td class="info-value">{{ total }}</td></tr>
         <tr><td class="info-label">Personas referidas</td><td class="info-value">{{ referidos }} ({{ total ? Math.round(referidos / total * 100) : 0 }}%)</td></tr>
         <tr><td class="info-label">Misiones con atenciones</td><td class="info-value">{{ new Set(props.atendidos.map(a => a.id_mision)).size }}</td></tr>
+      </table>
+    </div>
+
+    <div v-if="porArea.length > 1" class="report-section">
+      <h2 class="section-title">Registros por Área</h2>
+      <table class="data-table">
+        <thead>
+          <tr><th>Área</th><th class="text-center">Cantidad</th></tr>
+        </thead>
+        <tbody>
+          <tr v-for="item in porArea" :key="item.area">
+            <td>{{ item.area }}</td>
+            <td class="text-center">{{ item.cantidad }}</td>
+          </tr>
+        </tbody>
       </table>
     </div>
 

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, computed, reactive } from 'vue'
 import BaseCard from '@/components/ui/BaseCard.vue'
 import BaseButton from '@/components/ui/BaseButton.vue'
 import BaseTable from '@/components/ui/BaseTable.vue'
@@ -41,6 +41,20 @@ const totalNecesidades = computed(() => necesidadesStore.list.length)
 const misionesActivas = computed(() =>
   misionesStore.list.filter((m) => m.estatus_mision === 'activa').length,
 )
+
+const areaLabels: Record<string, string> = {
+  general: 'General', medicina_humana: 'Medicina Humana',
+  psicologia: 'Psicología', veterinaria: 'Veterinaria', logistica: 'Logística',
+}
+
+const atendidosPorArea = computed(() => {
+  const c: Record<string, number> = {}
+  for (const a of atendidosStore.list) {
+    const k = a.area_registro || 'general'
+    c[k] = (c[k] || 0) + 1
+  }
+  return Object.entries(c).sort((a, b) => b[1] - a[1])
+})
 
 const rendimientoMisiones = computed(() => {
   const personalCount = new Map<string, number>()
@@ -203,6 +217,16 @@ onMounted(async () => {
       </div>
     </BaseCard>
 
+    <!-- Atendidos por Área (director/admin) -->
+    <BaseCard v-if="(role === 'director' || role === 'administrador') && atendidosPorArea.length > 1" title="Registros por Área">
+      <div class="flex flex-wrap gap-3">
+        <div v-for="[area, count] in atendidosPorArea" :key="area" class="flex items-center gap-2 px-4 py-2 bg-surface rounded-lg">
+          <span class="text-lg font-bold text-brand">{{ count }}</span>
+          <span class="text-sm text-text-secondary capitalize">{{ areaLabels[area] || area }}</span>
+        </div>
+      </div>
+    </BaseCard>
+
     <!-- Global Charts (director/admin) -->
     <div v-if="role === 'director' || role === 'administrador'">
       <h2 class="text-xl text-brand font-bold mb-2">Estadísticas Globales</h2>
@@ -297,12 +321,15 @@ onMounted(async () => {
         :columns="[
           { key: 'nombre_atendido', label: 'Atendido' },
           { key: 'cedula_atendido', label: 'Cédula' },
-          { key: 'tipo_atencion', label: 'Tipo' },
+          { key: 'area_registro', label: 'Área' },
           { key: 'fecha_hora_atencion', label: 'Fecha' },
           { key: 'status_sync', label: 'Sync' },
         ]"
         :rows="misAtenciones.slice(-10).reverse() as unknown as Record<string, unknown>[]"
       >
+        <template #cell-area_registro="{ value }">
+          <span class="text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary capitalize">{{ value || 'general' }}</span>
+        </template>
         <template #cell-status_sync="{ value }">
           <StatusBadge :status="value as string" />
         </template>
