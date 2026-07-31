@@ -15,6 +15,7 @@ export const usuarioSchema = z.object({
   rol: z.enum(['director', 'administrador', 'coordinador', 'personal'], {
     message: 'Selecciona un rol válido',
   }),
+  email: z.string().min(1, 'Email es requerido').email('Email inválido'),
   categoria_voluntariado: z.enum(['estudiante', 'profesional', 'voluntario']).optional(),
   especialidad: z.string().optional(),
   area_voluntariado: z.string().optional(),

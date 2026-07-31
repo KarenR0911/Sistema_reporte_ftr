@@ -29,7 +29,7 @@ PWA Offline-First para el registro y gestión de misiones, atenciones y necesida
 El login requiere conexión a internet. No existe login offline. Una vez autenticado, la sesión persiste vía `LAST_USER_KEY` en localStorage para que el usuario pueda operar la app sin conexión durante una misión en campo.
 
 ### Creación de usuarios: solo online
-La creación de usuarios (director, administrador, coordinador, personal) solo puede hacerse con conexión a internet. No tiene sentido crear usuarios offline. El botón "+ Nuevo Usuario" queda visible solo online.
+La creación de usuarios (director, administrador, coordinador, personal) solo puede hacerse con conexión a internet. No tiene sentido crear usuarios offline. El botón "+ Nuevo Usuario" queda visible solo online. El email se proporciona al crear el usuario (solo editable en la creación; no se modifica al editar).
 
 ### Contraseña por defecto
 La contraseña se genera como `V` + cédula del usuario (ej. `V-12345678` → `V12345678`). Es una funcionalidad deliberada para facilitar el despliegue en campo. El administrador debe indicar al usuario que cambie su contraseña en el primer inicio de sesión.
@@ -115,6 +115,8 @@ supabase migration list
 supabase migration repair --status applied <timestamp>
 ```
 
+Nota: la migración `20260725_fix_handle_new_user_trigger.sql` fue eliminada del historial en `20260731` (sus efectos fueron absorbidos por la migración `20260731_add_email_to_perfiles.sql`, que re-agrega la columna `email` a `perfiles` y reescribe `handle_new_user()`).
+
 ## Eliminación de usuarios
 
 La eliminación permanente se hace desde el cliente autenticado (solo rol `director`):
@@ -156,3 +158,4 @@ Hay una Edge Function `delete-user` desplegada que sí borra de `auth.users` + `
 | 18 | `mapArea()` asignaba "Medicina Veterinaria" a medicina humana | `NuevaAtencionView.vue` |
 | 19 | `personal_mision` con `area_voluntariado` desactualizada; ahora se prioriza el perfil del usuario | `NuevaAtencionView.vue` |
 | 20 | Especialidad persistía al cambiar categoría de profesional a estudiante/voluntario | `UsuariosView.vue` |
+| 21 | Email era auto-generado como `{cedula}@ftr.app`; ahora el admin provee un email real al crear el usuario | `UsuariosView.vue`, `schemas.ts`, `BaseInput.vue` |
