@@ -60,13 +60,15 @@ function formatDate(iso: string): string {
 
     <div class="report-section">
       <h2 class="section-title">Resumen de Inventario</h2>
-      <table class="info-table">
-        <tr><td class="info-label">Total de insumos registrados</td><td class="info-value">{{ props.insumos.length }} ítems</td></tr>
-        <tr><td class="info-label">Cantidad total llevada</td><td class="info-value">{{ totalLlevado }} unidades</td></tr>
-        <tr><td class="info-label">Cantidad dispensada</td><td class="info-value">{{ totalDispensado }} unidades</td></tr>
-        <tr><td class="info-label">Disponible actualmente</td><td class="info-value" :style="{ color: totalDisponible >= 0 ? '#333' : '#E53935' }">{{ totalDisponible }} unidades</td></tr>
-        <tr><td class="info-label">Salidas registradas</td><td class="info-value">{{ props.salidas.length }} movimientos</td></tr>
-      </table>
+<table class="info-table">
+<tbody>
+<tr><td class="info-label">Total de insumos registrados</td><td class="info-value">{{ props.insumos.length }} ítems</td></tr>
+<tr><td class="info-label">Cantidad total llevada</td><td class="info-value">{{ totalLlevado }} unidades</td></tr>
+<tr><td class="info-label">Cantidad dispensada</td><td class="info-value">{{ totalDispensado }} unidades</td></tr>
+<tr><td class="info-label">Disponible actualmente</td><td class="info-value" :style="{ color: totalDisponible >= 0 ? '#333' : '#E53935' }">{{ totalDisponible }} unidades</td></tr>
+<tr><td class="info-label">Salidas registradas</td><td class="info-value">{{ props.salidas.length }} movimientos</td></tr>
+</tbody>
+</table>
     </div>
 
     <div class="report-section">

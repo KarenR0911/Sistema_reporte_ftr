@@ -64,6 +64,7 @@ const salidasMision = computed(() => salidasStore.getByMision(missionId))
 
 const role = computed(() => auth.userRole)
 const canEdit = computed(() => role.value === 'director' || role.value === 'administrador' || role.value === 'coordinador')
+const canFinalize = computed(() => role.value === 'director' || role.value === 'administrador')
 
 const showDetail = ref(false)
 const selectedAtendido = ref<Atendido | null>(null)
@@ -286,13 +287,13 @@ onUnmounted(() => {
         <RouterLink v-if="canManageInsumos" :to="`/misiones/${missionId}/dispensacion`">
           <BaseButton variant="primary"><Package :size="18" /> Dispensación</BaseButton>
         </RouterLink>
-        <BaseButton variant="ghost" @click="printReport">
+        <BaseButton v-if="canFinalize" variant="ghost" @click="printReport">
           <FileText :size="18" /> Reporte
         </BaseButton>
-        <BaseButton v-if="canEdit" variant="ghost" @click="printPlan">
+        <BaseButton v-if="canFinalize" variant="ghost" @click="printPlan">
           <ClipboardList :size="18" /> Plan
         </BaseButton>
-        <BaseButton v-if="canEdit && mission.estatus_mision === 'activa'" variant="secondary" @click="openCompleteModal" :disabled="!isOnline">
+        <BaseButton v-if="canFinalize && mission.estatus_mision === 'activa'" variant="secondary" @click="openCompleteModal" :disabled="!isOnline">
           <CheckCircle :size="18" /> {{ isOnline ? 'Completar Misión' : 'Requiere conexión' }}
         </BaseButton>
       </div>

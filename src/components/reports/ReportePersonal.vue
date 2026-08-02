@@ -66,12 +66,14 @@ function labelCategoria(val: string): string {
 
     <div class="report-section">
       <h2 class="section-title">Resumen</h2>
-      <table class="info-table">
-        <tr><td class="info-label">Total de personas desplegadas</td><td class="info-value">{{ totalPersonas }}</td></tr>
-        <tr><td class="info-label">Asignaciones a misiones</td><td class="info-value">{{ props.personales.length }}</td></tr>
-        <tr><td class="info-label">Misiones con personal</td><td class="info-value">{{ porMision.length }}</td></tr>
-        <tr><td class="info-label">Total de atenciones realizadas</td><td class="info-value">{{ props.atendidos.length }}</td></tr>
-      </table>
+<table class="info-table">
+<tbody>
+<tr><td class="info-label">Total de personas desplegadas</td><td class="info-value">{{ totalPersonas }}</td></tr>
+<tr><td class="info-label">Asignaciones a misiones</td><td class="info-value">{{ props.personales.length }}</td></tr>
+<tr><td class="info-label">Misiones con personal</td><td class="info-value">{{ porMision.length }}</td></tr>
+<tr><td class="info-label">Total de atenciones realizadas</td><td class="info-value">{{ props.atendidos.length }}</td></tr>
+</tbody>
+</table>
     </div>
 
     <div class="report-section">

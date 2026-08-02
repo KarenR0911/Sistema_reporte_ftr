@@ -80,22 +80,24 @@ function formatDateTime(iso: string): string {
     <div class="report-section">
       <h2 class="section-title">Datos de la Misión</h2>
       <table class="info-table">
-        <tr>
-          <td class="info-label">Municipio / Estado</td>
-          <td class="info-value">{{ mission.municipio }}, {{ mission.estado }}</td>
-        </tr>
-        <tr>
-          <td class="info-label">Dirección</td>
-          <td class="info-value">{{ mission.direccion }}</td>
-        </tr>
-        <tr>
-          <td class="info-label">Fecha de inicio</td>
-          <td class="info-value">{{ formatDate(mission.fecha_inicio) }}</td>
-        </tr>
-        <tr>
-          <td class="info-label">Estatus</td>
-          <td class="info-value">{{ mission.estatus_mision === 'activa' ? 'Activa' : mission.estatus_mision === 'completada' ? 'Completada' : 'Cancelada' }}</td>
-        </tr>
+        <tbody>
+          <tr>
+            <td class="info-label">Municipio / Estado</td>
+            <td class="info-value">{{ mission.municipio }}, {{ mission.estado }}</td>
+          </tr>
+          <tr>
+            <td class="info-label">Dirección</td>
+            <td class="info-value">{{ mission.direccion }}</td>
+          </tr>
+          <tr>
+            <td class="info-label">Fecha de inicio</td>
+            <td class="info-value">{{ formatDate(mission.fecha_inicio) }}</td>
+          </tr>
+          <tr>
+            <td class="info-label">Estatus</td>
+            <td class="info-value">{{ mission.estatus_mision === 'activa' ? 'Activa' : mission.estatus_mision === 'completada' ? 'Completada' : 'Cancelada' }}</td>
+          </tr>
+        </tbody>
       </table>
     </div>
 

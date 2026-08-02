@@ -32,7 +32,7 @@ const router = createRouter({
           path: 'misiones/nueva',
           name: 'nueva-mision',
           component: () => import('@/views/misiones/NuevaMisionView.vue'),
-          meta: { roles: ['director', 'administrador', 'coordinador'] },
+          meta: { roles: ['director', 'administrador'] },
         },
         {
           path: 'misiones/:id',

@@ -53,13 +53,15 @@ function formatDate(iso: string): string {
 
     <div class="report-section">
       <h2 class="section-title">Resumen Global</h2>
-      <table class="info-table">
-        <tr><td class="info-label">Total de necesidades reportadas</td><td class="info-value">{{ total }}</td></tr>
-        <tr><td class="info-label">Atendidas</td><td class="info-value">{{ atendidas }} ({{ tasa }}%)</td></tr>
-        <tr><td class="info-label">En proceso</td><td class="info-value">{{ enProceso }}</td></tr>
-        <tr><td class="info-label">Pendientes (reportadas)</td><td class="info-value">{{ reportadas }}</td></tr>
-        <tr><td class="info-label">Críticas / Altas sin atender</td><td class="info-value font-bold" :style="{ color: criticasPendientes.length > 0 ? '#E53935' : '#4CAF50' }">{{ criticasPendientes.length }}</td></tr>
-      </table>
+<table class="info-table">
+<tbody>
+<tr><td class="info-label">Total de necesidades reportadas</td><td class="info-value">{{ total }}</td></tr>
+<tr><td class="info-label">Atendidas</td><td class="info-value">{{ atendidas }} ({{ tasa }}%)</td></tr>
+<tr><td class="info-label">En proceso</td><td class="info-value">{{ enProceso }}</td></tr>
+<tr><td class="info-label">Pendientes (reportadas)</td><td class="info-value">{{ reportadas }}</td></tr>
+<tr><td class="info-label">Críticas / Altas sin atender</td><td class="info-value font-bold" :style="{ color: criticasPendientes.length > 0 ? '#E53935' : '#4CAF50' }">{{ criticasPendientes.length }}</td></tr>
+</tbody>
+</table>
     </div>
 
     <div v-if="criticasPendientes.length > 0" class="report-section">

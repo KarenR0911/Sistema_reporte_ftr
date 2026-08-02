@@ -178,7 +178,7 @@ async function saveUser() {
 
   if (navigator.onLine && isNew) {
     try {
-      const { error } = await getSupabase().auth.signUp({
+      const { data, error } = await getSupabase().auth.signUp({
         email: user.email,
         password: tempPassword.value,
         options: {
@@ -192,7 +192,8 @@ async function saveUser() {
           },
         },
       })
-      if (!error) {
+      if (!error && data?.user?.id) {
+        user.id = data.user.id
         await putItem('usuarios', user)
         try {
           await getSupabase().from('perfiles').update({
@@ -220,7 +221,7 @@ async function saveUser() {
             activo: true,
           })
         } catch {} // fallback silencioso
-        useToastStore().error('Guardado localmente. Supabase Auth: ' + error.message)
+        useToastStore().error('Guardado localmente. Supabase Auth: ' + (error?.message ?? 'No se pudo completar el alta'))
       }
     } catch {
       await putItem('usuarios', user)

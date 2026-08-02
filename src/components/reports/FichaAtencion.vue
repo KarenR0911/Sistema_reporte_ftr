@@ -54,56 +54,62 @@ function formatDateTime(iso: string): string {
     <div v-if="mission" class="report-section">
       <h2 class="section-title">Datos de la Misión</h2>
       <table class="info-table">
-        <tr><td class="info-label">Ubicación</td><td class="info-value">{{ mission.municipio }}, {{ mission.estado }}</td></tr>
-        <tr><td class="info-label">Dirección</td><td class="info-value">{{ mission.direccion }}</td></tr>
+        <tbody>
+          <tr><td class="info-label">Ubicación</td><td class="info-value">{{ mission.municipio }}, {{ mission.estado }}</td></tr>
+          <tr><td class="info-label">Dirección</td><td class="info-value">{{ mission.direccion }}</td></tr>
+        </tbody>
       </table>
     </div>
 
     <div class="report-section">
       <h2 class="section-title">{{ area === 'veterinaria' ? 'Datos del Animal' : 'Datos de la Persona Atendida' }}</h2>
       <table class="info-table">
-        <tr><td class="info-label">Nombre</td><td class="info-value">{{ atendido.nombre_atendido }}</td></tr>
-        <tr v-if="area !== 'veterinaria'"><td class="info-label">Cédula</td><td class="info-value">{{ atendido.cedula_atendido || '—' }}</td></tr>
-        <tr v-if="area === 'veterinaria'"><td class="info-label">Especie</td><td class="info-value">{{ atendido.especie || '—' }}</td></tr>
-        <tr v-if="area !== 'veterinaria'"><td class="info-label">Teléfono</td><td class="info-value">{{ atendido.telefono_contacto || '—' }}</td></tr>
-        <tr><td class="info-label">Edad</td><td class="info-value">{{ atendido.edad ?? '—' }}</td></tr>
-        <tr><td class="info-label">Sexo</td><td class="info-value">{{ labelSexo(atendido.sexo) }}</td></tr>
-        <tr v-if="area === 'veterinaria'">
-          <td class="info-label">Posee tutor</td>
-          <td class="info-value">{{ atendido.posee_tutor ? 'Sí' : 'No' }}</td>
-        </tr>
-        <tr v-if="area === 'veterinaria'">
-          <td class="info-label">Rescatado</td>
-          <td class="info-value">{{ atendido.rescatado ? 'Sí' : 'No' }}</td>
-        </tr>
-        <tr v-if="area === 'veterinaria'">
-          <td class="info-label">En adopción</td>
-          <td class="info-value">{{ atendido.en_adopcion ? 'Sí' : 'No' }}</td>
-        </tr>
+        <tbody>
+          <tr><td class="info-label">Nombre</td><td class="info-value">{{ atendido.nombre_atendido }}</td></tr>
+          <tr v-if="area !== 'veterinaria'"><td class="info-label">Cédula</td><td class="info-value">{{ atendido.cedula_atendido || '—' }}</td></tr>
+          <tr v-if="area === 'veterinaria'"><td class="info-label">Especie</td><td class="info-value">{{ atendido.especie || '—' }}</td></tr>
+          <tr v-if="area !== 'veterinaria'"><td class="info-label">Teléfono</td><td class="info-value">{{ atendido.telefono_contacto || '—' }}</td></tr>
+          <tr><td class="info-label">Edad</td><td class="info-value">{{ atendido.edad ?? '—' }}</td></tr>
+          <tr><td class="info-label">Sexo</td><td class="info-value">{{ labelSexo(atendido.sexo) }}</td></tr>
+          <tr v-if="area === 'veterinaria'">
+            <td class="info-label">Posee tutor</td>
+            <td class="info-value">{{ atendido.posee_tutor ? 'Sí' : 'No' }}</td>
+          </tr>
+          <tr v-if="area === 'veterinaria'">
+            <td class="info-label">Rescatado</td>
+            <td class="info-value">{{ atendido.rescatado ? 'Sí' : 'No' }}</td>
+          </tr>
+          <tr v-if="area === 'veterinaria'">
+            <td class="info-label">En adopción</td>
+            <td class="info-value">{{ atendido.en_adopcion ? 'Sí' : 'No' }}</td>
+          </tr>
+        </tbody>
       </table>
     </div>
 
     <div class="report-section">
       <h2 class="section-title">{{ area === 'veterinaria' ? 'Diagnóstico' : area === 'logistica' ? 'Registro Logístico' : 'Atención Recibida' }}</h2>
       <table class="info-table">
-        <template v-if="area === 'medicina_humana' || area === 'psicologia'">
-          <tr><td class="info-label">Motivo de Atención</td><td class="info-value">{{ atendido.motivo_atencion || '—' }}</td></tr>
-          <tr><td class="info-label">Lugar donde vivía</td><td class="info-value">{{ atendido.lugar_vivia || '—' }}</td></tr>
-          <tr><td class="info-label">Lugar actual</td><td class="info-value">{{ atendido.lugar_actual || '—' }}</td></tr>
-        </template>
-        <template v-if="area === 'logistica'">
-          <tr><td class="info-label">Lugar donde vivía</td><td class="info-value">{{ atendido.lugar_vivia || '—' }}</td></tr>
-          <tr><td class="info-label">Lugar actual</td><td class="info-value">{{ atendido.lugar_actual || '—' }}</td></tr>
-          <tr><td class="info-label">Insumo Entregado</td><td class="info-value">{{ atendido.insumo_entregado || '—' }}</td></tr>
-        </template>
-        <template v-if="area === 'veterinaria'">
-          <tr><td class="info-label">Diagnóstico Tentativo</td><td class="info-value">{{ atendido.diagnostico_tentativo || '—' }}</td></tr>
-        </template>
-        <template v-if="area === 'general'">
-          <tr><td class="info-label">Tipo de Atención</td><td class="info-value">{{ labelTipoAtencion(atendido.tipo_atencion) }}</td></tr>
-          <tr><td class="info-label">Requiere Referencia</td><td class="info-value">{{ atendido.referido ? 'Sí' : 'No' }}</td></tr>
-        </template>
-        <tr><td class="info-label">Fecha y Hora</td><td class="info-value">{{ formatDateTime(atendido.fecha_hora_atencion) }}</td></tr>
+        <tbody>
+          <template v-if="area === 'medicina_humana' || area === 'psicologia'">
+            <tr><td class="info-label">Motivo de Atención</td><td class="info-value">{{ atendido.motivo_atencion || '—' }}</td></tr>
+            <tr><td class="info-label">Lugar donde vivía</td><td class="info-value">{{ atendido.lugar_vivia || '—' }}</td></tr>
+            <tr><td class="info-label">Lugar actual</td><td class="info-value">{{ atendido.lugar_actual || '—' }}</td></tr>
+          </template>
+          <template v-if="area === 'logistica'">
+            <tr><td class="info-label">Lugar donde vivía</td><td class="info-value">{{ atendido.lugar_vivia || '—' }}</td></tr>
+            <tr><td class="info-label">Lugar actual</td><td class="info-value">{{ atendido.lugar_actual || '—' }}</td></tr>
+            <tr><td class="info-label">Insumo Entregado</td><td class="info-value">{{ atendido.insumo_entregado || '—' }}</td></tr>
+          </template>
+          <template v-if="area === 'veterinaria'">
+            <tr><td class="info-label">Diagnóstico Tentativo</td><td class="info-value">{{ atendido.diagnostico_tentativo || '—' }}</td></tr>
+          </template>
+          <template v-if="area === 'general'">
+            <tr><td class="info-label">Tipo de Atención</td><td class="info-value">{{ labelTipoAtencion(atendido.tipo_atencion) }}</td></tr>
+            <tr><td class="info-label">Requiere Referencia</td><td class="info-value">{{ atendido.referido ? 'Sí' : 'No' }}</td></tr>
+          </template>
+          <tr><td class="info-label">Fecha y Hora</td><td class="info-value">{{ formatDateTime(atendido.fecha_hora_atencion) }}</td></tr>
+        </tbody>
       </table>
     </div>
 
@@ -122,8 +128,10 @@ function formatDateTime(iso: string): string {
     <div class="report-section">
       <h2 class="section-title">Registrado por</h2>
       <table class="info-table">
-        <tr><td class="info-label">Cédula</td><td class="info-value">{{ atendido.cedula_personal }}</td></tr>
-        <tr v-if="personal"><td class="info-label">Nombre</td><td class="info-value">{{ personal.nombre }}</td></tr>
+        <tbody>
+          <tr><td class="info-label">Cédula</td><td class="info-value">{{ atendido.cedula_personal }}</td></tr>
+          <tr v-if="personal"><td class="info-label">Nombre</td><td class="info-value">{{ personal.nombre }}</td></tr>
+        </tbody>
       </table>
     </div>
 

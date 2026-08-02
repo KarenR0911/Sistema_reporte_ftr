@@ -64,14 +64,16 @@ function labelEstatus(val: string): string {
 
     <div class="report-section">
       <h2 class="section-title">Resumen General</h2>
-      <table class="info-table">
-        <tr><td class="info-label">Total Misiones</td><td class="info-value">{{ totalMisiones }}</td></tr>
-        <tr><td class="info-label">Misiones Activas</td><td class="info-value">{{ misionesActivas }}</td></tr>
-        <tr><td class="info-label">Personas Atendidas</td><td class="info-value">{{ totalAtendidos }}</td></tr>
-        <tr><td class="info-label">Necesidades Reportadas</td><td class="info-value">{{ totalNecesidades }}</td></tr>
-        <tr><td class="info-label">Necesidades Atendidas</td><td class="info-value">{{ necesidadesAtendidas }} ({{ totalNecesidades ? Math.round(necesidadesAtendidas / totalNecesidades * 100) : 0 }}%)</td></tr>
-        <tr><td class="info-label">Período</td><td class="info-value">{{ misiones.length > 0 ? `${formatDate(misiones[misiones.length - 1]!.fecha_inicio)} — ${formatDate(misiones[0]!.fecha_inicio)}` : '—' }}</td></tr>
-      </table>
+<table class="info-table">
+<tbody>
+<tr><td class="info-label">Total Misiones</td><td class="info-value">{{ totalMisiones }}</td></tr>
+<tr><td class="info-label">Misiones Activas</td><td class="info-value">{{ misionesActivas }}</td></tr>
+<tr><td class="info-label">Personas Atendidas</td><td class="info-value">{{ totalAtendidos }}</td></tr>
+<tr><td class="info-label">Necesidades Reportadas</td><td class="info-value">{{ totalNecesidades }}</td></tr>
+<tr><td class="info-label">Necesidades Atendidas</td><td class="info-value">{{ necesidadesAtendidas }} ({{ totalNecesidades ? Math.round(necesidadesAtendidas / totalNecesidades * 100) : 0 }}%)</td></tr>
+<tr><td class="info-label">Período</td><td class="info-value">{{ misiones.length > 0 ? `${formatDate(misiones[misiones.length - 1]!.fecha_inicio)} - ${formatDate(misiones[0]!.fecha_inicio)}` : '-' }}</td></tr>
+</tbody>
+</table>
     </div>
 
     <div class="report-section">

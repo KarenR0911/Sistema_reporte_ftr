@@ -16,6 +16,7 @@ import { useToastStore } from '@/stores/toast'
 import { useLoading } from '@/composables/useLoading'
 import { misionSchema, transporteSchema, insumoSchema } from '@/lib/schemas'
 import { INSUMO_CATEGORIAS } from '@/types'
+import { ESTADOS_OPCIONES, municipiosDeEstado } from '@/lib/geoVenezuela'
 import type { Mision, Transporte, PersonalMision, InsumoLlevado, Usuario } from '@/types'
 
 const router = useRouter()
@@ -35,6 +36,16 @@ const misionForm = ref({
   estado: '',
 })
 const misionErrors = ref<Record<string, string>>({})
+
+const estadoOptions = ESTADOS_OPCIONES
+const municipioOptions = computed(() => municipiosDeEstado(misionForm.value.estado))
+
+function onEstadoChange(estado: string) {
+  misionForm.value.estado = estado
+  misionForm.value.municipio = ''
+  misionErrors.value.estado = ''
+  misionErrors.value.municipio = ''
+}
 
 const transportes = ref<Omit<Transporte, 'id' | 'id_mision'>[]>([])
 const transportForm = ref({ tipo_transporte: '', numero_placa: '', nombre_conductor: '' })
@@ -135,10 +146,6 @@ function removeInsumo(idx: number) {
 }
 
 async function saveMision() {
-  if (insumos.value.length === 0) {
-    toast.error('Debes agregar al menos un insumo a la misión.')
-    return
-  }
   const id_mision = crypto.randomUUID()
   const mision: Mision = {
     id: id_mision,
@@ -247,13 +254,14 @@ async function saveMision() {
     <BaseCard v-if="step === 1" title="Datos de la Zona">
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
         <BaseInput v-model="misionForm.direccion" label="Dirección" required :error="misionErrors.direccion" @update:model-value="misionErrors.direccion = ''" />
-        <BaseInput v-model="misionForm.municipio" label="Municipio" required :error="misionErrors.municipio" @update:model-value="misionErrors.municipio = ''" />
-        <BaseInput v-model="misionForm.estado" label="Estado" required :error="misionErrors.estado" @update:model-value="misionErrors.estado = ''" />
+        <BaseSelect v-model="misionForm.estado" label="Estado" required :options="estadoOptions" :error="misionErrors.estado" @update:model-value="onEstadoChange" />
+        <BaseSelect v-model="misionForm.municipio" label="Municipio" required :options="municipioOptions" :error="misionErrors.municipio" @update:model-value="misionErrors.municipio = ''" :disabled="!misionForm.estado" />
       </div>
       <BaseButton variant="primary" @click="nextStep">Siguiente</BaseButton>
     </BaseCard>
 
     <BaseCard v-if="step === 2" title="Transporte">
+      <p class="text-sm text-text-secondary mb-3">Opcional — registra el transporte de la misión o continúa sin agregar ninguno.</p>
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
         <BaseInput v-model="transportForm.tipo_transporte" label="Tipo de Transporte" placeholder="Camioneta, Autobús..." :error="transportErrors.tipo_transporte" @update:model-value="transportErrors.tipo_transporte = ''" />
         <BaseInput v-model="transportForm.numero_placa" label="Número de Placa" :error="transportErrors.numero_placa" @update:model-value="transportErrors.numero_placa = ''" />
@@ -289,7 +297,7 @@ async function saveMision() {
     </BaseCard>
 
     <BaseCard v-if="step === 4" title="Insumos Llevados">
-      <p class="text-sm text-text-secondary mb-3">Registra los insumos que se llevan a la misión. El estatus se definirá al finalizar.</p>
+      <p class="text-sm text-text-secondary mb-3">Opcional — registra los insumos que se llevan a la misión o guárdala sin agregar ninguno. El estatus se definirá al finalizar.</p>
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
         <BaseSelect v-model="insumoForm.categoria" label="Categoría" required :options="INSUMO_CATEGORIAS.map(c => ({ value: c, label: c }))" :error="insumoErrors.categoria" />
         <BaseInput v-model="insumoForm.descripcion" label="Descripción" :error="insumoErrors.descripcion" @update:model-value="insumoErrors.descripcion = ''" />

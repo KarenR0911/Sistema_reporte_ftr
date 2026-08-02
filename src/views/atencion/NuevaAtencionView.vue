@@ -6,7 +6,7 @@ import BaseInput from '@/components/ui/BaseInput.vue'
 import BaseSelect from '@/components/ui/BaseSelect.vue'
 import BaseButton from '@/components/ui/BaseButton.vue'
 import BaseTable from '@/components/ui/BaseTable.vue'
-import { UserPlus, ArrowLeft, Eye } from '@lucide/vue'
+import { UserPlus, ArrowLeft, Eye, ShieldAlert } from '@lucide/vue'
 import { useMisionesStore } from '@/stores/misiones'
 import { usePersonalStore } from '@/stores/personal'
 import { useAtendidosStore } from '@/stores/atendidos'
@@ -27,11 +27,16 @@ const { withLoading, saving } = useLoading()
 
 const missionId = route.params.id_mision as string
 const mission = computed(() => misionesStore.getById(missionId))
+const cargando = ref(true)
 
 const currentPersonal = computed(() =>
   personalStore.list.find(
     (p) => p.id_mision === missionId && p.cedula === auth.currentUser?.cedula,
   ),
+)
+
+const noAutorizado = computed(
+  () => !currentPersonal.value,
 )
 
 function mapArea(raw: string | undefined | null): AreaRegistro {
@@ -295,6 +300,10 @@ function validate(): boolean {
 }
 
 async function registerAttendee() {
+  if (noAutorizado.value) {
+    toast.error('No estás asignado a esta misión')
+    return
+  }
   if (!validate()) return
   const item = buildPayload()
   await withLoading(() => atendidosStore.create(item), 'Registrando atención...')
@@ -308,12 +317,27 @@ onMounted(async () => {
     personalStore.load(),
     atendidosStore.load(),
   ])
+  cargando.value = false
 })
 </script>
 
 <template>
   <div>
-    <div v-if="mission" class="flex flex-col gap-4 md:gap-6">
+    <div v-if="cargando" class="py-12 text-center text-text-secondary">
+      <div class="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+      <p>Cargando...</p>
+    </div>
+
+    <div v-else-if="noAutorizado" class="py-12 text-center">
+      <div class="flex flex-col items-center gap-4">
+        <ShieldAlert :size="48" class="text-text-muted" />
+        <h1 class="text-xl text-brand m-0">No estás asignado a esta misión</h1>
+        <p class="text-text-secondary m-0">Solo el personal registrado en la misión puede registrar atenciones.</p>
+        <BaseButton variant="primary" @click="router.push('/dashboard')"><ArrowLeft :size="18" /> Volver al panel</BaseButton>
+      </div>
+    </div>
+
+    <div v-else-if="mission" class="flex flex-col gap-4 md:gap-6">
       <div class="flex justify-between items-start">
         <div>
           <div class="flex items-center gap-3">

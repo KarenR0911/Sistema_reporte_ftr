@@ -288,7 +288,6 @@ onMounted(async () => {
       </BaseTable>
       <div class="flex gap-2 mt-4">
         <BaseButton variant="primary" @click="router.push('/misiones')">Ver todas</BaseButton>
-        <BaseButton variant="secondary" @click="router.push('/misiones/nueva')">Nueva Misión</BaseButton>
       </div>
     </BaseCard>
 

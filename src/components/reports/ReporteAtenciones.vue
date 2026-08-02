@@ -101,11 +101,13 @@ function formatDate(iso: string): string {
 
     <div class="report-section">
       <h2 class="section-title">Resumen</h2>
-      <table class="info-table">
-        <tr><td class="info-label">Total de personas atendidas</td><td class="info-value">{{ total }}</td></tr>
-        <tr><td class="info-label">Personas referidas</td><td class="info-value">{{ referidos }} ({{ total ? Math.round(referidos / total * 100) : 0 }}%)</td></tr>
-        <tr><td class="info-label">Misiones con atenciones</td><td class="info-value">{{ new Set(props.atendidos.map(a => a.id_mision)).size }}</td></tr>
-      </table>
+<table class="info-table">
+<tbody>
+<tr><td class="info-label">Total de personas atendidas</td><td class="info-value">{{ total }}</td></tr>
+<tr><td class="info-label">Personas referidas</td><td class="info-value">{{ referidos }} ({{ total ? Math.round(referidos / total * 100) : 0 }}%)</td></tr>
+<tr><td class="info-label">Misiones con atenciones</td><td class="info-value">{{ new Set(props.atendidos.map(a => a.id_mision)).size }}</td></tr>
+</tbody>
+</table>
     </div>
 
     <div v-if="porArea.length > 1" class="report-section">

@@ -44,11 +44,13 @@ function formatDate(iso: string): string {
 
     <div class="report-section">
       <h2 class="section-title">Resumen</h2>
-      <table class="info-table">
-        <tr><td class="info-label">Voluntarios con actividad</td><td class="info-value">{{ totalVoluntarios }}</td></tr>
-        <tr><td class="info-label">Total de atenciones registradas</td><td class="info-value">{{ totalAtenciones }}</td></tr>
-        <tr><td class="info-label">Promedio por voluntario</td><td class="info-value">{{ totalVoluntarios ? (totalAtenciones / totalVoluntarios).toFixed(1) : 0 }}</td></tr>
-      </table>
+<table class="info-table">
+<tbody>
+<tr><td class="info-label">Voluntarios con actividad</td><td class="info-value">{{ totalVoluntarios }}</td></tr>
+<tr><td class="info-label">Total de atenciones registradas</td><td class="info-value">{{ totalAtenciones }}</td></tr>
+<tr><td class="info-label">Promedio por voluntario</td><td class="info-value">{{ totalVoluntarios ? (totalAtenciones / totalVoluntarios).toFixed(1) : 0 }}</td></tr>
+</tbody>
+</table>
     </div>
 
     <div class="report-section">

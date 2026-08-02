@@ -18,10 +18,17 @@ export const usePersonalStore = defineStore('personal', () => {
 
       const localItems = await getAll<PersonalMision>('personal')
       const pendingIds = new Set(localItems.filter((r) => r.status_sync === 'pending').map((r) => r.id))
+      const serverIds = new Set(data.map((r) => r.id))
 
       for (const row of data) {
         if (!pendingIds.has(row.id)) {
           await putItem('personal', { ...row, status_sync: 'synced' as const })
+        }
+      }
+
+      for (const local of localItems) {
+        if (local.status_sync !== 'pending' && !serverIds.has(local.id)) {
+          await deleteItem('personal', local.id)
         }
       }
 
@@ -46,7 +53,7 @@ export const usePersonalStore = defineStore('personal', () => {
       loaded.value = true
 
       if (navigator.onLine) {
-        refresh()
+        await refresh()
       }
     } catch (err) {
       console.error('personalStore.load error:', err)
