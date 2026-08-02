@@ -14,6 +14,7 @@ import { useAuthStore } from '@/stores/auth'
 import { useToastStore } from '@/stores/toast'
 import { useLoading } from '@/composables/useLoading'
 import { atencionSchema, atencionMedicinaSchema, atencionPsicologiaSchema, atencionVeterinariaSchema } from '@/lib/schemas'
+import { parseVuln, labelVuln } from '@/lib/vulnerabilidad'
 import type { Atendido, TipoAtencion, AreaRegistro } from '@/types'
 
 const route = useRoute()
@@ -157,26 +158,6 @@ function labelSexo(val: unknown): string {
     : val === 'femenino' ? 'Femenino'
     : val === 'otro' ? 'Otro'
     : '—'
-}
-
-function parseVuln(value: unknown): string[] {
-  if (!value) return []
-  try {
-    const s = String(value)
-    return s.startsWith('[') ? JSON.parse(s) : [s]
-  } catch {
-    return [String(value)]
-  }
-}
-
-function labelVuln(v: string): string {
-  return v === 'embarazada' ? 'Embarazada'
-    : v === 'discapacidad' ? 'Discapacidad'
-    : v === 'adulto_mayor' ? 'Adulto Mayor'
-    : v === 'menor_no_acompanado' ? 'Menor solo'
-    : v === 'enfermedad_cronica' ? 'Enf. Crónica'
-    : v === 'otro' ? 'Otra'
-    : v
 }
 
 function toggleVulnerabilidad(val: string) {

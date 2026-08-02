@@ -29,6 +29,9 @@ const porMunicipio = computed(() => {
 
 const totalMunicipios = computed(() => porMunicipio.value.length)
 const totalAtendidos = computed(() => props.atendidos.length)
+const totalMisionesConAtendidos = computed(() =>
+  porMunicipio.value.reduce((s, r) => s + r.misiones, 0),
+)
 
 const hasData = computed(() => props.atendidos.length > 0)
 
@@ -36,6 +39,15 @@ function formatDate(iso: string): string {
   if (!iso) return '—'
   return new Date(iso).toLocaleDateString('es-VE', { day: '2-digit', month: 'long', year: 'numeric' })
 }
+
+const periodo = computed(() => {
+  const fechas = props.misiones
+    .map(m => m.fecha_inicio)
+    .filter(Boolean)
+    .sort()
+  if (fechas.length === 0) return '—'
+  return `${formatDate(fechas[0]!)} - ${formatDate(fechas[fechas.length - 1]!)}`
+})
 </script>
 
 <template>
@@ -51,7 +63,7 @@ function formatDate(iso: string): string {
 <tbody>
 <tr><td class="info-label">Municipios alcanzados</td><td class="info-value">{{ totalMunicipios }}</td></tr>
 <tr><td class="info-label">Total de personas atendidas</td><td class="info-value">{{ totalAtendidos }}</td></tr>
-<tr><td class="info-label">Período</td><td class="info-value">{{ props.misiones.length > 0 ? `${formatDate(props.misiones[props.misiones.length - 1]!.fecha_inicio)} - ${formatDate(props.misiones[0]!.fecha_inicio)}` : '-' }}</td></tr>
+<tr><td class="info-label">Período</td><td class="info-value">{{ periodo }}</td></tr>
 </tbody>
 </table>
     </div>
@@ -78,9 +90,9 @@ function formatDate(iso: string): string {
         <tfoot>
           <tr class="font-bold">
             <td>Total</td>
-            <td class="text-center">{{ props.misiones.length }}</td>
+            <td class="text-center">{{ totalMisionesConAtendidos }}</td>
             <td class="text-center">{{ totalAtendidos }}</td>
-            <td class="text-center">100%</td>
+            <td class="text-center">{{ totalAtendidos ? '100%' : '0%' }}</td>
           </tr>
         </tfoot>
       </table>

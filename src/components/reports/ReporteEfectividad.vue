@@ -1,11 +1,10 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import type { Mision, Necesidad, Atendido } from '@/types'
+import type { Mision, Necesidad } from '@/types'
 
 const props = defineProps<{
   misiones: Mision[]
   necesidades: Necesidad[]
-  atendidos: Atendido[]
 }>()
 
 const total = computed(() => props.necesidades.length)
@@ -15,27 +14,27 @@ const atendidas = computed(() => props.necesidades.filter(n => n.estatus === 'at
 const tasa = computed(() => total.value ? Math.round(atendidas.value / total.value * 100) : 0)
 
 const criticasPendientes = computed(() =>
-  props.necesidades.filter(n => n.prioridad === 'critica' && n.estatus !== 'atendido'),
+  props.necesidades.filter(n => (n.prioridad === 'critica' || n.prioridad === 'alta') && n.estatus !== 'atendido'),
 )
 
 const porMision = computed(() => {
   const misionMap = new Map(props.misiones.map(m => [m.id, m]))
-  const c: Record<string, { nec: number; aten: number; prioritarias: number }> = {}
+  const c: Record<string, { id: string; nombre: string; nec: number; aten: number; prioritarias: number }> = {}
   for (const n of props.necesidades) {
     const m = misionMap.get(n.id_mision)
-    const key = m ? `${m.municipio} — ${m.direccion}` : n.id_mision
-    if (!c[key]) c[key] = { nec: 0, aten: 0, prioritarias: 0 }
+    const key = n.id_mision
+    if (!c[key]) c[key] = { id: key, nombre: m ? `${m.municipio} — ${m.direccion}` : key.slice(0, 8), nec: 0, aten: 0, prioritarias: 0 }
     c[key].nec++
     if (n.estatus === 'atendido') c[key].aten++
     if (n.prioridad === 'critica' || n.prioridad === 'alta') c[key].prioritarias++
   }
-  return Object.entries(c).map(([mision, data]) => ({ mision, ...data }))
+  return Object.values(c)
 })
 
 const hasData = computed(() => props.necesidades.length > 0)
 
 function labelPrioridad(val: string): string {
-  return val === 'critica' ? 'Crítica' : val === 'alta' ? 'Alta' : val === 'media' ? 'Media' : 'Baja'
+  return val === 'critica' ? 'Crítica' : val === 'alta' ? 'Alta' : val === 'media' ? 'Media' : val === 'baja' ? 'Baja' : '—'
 }
 
 function formatDate(iso: string): string {
@@ -98,8 +97,8 @@ function formatDate(iso: string): string {
           </tr>
         </thead>
         <tbody>
-          <tr v-for="r in porMision" :key="r.mision">
-            <td>{{ r.mision }}</td>
+          <tr v-for="r in porMision" :key="r.id">
+            <td>{{ r.nombre }}</td>
             <td class="text-center">{{ r.nec }}</td>
             <td class="text-center">{{ r.aten }}</td>
             <td class="text-center">{{ r.prioritarias }}</td>

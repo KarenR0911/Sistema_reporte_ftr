@@ -34,17 +34,16 @@ interface ReporteInfo {
   titulo: string
   desc: string
   icon: any
-  roles: string[]
 }
 
 const reportesDisponibles: ReporteInfo[] = [
-  { id: 'director', titulo: 'Reporte General del Director', desc: 'KPIs globales, resumen de rendimiento por misión y estadísticas generales del sistema.', icon: FileText, roles: ['director', 'administrador'] },
-  { id: 'geografico', titulo: 'Cobertura Geográfica', desc: 'Personas atendidas por municipio, distribución geográfica de las misiones y porcentajes por zona.', icon: MapPin, roles: ['director', 'administrador'] },
-  { id: 'efectividad', titulo: 'Efectividad — Necesidades', desc: 'Necesidades reportadas vs atendidas, tasa de atención, brechas críticas y prioridades pendientes.', icon: Target, roles: ['director', 'administrador'] },
-  { id: 'insumos', titulo: 'Inventario de Insumos', desc: 'Insumos llevados vs dispensados, stock disponible por categoría y salidas por motivo.', icon: Package, roles: ['director', 'administrador'] },
-  { id: 'personal', titulo: 'Personal Desplegado', desc: 'Personal asignado por misión, composición por categoría, especialidades y carga de trabajo.', icon: Users, roles: ['director', 'administrador'] },
-  { id: 'atenciones', titulo: 'Atenciones Consolidado', desc: 'Atenciones por tipo, distribución por sexo y edad, vulnerabilidades identificadas y referencias.', icon: Heart, roles: ['director', 'administrador'] },
-  { id: 'actividad-personal', titulo: 'Actividad del Personal', desc: 'Volumen de atenciones por voluntario, misiones en las que participó y última actividad registrada.', icon: Activity, roles: ['director', 'administrador'] },
+  { id: 'director', titulo: 'Reporte General del Director', desc: 'KPIs globales, resumen de rendimiento por misión y estadísticas generales del sistema.', icon: FileText },
+  { id: 'geografico', titulo: 'Cobertura Geográfica', desc: 'Personas atendidas por municipio, distribución geográfica de las misiones y porcentajes por zona.', icon: MapPin },
+  { id: 'efectividad', titulo: 'Efectividad — Necesidades', desc: 'Necesidades reportadas vs atendidas, tasa de atención, brechas críticas y prioridades pendientes.', icon: Target },
+  { id: 'insumos', titulo: 'Inventario de Insumos', desc: 'Insumos llevados vs dispensados, stock disponible por categoría y salidas por motivo.', icon: Package },
+  { id: 'personal', titulo: 'Personal Desplegado', desc: 'Personal asignado por misión, composición por categoría, especialidades y carga de trabajo.', icon: Users },
+  { id: 'atenciones', titulo: 'Atenciones Consolidado', desc: 'Atenciones por tipo, distribución por sexo y edad, vulnerabilidades identificadas y referencias.', icon: Heart },
+  { id: 'actividad-personal', titulo: 'Actividad del Personal', desc: 'Volumen de atenciones por voluntario, misiones en las que participó y última actividad registrada.', icon: Activity },
 ]
 
 function iniciarReporte(id: string) {
@@ -115,11 +114,9 @@ onMounted(async () => {
           v-if="reporteActivo === 'efectividad'"
           :misiones="misionesStore.list"
           :necesidades="necesidadesStore.list"
-          :atendidos="atendidosStore.list"
         />
         <ReporteInsumos
           v-if="reporteActivo === 'insumos'"
-          :misiones="misionesStore.list"
           :insumos="insumosStore.list"
           :salidas="salidasStore.list"
         />

@@ -95,7 +95,7 @@ function formatDateTime(iso: string): string {
           </tr>
           <tr>
             <td class="info-label">Estatus</td>
-            <td class="info-value">{{ mission.estatus_mision === 'activa' ? 'Activa' : mission.estatus_mision === 'completada' ? 'Completada' : 'Cancelada' }}</td>
+            <td class="info-value">{{ mission.estatus_mision === 'activa' ? 'Activa' : mission.estatus_mision === 'completada' ? 'Completada' : mission.estatus_mision === 'cancelada' ? 'Cancelada' : '—' }}</td>
           </tr>
         </tbody>
       </table>
@@ -112,7 +112,7 @@ function formatDateTime(iso: string): string {
           </tr>
         </thead>
         <tbody>
-          <tr v-for="t in transportes" :key="t.numero_placa">
+          <tr v-for="t in transportes" :key="t.id">
             <td>{{ t.tipo_transporte }}</td>
             <td>{{ t.numero_placa }}</td>
             <td>{{ t.nombre_conductor }}</td>

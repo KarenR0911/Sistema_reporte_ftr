@@ -18,7 +18,7 @@ const carga = computed(() => {
     const entry = map[a.cedula_personal]!
     entry.atenciones++
     entry.misiones.add(a.id_mision)
-    if (a.fecha_hora_atencion && a.fecha_hora_atencion > entry.ultima) {
+    if (a.fecha_hora_atencion && new Date(a.fecha_hora_atencion).getTime() > new Date(entry.ultima).getTime()) {
       entry.ultima = a.fecha_hora_atencion
     }
   }

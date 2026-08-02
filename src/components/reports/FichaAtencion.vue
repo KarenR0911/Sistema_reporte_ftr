@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { Atendido, Mision, PersonalMision } from '@/types'
+import { parseVuln, labelVuln } from '@/lib/vulnerabilidad'
 
 const props = defineProps<{
   atendido: Atendido
@@ -28,12 +29,8 @@ function labelSexo(val: string | null): string {
   return val === 'masculino' ? 'Masculino' : val === 'femenino' ? 'Femenino' : val === 'otro' ? 'Otro' : '—'
 }
 
-function labelVuln(v: string): string {
-  const m: Record<string, string> = {
-    embarazada: 'Embarazada', discapacidad: 'Discapacidad', adulto_mayor: 'Adulto Mayor',
-    menor_no_acompanado: 'Menor no Acompañado', enfermedad_cronica: 'Enfermedad Crónica', otro: 'Otra',
-  }
-  return m[v] ?? v
+function labelBool(val: boolean | null | undefined): string {
+  return val == null ? '—' : val ? 'Sí' : 'No'
 }
 
 function formatDateTime(iso: string): string {
@@ -73,15 +70,15 @@ function formatDateTime(iso: string): string {
           <tr><td class="info-label">Sexo</td><td class="info-value">{{ labelSexo(atendido.sexo) }}</td></tr>
           <tr v-if="area === 'veterinaria'">
             <td class="info-label">Posee tutor</td>
-            <td class="info-value">{{ atendido.posee_tutor ? 'Sí' : 'No' }}</td>
+            <td class="info-value">{{ labelBool(atendido.posee_tutor) }}</td>
           </tr>
           <tr v-if="area === 'veterinaria'">
             <td class="info-label">Rescatado</td>
-            <td class="info-value">{{ atendido.rescatado ? 'Sí' : 'No' }}</td>
+            <td class="info-value">{{ labelBool(atendido.rescatado) }}</td>
           </tr>
           <tr v-if="area === 'veterinaria'">
             <td class="info-label">En adopción</td>
-            <td class="info-value">{{ atendido.en_adopcion ? 'Sí' : 'No' }}</td>
+            <td class="info-value">{{ labelBool(atendido.en_adopcion) }}</td>
           </tr>
         </tbody>
       </table>
@@ -106,7 +103,7 @@ function formatDateTime(iso: string): string {
           </template>
           <template v-if="area === 'general'">
             <tr><td class="info-label">Tipo de Atención</td><td class="info-value">{{ labelTipoAtencion(atendido.tipo_atencion) }}</td></tr>
-            <tr><td class="info-label">Requiere Referencia</td><td class="info-value">{{ atendido.referido ? 'Sí' : 'No' }}</td></tr>
+            <tr><td class="info-label">Requiere Referencia</td><td class="info-value">{{ labelBool(atendido.referido) }}</td></tr>
           </template>
           <tr><td class="info-label">Fecha y Hora</td><td class="info-value">{{ formatDateTime(atendido.fecha_hora_atencion) }}</td></tr>
         </tbody>
@@ -116,7 +113,7 @@ function formatDateTime(iso: string): string {
     <div v-if="area === 'general' && atendido.vulnerabilidad" class="report-section">
       <h2 class="section-title">Vulnerabilidades</h2>
       <div class="flex flex-wrap gap-2 mt-1">
-        <span v-for="v in (atendido.vulnerabilidad ?? [])" :key="v" class="vuln-badge">{{ labelVuln(v) }}</span>
+        <span v-for="v in parseVuln(atendido.vulnerabilidad)" :key="v" class="vuln-badge">{{ labelVuln(v) }}</span>
       </div>
     </div>
 

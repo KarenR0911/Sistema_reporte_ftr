@@ -24,21 +24,20 @@ const porCategoria = computed(() => {
 
 const porMision = computed(() => {
   const misionMap = new Map(props.misiones.map(m => [m.id, m]))
-  const c: Record<string, { personal: number; atendidos: number; lista: PersonalMision[] }> = {}
+  const c: Record<string, { id: string; nombre: string; personal: number; atendidos: number; lista: PersonalMision[] }> = {}
   for (const p of props.personales) {
     const m = misionMap.get(p.id_mision)
-    const key = m ? `${m.municipio} — ${m.direccion}` : p.id_mision
-    if (!c[key]) c[key] = { personal: 0, atendidos: 0, lista: [] }
-    c[key].personal++
-    c[key].lista.push(p)
+    const entry = c[p.id_mision] ?? { id: p.id_mision, nombre: m ? `${m.municipio} — ${m.direccion}` : p.id_mision.slice(0, 8), personal: 0, atendidos: 0, lista: [] }
+    entry.personal++
+    entry.lista.push(p)
+    c[p.id_mision] = entry
   }
   for (const a of props.atendidos) {
-    const m = misionMap.get(a.id_mision)
-    const key = m ? `${m.municipio} — ${m.direccion}` : a.id_mision
-    if (!c[key]) c[key] = { personal: 0, atendidos: 0, lista: [] }
-    c[key].atendidos++
+    const entry = c[a.id_mision]
+    if (!entry) continue
+    entry.atendidos++
   }
-  return Object.entries(c).map(([mision, data]) => ({ mision, ...data }))
+  return Object.values(c)
 })
 
 const especialidades = computed(() => {
@@ -53,7 +52,7 @@ const especialidades = computed(() => {
 const hasData = computed(() => props.personales.length > 0)
 
 function labelCategoria(val: string): string {
-  return val === 'estudiante' ? 'Estudiante' : val === 'profesional' ? 'Profesional' : 'Voluntario'
+  return val === 'estudiante' ? 'Estudiante' : val === 'profesional' ? 'Profesional' : val === 'voluntario' ? 'Voluntario' : '—'
 }
 </script>
 
@@ -123,8 +122,8 @@ function labelCategoria(val: string): string {
           </tr>
         </thead>
         <tbody>
-          <tr v-for="r in porMision" :key="r.mision">
-            <td>{{ r.mision }}</td>
+          <tr v-for="r in porMision" :key="r.id">
+            <td>{{ r.nombre }}</td>
             <td class="text-center">{{ r.personal }}</td>
             <td class="text-center">{{ r.atendidos }}</td>
           </tr>
