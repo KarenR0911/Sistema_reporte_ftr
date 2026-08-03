@@ -13,6 +13,7 @@ export const useAuthStore = defineStore('auth', () => {
   const accessToken = ref<string | null>(null)
 
   const isAuthenticated = computed(() => currentUser.value !== null)
+  const isAuthorized = computed(() => currentUser.value !== null && currentUser.value.activo)
   const userRole = computed<RolUsuario | null>(() => currentUser.value?.rol ?? null)
 
   function mapPerfilToUser(p: Record<string, unknown>): Usuario {
@@ -135,5 +136,5 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
-  return { currentUser, usuarios, accessToken, isAuthenticated, userRole, login, logout, loadUsuarios, restoreSession }
+  return { currentUser, usuarios, accessToken, isAuthenticated, isAuthorized, userRole, login, logout, loadUsuarios, restoreSession }
 })

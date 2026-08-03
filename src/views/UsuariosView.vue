@@ -33,6 +33,7 @@ const formRol = ref('')
 const formCategoriaVoluntariado = ref<string>('')
 const formEspecialidad = ref('')
 const formAreaVoluntariado = ref('')
+const formActivo = ref(true)
 const formErrors = ref<Record<string, string>>({})
 
 function handleCedulaInput(val: string | number | null) {
@@ -170,10 +171,15 @@ async function saveUser() {
     nombre: formNombre.value,
     email,
     rol: formRol.value as Usuario['rol'],
-    activo: true,
+    activo: formActivo.value,
     categoria_voluntariado: esPersonal ? (formCategoriaVoluntariado.value as CategoriaVoluntariado) : undefined,
     especialidad: esPersonal ? formEspecialidad.value : '',
     area_voluntariado: esPersonal ? formAreaVoluntariado.value : '',
+  }
+
+  if (!isNew && editingUser.value?.id === auth.currentUser?.id && !formActivo.value) {
+    toast.error('No puedes desactivar tu propia cuenta')
+    return
   }
 
   if (navigator.onLine && isNew) {
@@ -232,6 +238,7 @@ async function saveUser() {
       cedula: user.cedula,
       nombre: user.nombre,
       rol: user.rol,
+      activo: user.activo,
       categoria_voluntariado: user.categoria_voluntariado ?? null,
       especialidad: user.especialidad ?? '',
       area_voluntariado: user.area_voluntariado ?? '',
@@ -257,6 +264,7 @@ function editUser(u: Usuario) {
   formNombre.value = u.nombre
   formEmail.value = u.email
   formRol.value = u.rol
+  formActivo.value = u.activo
   formCategoriaVoluntariado.value = u.categoria_voluntariado ?? ''
   formEspecialidad.value = u.especialidad ?? ''
   formAreaVoluntariado.value = u.area_voluntariado ?? ''
@@ -320,6 +328,7 @@ function resetForm() {
   formNombre.value = ''
   formEmail.value = ''
   formRol.value = ''
+  formActivo.value = true
   formCategoriaVoluntariado.value = ''
   formEspecialidad.value = ''
   formAreaVoluntariado.value = ''
@@ -459,6 +468,13 @@ onMounted(async () => {
                 ]"
               />
             </template>
+            <label
+              v-if="editingUser"
+              class="flex items-center gap-2 text-sm text-text-secondary cursor-pointer select-none"
+            >
+              <input type="checkbox" v-model="formActivo" class="accent-primary w-4 h-4" />
+              {{ formActivo ? 'Usuario activo' : 'Usuario inactivo' }}
+            </label>
           </div>
           <div class="flex gap-2">
             <BaseButton variant="primary" @click="saveUser">Guardar</BaseButton>

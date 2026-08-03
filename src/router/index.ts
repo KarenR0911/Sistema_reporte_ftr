@@ -1,6 +1,7 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import LoginView from '@/views/LoginView.vue'
+import DesautorizadoView from '@/views/DesautorizadoView.vue'
 import AppLayout from '@/components/layout/AppLayout.vue'
 
 const router = createRouter({
@@ -10,6 +11,12 @@ const router = createRouter({
       path: '/login',
       name: 'login',
       component: LoginView,
+    },
+    {
+      path: '/desautorizado',
+      name: 'desautorizado',
+      component: DesautorizadoView,
+      meta: { requiresAuth: true },
     },
     {
       path: '/',
@@ -91,6 +98,18 @@ router.beforeEach(async (to) => {
 
   if (to.meta.requiresAuth && !auth.isAuthenticated) {
     return '/login'
+  }
+
+  const inactive = auth.isAuthenticated && !auth.isAuthorized
+
+  if (to.path === '/desautorizado') {
+    if (!auth.isAuthenticated) return '/login'
+    if (!inactive) return '/dashboard'
+    return true
+  }
+
+  if (inactive) {
+    return '/desautorizado'
   }
 
   if (to.path === '/login' && auth.isAuthenticated) {
