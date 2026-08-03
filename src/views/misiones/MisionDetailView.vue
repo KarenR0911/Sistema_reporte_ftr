@@ -9,11 +9,12 @@ import BaseTable from '@/components/ui/BaseTable.vue'
 import PersonalSelector from '@/components/ui/PersonalSelector.vue'
 import ConfirmDialog from '@/components/ui/ConfirmDialog.vue'
 import StatusBadge from '@/components/ui/StatusBadge.vue'
-import { ClipboardList, CheckCircle, ArrowLeft, Plus, Package, Eye, ChevronDown, FileText } from '@lucide/vue'
+import { ClipboardList, CheckCircle, ArrowLeft, Plus, Package, Eye, ChevronDown, FileText, PawPrint } from '@lucide/vue'
 import MisionCharts from '@/components/charts/MisionCharts.vue'
 import MisionReport from '@/components/reports/MisionReport.vue'
 import PlanMision from '@/components/reports/PlanMision.vue'
 import FichaAtencion from '@/components/reports/FichaAtencion.vue'
+import ReporteVeterinario from '@/components/reports/ReporteVeterinario.vue'
 import { useMisionesStore } from '@/stores/misiones'
 import { useTransporteStore } from '@/stores/transporte'
 import { usePersonalStore } from '@/stores/personal'
@@ -184,7 +185,8 @@ async function confirmComplete() {
   router.push('/misiones')
 }
 
-const printing = ref<'none' | 'report' | 'plan'>('none')
+const printing = ref<'none' | 'report' | 'plan' | 'vet'>('none')
+const showVetResumen = ref(false)
 const showAddInsumoForm = ref(false)
 const fichaAtendido = ref<Atendido | null>(null)
 const printFicha = ref(false)
@@ -240,6 +242,26 @@ function showFicha(a: Atendido) {
   })
 }
 
+const veterinariosMision = computed(() => atendidos.value.filter((a) => a.area_registro === 'veterinaria'))
+const vetConTutor = computed(() => veterinariosMision.value.filter((a) => a.posee_tutor).length)
+const vetRescatados = computed(() => veterinariosMision.value.filter((a) => a.rescatado).length)
+const vetEnAdopcion = computed(() => veterinariosMision.value.filter((a) => a.en_adopcion).length)
+const vetPorEspecie = computed(() => {
+  const map = new Map<string, number>()
+  for (const a of veterinariosMision.value) {
+    const e = a.especie?.trim() || 'Sin especificar'
+    map.set(e, (map.get(e) ?? 0) + 1)
+  }
+  return [...map.entries()].map(([especie, total]) => ({ especie, total }))
+})
+
+async function printVetReport() {
+  printing.value = 'vet'
+  await nextTick()
+  await new Promise((r) => setTimeout(r, 300))
+  window.print()
+}
+
 function onAfterPrint() {
   printing.value = 'none'
   printFicha.value = false
@@ -292,6 +314,9 @@ onUnmounted(() => {
         </BaseButton>
         <BaseButton v-if="canFinalize" variant="ghost" @click="printPlan">
           <ClipboardList :size="18" /> Plan
+        </BaseButton>
+        <BaseButton v-if="canEdit && veterinariosMision.length" variant="ghost" @click="printVetReport">
+          <PawPrint :size="18" /> Reporte Veterinario
         </BaseButton>
         <BaseButton v-if="canFinalize && mission.estatus_mision === 'activa'" variant="secondary" @click="openCompleteModal" :disabled="!isOnline">
           <CheckCircle :size="18" /> {{ isOnline ? 'Completar Misión' : 'Requiere conexión' }}
@@ -454,6 +479,41 @@ onUnmounted(() => {
           </div>
         </template>
       </BaseTable>
+    </BaseCard>
+
+    <BaseCard v-if="veterinariosMision.length" title="Resumen Veterinario de la Misión">
+      <button class="w-full flex items-center justify-between gap-2" @click="showVetResumen = !showVetResumen">
+        <span class="text-text-secondary text-sm">{{ veterinariosMision.length }} registro(s) veterinario(s)</span>
+        <ChevronDown :size="18" :class="showVetResumen ? 'rotate-180' : ''" />
+      </button>
+      <div v-if="showVetResumen" class="mt-4 space-y-4">
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <div class="bg-bg rounded-lg p-4">
+            <p class="text-xs text-text-secondary m-0">Total</p>
+            <p class="text-2xl font-bold text-brand m-0">{{ veterinariosMision.length }}</p>
+          </div>
+          <div class="bg-bg rounded-lg p-4">
+            <p class="text-xs text-text-secondary m-0">Con tutor</p>
+            <p class="text-2xl font-bold text-brand m-0">{{ vetConTutor }}</p>
+          </div>
+          <div class="bg-bg rounded-lg p-4">
+            <p class="text-xs text-text-secondary m-0">Rescatados</p>
+            <p class="text-2xl font-bold text-brand m-0">{{ vetRescatados }}</p>
+          </div>
+          <div class="bg-bg rounded-lg p-4">
+            <p class="text-xs text-text-secondary m-0">En adopción</p>
+            <p class="text-2xl font-bold text-brand m-0">{{ vetEnAdopcion }}</p>
+          </div>
+        </div>
+        <BaseTable
+          v-if="vetPorEspecie.length"
+          :columns="[
+            { key: 'especie', label: 'Especie' },
+            { key: 'total', label: 'Total' },
+          ]"
+          :rows="vetPorEspecie as unknown as Record<string, unknown>[]"
+        />
+      </div>
     </BaseCard>
 
     <BaseCard title="Necesidades">
@@ -642,6 +702,13 @@ onUnmounted(() => {
           :transportes="transportes"
           :personales="personales"
           :insumos="insumosMision"
+        />
+        <ReporteVeterinario
+          v-if="printing === 'vet'"
+          :misiones="[mission!]"
+          :atendidos="veterinariosMision"
+          :personales="personales"
+          titulo="Reporte Veterinario de la Misión"
         />
       </div>
     </Teleport>

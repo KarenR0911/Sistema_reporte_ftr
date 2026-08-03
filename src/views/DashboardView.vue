@@ -197,7 +197,7 @@ onMounted(async () => {
         <span class="text-sm text-text-secondary">Mis Misiones Activas</span>
       </BaseCard>
       <BaseCard v-if="role === 'personal'" class="flex flex-col items-center text-center gap-1!">
-        <span class="text-4xl font-extrabold text-brand">{{ totalAtendidos }}</span>
+        <span class="text-4xl font-extrabold text-brand">{{ misAtenciones.length }}</span>
         <span class="text-sm text-text-secondary">Personas Atendidas</span>
       </BaseCard>
     </div>
