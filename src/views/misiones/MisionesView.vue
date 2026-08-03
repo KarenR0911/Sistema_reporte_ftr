@@ -42,7 +42,7 @@ onMounted(async () => {
     <div v-else class="flex flex-col gap-4 md:gap-6">
     <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
       <h1 class="text-2xl text-brand m-0">Misiones</h1>
-      <BaseButton variant="primary" @click="router.push('/misiones/nueva')">
+      <BaseButton v-if="role === 'director' || role === 'administrador'" variant="primary" @click="router.push('/misiones/nueva')">
         + Nueva Misión
       </BaseButton>
     </div>
@@ -50,7 +50,7 @@ onMounted(async () => {
     <BaseCard title="Todas las Misiones">
       <BaseTable :columns="misionColumns" :rows="misionesStore.list as unknown as Record<string, unknown>[]">
         <template #cell-estatus_mision="{ value }">
-          <StatusBadge :status="value as string" type="mision" />
+          <StatusBadge :status="value as string" />
         </template>
         <template #cell-acciones="{ row }">
           <div class="flex gap-1">

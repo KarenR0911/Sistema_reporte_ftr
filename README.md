@@ -23,6 +23,20 @@ PWA Offline-First para el registro y gestión de misiones, atenciones y necesida
 | BBDD Offline | IndexedDB (vía idb) |
 | Build | Vite |
 
+## Decisiones de diseño
+
+### Autenticación: solo online
+El login requiere conexión a internet. No existe login offline. Una vez autenticado, la sesión persiste vía `LAST_USER_KEY` en localStorage para que el usuario pueda operar la app sin conexión durante una misión en campo.
+
+### Creación de usuarios: solo online
+La creación de usuarios (director, administrador, coordinador, personal) solo puede hacerse con conexión a internet. No tiene sentido crear usuarios offline. El botón "+ Nuevo Usuario" queda visible solo online. El email se proporciona al crear el usuario (solo editable en la creación; no se modifica al editar).
+
+### Contraseña por defecto
+La contraseña se genera como `V` + cédula del usuario (ej. `V-12345678` → `V12345678`). Es una funcionalidad deliberada para facilitar el despliegue en campo. El administrador debe indicar al usuario que cambie su contraseña en el primer inicio de sesión.
+
+### Offline-first solo en misión activa
+La app almacena datos localmente en IndexedDB para permitir el registro de atenciones y necesidades en zonas sin cobertura. Cuando hay conexión, los datos se sincronizan inmediatamente con Supabase. Las pantallas de administración (usuarios, dashboard, reportes) requieren conexión para funcionar correctamente.
+
 ## Roles de usuario
 
 | Rol | Permisos |
@@ -45,6 +59,7 @@ PWA Offline-First para el registro y gestión de misiones, atenciones y necesida
 | `insumos` | Insumos llevados a cada misión |
 | `atendidos` | Personas atendidas en cada misión |
 | `necesidades` | Necesidades reportadas en cada misión |
+| `salidas_insumos` | Dispensación de insumos en campo |
 
 ### Convenciones
 
@@ -53,15 +68,17 @@ PWA Offline-First para el registro y gestión de misiones, atenciones y necesida
 
 ## Estrategia de sincronización
 
-1. **Offline:** Todos los datos se guardan en IndexedDB con `status_sync: 'pending'`
-2. **Auto-sync:** Al detectar conexión (`navigator.onLine`), se envía a Supabase en orden:
+1. **Online:** Cada store intenta enviar a Supabase inmediatamente al crear/actualizar/eliminar un registro. Si la conexión falla, guarda localmente como `pending`.
+2. **Offline:** Todos los datos se guardan en IndexedDB con `status_sync: 'pending'`.
+3. **Auto-sync:** Al detectar conexión (`navigator.onLine`), se envía a Supabase en orden:
    1. Misiones
    2. Transporte
    3. Personal
    4. Insumos
    5. Atendidos
    6. Necesidades
-3. **Status remoto:** Tras sincronizar, se actualiza `status_sync = 'synced'` en Supabase
+   7. Salidas de insumos
+4. **Status remoto:** Tras sincronizar, se actualiza `status_sync = 'synced'` en IndexedDB.
 
 ## Configuración del proyecto
 
@@ -98,6 +115,8 @@ supabase migration list
 supabase migration repair --status applied <timestamp>
 ```
 
+Nota: la migración `20260725_fix_handle_new_user_trigger.sql` fue eliminada del historial en `20260731` (sus efectos fueron absorbidos por la migración `20260731_add_email_to_perfiles.sql`, que re-agrega la columna `email` a `perfiles` y reescribe `handle_new_user()`).
+
 ## Eliminación de usuarios
 
 La eliminación permanente se hace desde el cliente autenticado (solo rol `director`):
@@ -121,10 +140,22 @@ Hay una Edge Function `delete-user` desplegada que sí borra de `auth.users` + `
 |---|---|---|
 | 1 | Columna `area_voluntariado` faltante en `personal_mision` | Migración SQL |
 | 2 | Auto-sync no se dispara tras CRUD | `syncTrigger.ts`, `useSync.ts`, 6 stores |
-| 3 | `status_sync` nunca queda `synced` remotamente | `useSync.ts` (strip del payload + update remoto) |
-| 4 | Input concatenation en `cedula_personal` | Ya corregido en código base |
-| 5 | Offline login sin validación | `auth.ts` (solo session restore) |
+| 3 | `status_sync` nunca queda `synced` remotamente | `useSync.ts` |
+| 4 | Input concatenation en `cedula_personal` | Ya corregido |
+| 5 | Offline login sin validación | `auth.ts` |
 | 6 | Código muerto en DashboardView | `DashboardView.vue` |
 | 7 | Password hardcodeada `'123456'` | `UsuariosView.vue` (ahora `V` + cédula) |
 | 8 | Validación Zod en formularios | `schemas.ts` + 5 views |
-| 9 | Eliminación real de usuarios | `UsuariosView.vue` (DELETE a perfiles + IDB) |
+| 9 | Eliminación real de usuarios | `UsuariosView.vue` |
+| 10 | `seedUsuariosIfNeeded` escribía datos dummy sobre IndexedDB | `setup.ts`, `main.ts` |
+| 11 | Trigger `handle_new_user` no sobrescribía rol tras signup | `UsuariosView.vue` |
+| 12 | `usePrint()` acumulaba listeners duplicados | `composables/usePrint.ts` |
+| 13 | Store `necesidades` sin `refresh()` ni branching online/offline | `stores/necesidades.ts` |
+| 14 | `useSync()` llamado en 2 componentes (race condition) | `App.vue` |
+| 15 | `refreshAllStores()` sin `transporteStore` | `composables/useSync.ts` |
+| 16 | `initializeApp()` sin check offline | `lib/setup.ts` |
+| 17 | `PersonalSelector.vue` sin try/catch en `loadFromSupabase` | `components/ui/PersonalSelector.vue` |
+| 18 | `mapArea()` asignaba "Medicina Veterinaria" a medicina humana | `NuevaAtencionView.vue` |
+| 19 | `personal_mision` con `area_voluntariado` desactualizada; ahora se prioriza el perfil del usuario | `NuevaAtencionView.vue` |
+| 20 | Especialidad persistía al cambiar categoría de profesional a estudiante/voluntario | `UsuariosView.vue` |
+| 21 | Email era auto-generado como `{cedula}@ftr.app`; ahora el admin provee un email real al crear el usuario | `UsuariosView.vue`, `schemas.ts`, `BaseInput.vue` |

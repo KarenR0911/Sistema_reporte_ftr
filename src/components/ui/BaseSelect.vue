@@ -8,6 +8,7 @@ defineProps<{
   required?: boolean
   error?: string
   name?: string
+  disabled?: boolean
 }>()
 
 defineEmits<{
@@ -26,9 +27,10 @@ const id = useId()
       :id="id"
       :name="name"
       class="font-sans px-3.5 py-2.5 border rounded-lg text-sm bg-white transition-colors cursor-pointer focus:outline-none focus:ring-3 focus:ring-primary/10"
-      :class="error ? 'border-danger' : 'border-border focus:border-primary'"
+      :class="[error ? 'border-danger' : 'border-border focus:border-primary', disabled ? 'opacity-60 cursor-not-allowed' : '']"
       :value="modelValue"
       :required="required"
+      :disabled="disabled"
       @change="$emit('update:modelValue', ($event.target as HTMLSelectElement).value)"
     >
       <option value="" disabled>Seleccionar...</option>

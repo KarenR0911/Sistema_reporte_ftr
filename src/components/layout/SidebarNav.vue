@@ -27,11 +27,13 @@ const menuItems = computed<NavItem[]>(() => {
   items.push({ label: 'Dashboard', icon: LayoutDashboard, to: '/dashboard' })
   if (role === 'director' || role === 'administrador' || role === 'coordinador') {
     items.push({ label: 'Misiones', icon: ClipboardList, to: '/misiones' })
-    items.push({ label: 'Nueva Misión', icon: Rocket, to: '/misiones/nueva' })
   }
   if (role === 'director' || role === 'administrador') {
-    items.push({ label: 'Reportes', icon: FileText, to: '/reportes' })
+    items.push({ label: 'Nueva Misión', icon: Rocket, to: '/misiones/nueva' })
     items.push({ label: 'Usuarios', icon: Users, to: '/usuarios' })
+  }
+  if (role === 'director' || role === 'administrador' || role === 'coordinador') {
+    items.push({ label: 'Reportes', icon: FileText, to: '/reportes' })
   }
   items.push({ label: 'Mi Perfil', icon: User, to: '/perfil' })
   return items

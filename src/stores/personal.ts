@@ -1,8 +1,9 @@
 import { ref } from 'vue'
 import { defineStore } from 'pinia'
-import type { PersonalMision } from '@/types'
-import { getAll, putItem, deleteItem } from '@/db'
+import type { PersonalMision, StatusSync } from '@/types'
+import { getAll, addItem, putItem, deleteItem, addDeletedId } from '@/db'
 import { getSupabase } from '@/lib/supabase'
+import { markNeedsSync } from '@/lib/syncTrigger'
 import { withTimeout } from '@/lib/async'
 
 export const usePersonalStore = defineStore('personal', () => {
@@ -10,13 +11,38 @@ export const usePersonalStore = defineStore('personal', () => {
   const loaded = ref(false)
 
   async function refresh() {
-    const sb = getSupabase()
-    const { data, error } = await withTimeout(sb.from('personal_mision').select('*'))
-    if (!error && data) {
+    try {
+      const sb = getSupabase()
+      const { data } = await withTimeout(sb.from('personal_mision').select('*'))
+      if (!data) return
+
+      const localItems = await getAll<PersonalMision>('personal')
+      const pendingIds = new Set(localItems.filter((r) => r.status_sync === 'pending').map((r) => r.id))
+      const serverIds = new Set(data.map((r) => r.id))
+
       for (const row of data) {
-        await putItem('personal', { ...row, status_sync: 'synced' as const })
+        if (!pendingIds.has(row.id)) {
+          await putItem('personal', { ...row, status_sync: 'synced' as const })
+        }
       }
-      list.value = data.map((r) => ({ ...r, status_sync: 'synced' as const })) as PersonalMision[]
+
+      for (const local of localItems) {
+        if (local.status_sync !== 'pending' && !serverIds.has(local.id)) {
+          await deleteItem('personal', local.id)
+        }
+      }
+
+      const synced = data.map((r) => ({ ...r, status_sync: 'synced' as const })) as PersonalMision[]
+      const pending = localItems.filter((r) => r.status_sync === 'pending')
+      const merged = [...synced, ...pending]
+      const seen = new Set<string>()
+      list.value = merged.filter((item) => {
+        if (seen.has(item.id)) return false
+        seen.add(item.id)
+        return true
+      })
+    } catch {
+      // fallo silencioso en background
     }
   }
 
@@ -27,7 +53,7 @@ export const usePersonalStore = defineStore('personal', () => {
       loaded.value = true
 
       if (navigator.onLine) {
-        refresh()
+        await refresh()
       }
     } catch (err) {
       console.error('personalStore.load error:', err)
@@ -40,28 +66,57 @@ export const usePersonalStore = defineStore('personal', () => {
   }
 
   async function create(item: PersonalMision) {
-    const sb = getSupabase()
-    const { error } = await withTimeout(sb.from('personal_mision').insert({
-      id: item.id,
-      id_mision: item.id_mision,
-      cedula: item.cedula,
-      nombre: item.nombre,
-      categoria_voluntariado: item.categoria_voluntariado,
-      especialidad: item.especialidad,
-      area_voluntariado: item.area_voluntariado,
-    }))
-    if (error) throw error
-    await putItem('personal', { ...item, status_sync: 'synced' as const })
-    list.value.push(item)
+    const clone = { ...item, status_sync: 'pending' as StatusSync }
+
+    if (navigator.onLine) {
+      try {
+        const sb = getSupabase()
+        const insertPromise = sb.from('personal_mision').insert({
+          id: clone.id,
+          id_mision: clone.id_mision,
+          cedula: clone.cedula,
+          nombre: clone.nombre,
+          categoria_voluntariado: clone.categoria_voluntariado,
+          especialidad: clone.especialidad,
+          area_voluntariado: clone.area_voluntariado,
+        })
+        const { error } = await withTimeout(insertPromise)
+        if (!error) {
+          clone.status_sync = 'synced'
+          await putItem('personal', clone)
+          list.value.push(clone)
+          return
+        }
+      } catch {
+        // timeout o error — guardar local como pending
+      }
+    }
+
+    await addItem('personal', clone)
+    list.value.push(clone)
+    markNeedsSync()
   }
 
   async function remove(id: string) {
-    const sb = getSupabase()
-    const { error } = await withTimeout(sb.from('personal_mision').delete().eq('id', id))
-    if (error) throw error
+    if (navigator.onLine) {
+      try {
+        const sb = getSupabase()
+        const { error } = await withTimeout(sb.from('personal_mision').delete().eq('id', id))
+        if (!error) {
+          await deleteItem('personal', id)
+          list.value = list.value.filter((p) => p.id !== id)
+          return
+        }
+      } catch {
+        // timeout — marcar para borrar luego
+      }
+    }
+
     await deleteItem('personal', id)
+    await addDeletedId('personal', id)
     list.value = list.value.filter((p) => p.id !== id)
+    markNeedsSync()
   }
 
-  return { list, loaded, load, getByMision, create, remove }
+  return { list, loaded, load, refresh, getByMision, create, remove }
 })

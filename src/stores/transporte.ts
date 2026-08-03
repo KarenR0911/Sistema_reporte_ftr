@@ -1,8 +1,9 @@
 import { ref } from 'vue'
 import { defineStore } from 'pinia'
-import type { Transporte } from '@/types'
-import { getAll, putItem, deleteItem } from '@/db'
+import type { Transporte, StatusSync } from '@/types'
+import { getAll, addItem, putItem, deleteItem, addDeletedId } from '@/db'
 import { getSupabase } from '@/lib/supabase'
+import { markNeedsSync } from '@/lib/syncTrigger'
 import { withTimeout } from '@/lib/async'
 
 export const useTransporteStore = defineStore('transporte', () => {
@@ -12,14 +13,36 @@ export const useTransporteStore = defineStore('transporte', () => {
   async function refresh() {
     try {
       const sb = getSupabase()
-      const { data, error } = await withTimeout(sb.from('transporte').select('*'))
-      if (!error && data) {
-        for (const row of data) {
+      const { data } = await withTimeout(sb.from('transporte').select('*'))
+      if (!data) return
+
+      const localItems = await getAll<Transporte>('transporte')
+      const pendingIds = new Set(localItems.filter((r) => r.status_sync === 'pending').map((r) => r.id))
+
+      for (const row of data) {
+        if (!pendingIds.has(row.id)) {
           await putItem('transporte', { ...row, status_sync: 'synced' as const })
         }
-        list.value = data.map((r) => ({ ...r, status_sync: 'synced' as const })) as Transporte[]
       }
+
+      const serverIds = new Set(data.map((r) => r.id))
+      for (const local of localItems) {
+        if (local.status_sync !== 'pending' && !serverIds.has(local.id)) {
+          await deleteItem('transporte', local.id)
+        }
+      }
+
+      const synced = data.map((r) => ({ ...r, status_sync: 'synced' as const })) as Transporte[]
+      const pending = localItems.filter((r) => r.status_sync === 'pending')
+      const merged = [...synced, ...pending]
+      const seen = new Set<string>()
+      list.value = merged.filter((item) => {
+        if (seen.has(item.id)) return false
+        seen.add(item.id)
+        return true
+      })
     } catch {
+      // fallo silencioso en background
     }
   }
 
@@ -43,38 +66,84 @@ export const useTransporteStore = defineStore('transporte', () => {
   }
 
   async function create(item: Transporte) {
-    const sb = getSupabase()
-    const { error } = await sb.from('transporte').insert({
-      id: item.id,
-      id_mision: item.id_mision,
-      tipo_transporte: item.tipo_transporte,
-      numero_placa: item.numero_placa,
-      nombre_conductor: item.nombre_conductor,
-    })
-    if (error) throw error
-    await putItem('transporte', { ...item, status_sync: 'synced' as const })
-    list.value.push(item)
+    const clone = { ...item, status_sync: 'pending' as StatusSync }
+
+    if (navigator.onLine) {
+      try {
+        const sb = getSupabase()
+        const insertPromise = sb.from('transporte').insert({
+          id: clone.id,
+          id_mision: clone.id_mision,
+          tipo_transporte: clone.tipo_transporte,
+          numero_placa: clone.numero_placa,
+          nombre_conductor: clone.nombre_conductor,
+        })
+        const { error } = await withTimeout(insertPromise)
+        if (!error) {
+          clone.status_sync = 'synced'
+          await putItem('transporte', clone)
+          list.value.push(clone)
+          return
+        }
+      } catch {
+        // timeout o error — guardar local como pending
+      }
+    }
+
+    await addItem('transporte', clone)
+    list.value.push(clone)
+    markNeedsSync()
   }
 
   async function update(item: Transporte) {
-    const sb = getSupabase()
-    const { error } = await sb.from('transporte').update({
-      tipo_transporte: item.tipo_transporte,
-      numero_placa: item.numero_placa,
-      nombre_conductor: item.nombre_conductor,
-    }).eq('id', item.id)
-    if (error) throw error
-    await putItem('transporte', { ...item, status_sync: 'synced' as const })
-    const idx = list.value.findIndex((t) => t.id === item.id)
-    if (idx !== -1) list.value[idx] = item
+    const clone = { ...item, status_sync: 'pending' as StatusSync }
+
+    if (navigator.onLine) {
+      try {
+        const sb = getSupabase()
+        const updatePromise = sb.from('transporte').update({
+          tipo_transporte: clone.tipo_transporte,
+          numero_placa: clone.numero_placa,
+          nombre_conductor: clone.nombre_conductor,
+        }).eq('id', clone.id)
+        const { error } = await withTimeout(updatePromise)
+        if (!error) {
+          clone.status_sync = 'synced'
+          await putItem('transporte', clone)
+          const idx = list.value.findIndex((t) => t.id === clone.id)
+          if (idx !== -1) list.value[idx] = clone
+          return
+        }
+      } catch {
+        // timeout o error — guardar local como pending
+      }
+    }
+
+    await putItem('transporte', clone)
+    const idx = list.value.findIndex((t) => t.id === clone.id)
+    if (idx !== -1) list.value[idx] = clone
+    markNeedsSync()
   }
 
   async function remove(id: string) {
-    const sb = getSupabase()
-    const { error } = await sb.from('transporte').delete().eq('id', id)
-    if (error) throw error
+    if (navigator.onLine) {
+      try {
+        const sb = getSupabase()
+        const { error } = await withTimeout(sb.from('transporte').delete().eq('id', id))
+        if (!error) {
+          await deleteItem('transporte', id)
+          list.value = list.value.filter((t) => t.id !== id)
+          return
+        }
+      } catch {
+        // timeout — marcar para borrar luego
+      }
+    }
+
     await deleteItem('transporte', id)
+    await addDeletedId('transporte', id)
     list.value = list.value.filter((t) => t.id !== id)
+    markNeedsSync()
   }
 
   return { list, loaded, load, getByMision, create, update, remove }

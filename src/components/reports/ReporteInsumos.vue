@@ -1,44 +1,36 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import type { Mision, InsumoLlevado, SalidaInsumo } from '@/types'
+import type { InsumoLlevado, SalidaInsumo } from '@/types'
 
 const props = defineProps<{
-  misiones: Mision[]
   insumos: InsumoLlevado[]
   salidas: SalidaInsumo[]
 }>()
 
-const totalLlevado = computed(() => props.insumos.reduce((s, i) => s + i.cantidad, 0))
-const totalDispensado = computed(() => props.salidas.reduce((s, s2) => s + s2.cantidad, 0))
-const totalDisponible = computed(() => totalLlevado.value - totalDispensado.value)
+const insumoIds = computed(() => new Set(props.insumos.map(i => i.id)))
+const salidasValidas = computed(() => props.salidas.filter(s => insumoIds.value.has(s.id_insumo)))
 
 const porCategoria = computed(() => {
-  const c: Record<string, { llevado: number; dispensado: number; misiones: Set<string> }> = {}
+  const c: Record<string, { items: number; misiones: Set<string>; unidades: Set<string> }> = {}
   for (const i of props.insumos) {
-    if (!c[i.categoria]) c[i.categoria] = { llevado: 0, dispensado: 0, misiones: new Set() }
-    c[i.categoria].llevado += i.cantidad
-    c[i.categoria].misiones.add(i.id_mision)
+    if (!c[i.categoria]) c[i.categoria] = { items: 0, misiones: new Set(), unidades: new Set() }
+    c[i.categoria]!.items++
+    c[i.categoria]!.misiones.add(i.id_mision)
+    if (i.unidad) c[i.categoria]!.unidades.add(i.unidad)
   }
-  for (const s of props.salidas) {
-    const insumo = props.insumos.find(i => i.id === s.id_insumo)
-    const cat = insumo?.categoria ?? 'Sin categoría'
-    if (!c[cat]) c[cat] = { llevado: 0, dispensado: 0, misiones: new Set() }
-    c[cat].dispensado += s.cantidad
-  }
-  return Object.entries(c).map(([cat, data]) => ({
-    categoria: cat,
-    llevado: data.llevado,
-    dispensado: data.dispensado,
-    disponible: data.llevado - data.dispensado,
+  return Object.entries(c).map(([categoria, data]) => ({
+    categoria,
+    items: data.items,
+    unidades: Array.from(data.unidades).join(', ') || '—',
     misiones: data.misiones.size,
   }))
 })
 
 const porMotivo = computed(() => {
   const c: Record<string, number> = {}
-  for (const s of props.salidas) {
+  for (const s of salidasValidas.value) {
     const mot = s.motivo || 'Sin especificar'
-    c[mot] = (c[mot] || 0) + s.cantidad
+    c[mot] = (c[mot] || 0) + 1
   }
   return Object.entries(c).sort((a, b) => b[1] - a[1])
 })
@@ -60,13 +52,12 @@ function formatDate(iso: string): string {
 
     <div class="report-section">
       <h2 class="section-title">Resumen de Inventario</h2>
-      <table class="info-table">
-        <tr><td class="info-label">Total de insumos registrados</td><td class="info-value">{{ props.insumos.length }} ítems</td></tr>
-        <tr><td class="info-label">Cantidad total llevada</td><td class="info-value">{{ totalLlevado }} unidades</td></tr>
-        <tr><td class="info-label">Cantidad dispensada</td><td class="info-value">{{ totalDispensado }} unidades</td></tr>
-        <tr><td class="info-label">Disponible actualmente</td><td class="info-value" :style="{ color: totalDisponible >= 0 ? '#333' : '#E53935' }">{{ totalDisponible }} unidades</td></tr>
-        <tr><td class="info-label">Salidas registradas</td><td class="info-value">{{ props.salidas.length }} movimientos</td></tr>
-      </table>
+<table class="info-table">
+<tbody>
+<tr><td class="info-label">Total de insumos registrados</td><td class="info-value">{{ props.insumos.length }} ítems</td></tr>
+<tr><td class="info-label">Salidas registradas</td><td class="info-value">{{ salidasValidas.length }} movimientos</td></tr>
+</tbody>
+</table>
     </div>
 
     <div class="report-section">
@@ -75,19 +66,17 @@ function formatDate(iso: string): string {
         <thead>
           <tr>
             <th>Categoría</th>
+            <th class="text-center">Ítems</th>
+            <th>Unidad(es)</th>
             <th class="text-center">Misiones</th>
-            <th class="text-center">Llevado</th>
-            <th class="text-center">Dispensado</th>
-            <th class="text-center">Disponible</th>
           </tr>
         </thead>
         <tbody>
           <tr v-for="r in porCategoria" :key="r.categoria">
             <td>{{ r.categoria }}</td>
+            <td class="text-center">{{ r.items }}</td>
+            <td>{{ r.unidades }}</td>
             <td class="text-center">{{ r.misiones }}</td>
-            <td class="text-center">{{ r.llevado }}</td>
-            <td class="text-center">{{ r.dispensado }}</td>
-            <td class="text-center">{{ r.disponible }}</td>
           </tr>
         </tbody>
       </table>
@@ -99,7 +88,7 @@ function formatDate(iso: string): string {
         <thead>
           <tr>
             <th>Motivo</th>
-            <th class="text-center">Cantidad</th>
+            <th class="text-center">Movimientos</th>
           </tr>
         </thead>
         <tbody>

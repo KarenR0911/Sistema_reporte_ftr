@@ -9,11 +9,12 @@ import BaseTable from '@/components/ui/BaseTable.vue'
 import PersonalSelector from '@/components/ui/PersonalSelector.vue'
 import ConfirmDialog from '@/components/ui/ConfirmDialog.vue'
 import StatusBadge from '@/components/ui/StatusBadge.vue'
-import { ClipboardList, CheckCircle, ArrowLeft, Plus, Package, Eye, ChevronDown, FileText } from '@lucide/vue'
+import { ClipboardList, CheckCircle, ArrowLeft, Plus, Package, Eye, ChevronDown, FileText, PawPrint } from '@lucide/vue'
 import MisionCharts from '@/components/charts/MisionCharts.vue'
 import MisionReport from '@/components/reports/MisionReport.vue'
 import PlanMision from '@/components/reports/PlanMision.vue'
 import FichaAtencion from '@/components/reports/FichaAtencion.vue'
+import ReporteVeterinario from '@/components/reports/ReporteVeterinario.vue'
 import { useMisionesStore } from '@/stores/misiones'
 import { useTransporteStore } from '@/stores/transporte'
 import { usePersonalStore } from '@/stores/personal'
@@ -34,7 +35,7 @@ const router = useRouter()
 const auth = useAuthStore()
 const toast = useToastStore()
 const { isOnline } = useOnlineStatus()
-const { loading, withLoading, saving } = useLoading()
+const { withLoading, saving } = useLoading()
 
 const misionesStore = useMisionesStore()
 const transporteStore = useTransporteStore()
@@ -46,7 +47,7 @@ const salidasStore = useSalidasInsumosStore()
 
 const storesReady = computed(() =>
   misionesStore.loaded && transporteStore.loaded && personalStore.loaded
-  && insumosStore.loaded && (atendidosStore.loaded ?? true) && (necesidadesStore.loaded ?? true)
+  && insumosStore.loaded && atendidosStore.loaded && necesidadesStore.loaded && salidasStore.loaded
 )
 
 const canManageInsumos = computed(() =>
@@ -64,6 +65,7 @@ const salidasMision = computed(() => salidasStore.getByMision(missionId))
 
 const role = computed(() => auth.userRole)
 const canEdit = computed(() => role.value === 'director' || role.value === 'administrador' || role.value === 'coordinador')
+const canFinalize = computed(() => role.value === 'director' || role.value === 'administrador')
 
 const showDetail = ref(false)
 const selectedAtendido = ref<Atendido | null>(null)
@@ -103,17 +105,7 @@ function labelSexo(val: unknown): string {
     : val === 'otro' ? 'Otro' : '—'
 }
 
-function parseVuln(value: unknown): string[] {
-  if (!value) return []
-  try {
-    const s = String(value)
-    return s.startsWith('[') ? JSON.parse(s) : [s]
-  } catch {
-    return [String(value)]
-  }
-}
-
-function labelVuln(v: string): string {
+  function labelVuln(v: string): string {
   return v === 'embarazada' ? 'Embarazada'
     : v === 'discapacidad' ? 'Discapacidad'
     : v === 'adulto_mayor' ? 'Adulto Mayor'
@@ -193,7 +185,8 @@ async function confirmComplete() {
   router.push('/misiones')
 }
 
-const printing = ref<'none' | 'report' | 'plan'>('none')
+const printing = ref<'none' | 'report' | 'plan' | 'vet'>('none')
+const showVetResumen = ref(false)
 const showAddInsumoForm = ref(false)
 const fichaAtendido = ref<Atendido | null>(null)
 const printFicha = ref(false)
@@ -249,6 +242,26 @@ function showFicha(a: Atendido) {
   })
 }
 
+const veterinariosMision = computed(() => atendidos.value.filter((a) => a.area_registro === 'veterinaria'))
+const vetConTutor = computed(() => veterinariosMision.value.filter((a) => a.posee_tutor).length)
+const vetRescatados = computed(() => veterinariosMision.value.filter((a) => a.rescatado).length)
+const vetEnAdopcion = computed(() => veterinariosMision.value.filter((a) => a.en_adopcion).length)
+const vetPorEspecie = computed(() => {
+  const map = new Map<string, number>()
+  for (const a of veterinariosMision.value) {
+    const e = a.especie?.trim() || 'Sin especificar'
+    map.set(e, (map.get(e) ?? 0) + 1)
+  }
+  return [...map.entries()].map(([especie, total]) => ({ especie, total }))
+})
+
+async function printVetReport() {
+  printing.value = 'vet'
+  await nextTick()
+  await new Promise((r) => setTimeout(r, 300))
+  window.print()
+}
+
 function onAfterPrint() {
   printing.value = 'none'
   printFicha.value = false
@@ -289,20 +302,23 @@ onUnmounted(() => {
         <p class="text-text-secondary mt-1 text-sm m-0 ml-12">{{ mission.direccion }}</p>
       </div>
       <div class="flex items-center gap-2 md:gap-3 flex-wrap">
-        <StatusBadge :status="mission.estatus_mision" type="mision" />
+        <StatusBadge :status="mission.estatus_mision" />
         <RouterLink v-if="canEdit" :to="`/misiones/${missionId}/necesidades`">
           <BaseButton variant="primary"><ClipboardList :size="18" /> Levantar Necesidades</BaseButton>
         </RouterLink>
         <RouterLink v-if="canManageInsumos" :to="`/misiones/${missionId}/dispensacion`">
           <BaseButton variant="primary"><Package :size="18" /> Dispensación</BaseButton>
         </RouterLink>
-        <BaseButton variant="ghost" @click="printReport">
+        <BaseButton v-if="canFinalize" variant="ghost" @click="printReport">
           <FileText :size="18" /> Reporte
         </BaseButton>
-        <BaseButton v-if="canEdit" variant="ghost" @click="printPlan">
+        <BaseButton v-if="canFinalize" variant="ghost" @click="printPlan">
           <ClipboardList :size="18" /> Plan
         </BaseButton>
-        <BaseButton v-if="canEdit && mission.estatus_mision === 'activa'" variant="secondary" @click="openCompleteModal" :disabled="!isOnline">
+        <BaseButton v-if="canEdit && veterinariosMision.length" variant="ghost" @click="printVetReport">
+          <PawPrint :size="18" /> Reporte Veterinario
+        </BaseButton>
+        <BaseButton v-if="canFinalize && mission.estatus_mision === 'activa'" variant="secondary" @click="openCompleteModal" :disabled="!isOnline">
           <CheckCircle :size="18" /> {{ isOnline ? 'Completar Misión' : 'Requiere conexión' }}
         </BaseButton>
       </div>
@@ -433,15 +449,14 @@ onUnmounted(() => {
       />
     </BaseCard>
 
-    <BaseCard title="Atendidos">
+    <BaseCard title="Atendidos / Registros">
       <BaseTable
         :columns="[
           { key: 'nombre_atendido', label: 'Nombre' },
           { key: 'cedula_atendido', label: 'Cédula' },
           { key: 'edad', label: 'Edad' },
           { key: 'sexo', label: 'Sexo' },
-          { key: 'tipo_atencion', label: 'Atención' },
-          { key: 'telefono_contacto', label: 'Teléfono' },
+          { key: 'area_registro', label: 'Área' },
           { key: 'fecha_hora_atencion', label: 'Fecha' },
           { key: 'acciones', label: '' },
         ]"
@@ -450,8 +465,8 @@ onUnmounted(() => {
         <template #cell-sexo="{ value }">
           {{ labelSexo(value) }}
         </template>
-        <template #cell-tipo_atencion="{ value }">
-          {{ labelTipoAtencion(value) }}
+        <template #cell-area_registro="{ value }">
+          <span class="text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary capitalize">{{ value || 'general' }}</span>
         </template>
         <template #cell-acciones="{ row }">
           <div class="flex gap-1">
@@ -464,6 +479,41 @@ onUnmounted(() => {
           </div>
         </template>
       </BaseTable>
+    </BaseCard>
+
+    <BaseCard v-if="veterinariosMision.length" title="Resumen Veterinario de la Misión">
+      <button class="w-full flex items-center justify-between gap-2" @click="showVetResumen = !showVetResumen">
+        <span class="text-text-secondary text-sm">{{ veterinariosMision.length }} registro(s) veterinario(s)</span>
+        <ChevronDown :size="18" :class="showVetResumen ? 'rotate-180' : ''" />
+      </button>
+      <div v-if="showVetResumen" class="mt-4 space-y-4">
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <div class="bg-bg rounded-lg p-4">
+            <p class="text-xs text-text-secondary m-0">Total</p>
+            <p class="text-2xl font-bold text-brand m-0">{{ veterinariosMision.length }}</p>
+          </div>
+          <div class="bg-bg rounded-lg p-4">
+            <p class="text-xs text-text-secondary m-0">Con tutor</p>
+            <p class="text-2xl font-bold text-brand m-0">{{ vetConTutor }}</p>
+          </div>
+          <div class="bg-bg rounded-lg p-4">
+            <p class="text-xs text-text-secondary m-0">Rescatados</p>
+            <p class="text-2xl font-bold text-brand m-0">{{ vetRescatados }}</p>
+          </div>
+          <div class="bg-bg rounded-lg p-4">
+            <p class="text-xs text-text-secondary m-0">En adopción</p>
+            <p class="text-2xl font-bold text-brand m-0">{{ vetEnAdopcion }}</p>
+          </div>
+        </div>
+        <BaseTable
+          v-if="vetPorEspecie.length"
+          :columns="[
+            { key: 'especie', label: 'Especie' },
+            { key: 'total', label: 'Total' },
+          ]"
+          :rows="vetPorEspecie as unknown as Record<string, unknown>[]"
+        />
+      </div>
     </BaseCard>
 
     <BaseCard title="Necesidades">
@@ -481,7 +531,7 @@ onUnmounted(() => {
           <StatusBadge :status="value as string" />
         </template>
         <template #cell-estatus="{ value }">
-          <StatusBadge :status="value as string" type="necesidad" />
+          <StatusBadge :status="value as string" />
         </template>
       </BaseTable>
     </BaseCard>
@@ -508,20 +558,48 @@ onUnmounted(() => {
       >
         <div class="bg-white rounded-xl p-6 w-full max-w-lg mx-4 flex flex-col gap-4 max-h-[85vh] overflow-y-auto">
           <div class="flex items-center justify-between">
-            <h3 class="m-0 text-brand text-lg font-bold">Detalle de Atención</h3>
+            <h3 class="m-0 text-brand text-lg font-bold">Detalle del Registro</h3>
             <BaseButton variant="ghost" size="sm" @click="closeDetail">✕</BaseButton>
           </div>
 
           <div class="grid grid-cols-2 gap-x-6 gap-y-3 text-sm">
             <div class="col-span-2">
+              <span class="font-semibold text-text-secondary block text-xs uppercase tracking-wide">Área</span>
+              <span class="capitalize">{{ selectedAtendido.area_registro || 'General' }}</span>
+            </div>
+            <div class="col-span-2">
               <span class="font-semibold text-text-secondary block text-xs uppercase tracking-wide">Nombre</span>
               <span>{{ selectedAtendido.nombre_atendido }}</span>
             </div>
-            <div>
-              <span class="font-semibold text-text-secondary block text-xs uppercase tracking-wide">Cédula</span>
-              <span>{{ selectedAtendido.cedula_atendido || '—' }}</span>
-            </div>
-            <div>
+            <template v-if="selectedAtendido.area_registro !== 'veterinaria'">
+              <div>
+                <span class="font-semibold text-text-secondary block text-xs uppercase tracking-wide">Cédula</span>
+                <span>{{ selectedAtendido.cedula_atendido || '—' }}</span>
+              </div>
+            </template>
+            <template v-if="selectedAtendido.area_registro === 'veterinaria'">
+              <div>
+                <span class="font-semibold text-text-secondary block text-xs uppercase tracking-wide">Especie</span>
+                <span>{{ selectedAtendido.especie || '—' }}</span>
+              </div>
+              <div>
+                <span class="font-semibold text-text-secondary block text-xs uppercase tracking-wide">Posee tutor</span>
+                <span>{{ selectedAtendido.posee_tutor ? 'Sí' : 'No' }}</span>
+              </div>
+              <div>
+                <span class="font-semibold text-text-secondary block text-xs uppercase tracking-wide">Rescatado</span>
+                <span>{{ selectedAtendido.rescatado ? 'Sí' : 'No' }}</span>
+              </div>
+              <div>
+                <span class="font-semibold text-text-secondary block text-xs uppercase tracking-wide">En adopción</span>
+                <span>{{ selectedAtendido.en_adopcion ? 'Sí' : 'No' }}</span>
+              </div>
+              <div class="col-span-2">
+                <span class="font-semibold text-text-secondary block text-xs uppercase tracking-wide">Diagnóstico</span>
+                <span>{{ selectedAtendido.diagnostico_tentativo || '—' }}</span>
+              </div>
+            </template>
+            <div v-if="selectedAtendido.area_registro !== 'veterinaria'">
               <span class="font-semibold text-text-secondary block text-xs uppercase tracking-wide">Teléfono</span>
               <span>{{ selectedAtendido.telefono_contacto || '—' }}</span>
             </div>
@@ -533,27 +611,45 @@ onUnmounted(() => {
               <span class="font-semibold text-text-secondary block text-xs uppercase tracking-wide">Sexo</span>
               <span>{{ labelSexo(selectedAtendido.sexo) }}</span>
             </div>
-            <div class="col-span-2">
-              <span class="font-semibold text-text-secondary block text-xs uppercase tracking-wide">Tipo de Atención</span>
-              <span>{{ labelTipoAtencion(selectedAtendido.tipo_atencion) }}</span>
-            </div>
-            <div class="col-span-2">
-              <span class="font-semibold text-text-secondary block text-xs uppercase tracking-wide">Requiere Referencia</span>
-              <span>{{ selectedAtendido.referido ? 'Sí' : 'No' }}</span>
-            </div>
-            <div class="col-span-2">
-              <span class="font-semibold text-text-secondary block text-xs uppercase tracking-wide">Vulnerabilidades</span>
-              <div v-if="selectedAtendido.vulnerabilidad" class="flex flex-wrap gap-1 mt-1">
-                <span
-                  v-for="v in parseVuln(selectedAtendido.vulnerabilidad)"
-                  :key="v"
-                  class="text-xs px-2 py-0.5 rounded-full bg-amber-100 text-amber-800"
-                >
-                  {{ labelVuln(v) }}
-                </span>
+            <template v-if="selectedAtendido.area_registro === 'medicina_humana' || selectedAtendido.area_registro === 'psicologia' || selectedAtendido.area_registro === 'logistica'">
+              <div class="col-span-2">
+                <span class="font-semibold text-text-secondary block text-xs uppercase tracking-wide">Lugar donde vivía</span>
+                <span>{{ selectedAtendido.lugar_vivia || '—' }}</span>
               </div>
-              <span v-else class="text-text-secondary">—</span>
-            </div>
+              <div class="col-span-2">
+                <span class="font-semibold text-text-secondary block text-xs uppercase tracking-wide">Lugar actual</span>
+                <span>{{ selectedAtendido.lugar_actual || '—' }}</span>
+              </div>
+            </template>
+            <template v-if="selectedAtendido.area_registro === 'medicina_humana' || selectedAtendido.area_registro === 'psicologia'">
+              <div class="col-span-2">
+                <span class="font-semibold text-text-secondary block text-xs uppercase tracking-wide">Motivo de Atención</span>
+                <span>{{ selectedAtendido.motivo_atencion || '—' }}</span>
+              </div>
+            </template>
+            <template v-if="selectedAtendido.area_registro === 'logistica'">
+              <div class="col-span-2">
+                <span class="font-semibold text-text-secondary block text-xs uppercase tracking-wide">Insumo Entregado</span>
+                <span>{{ selectedAtendido.insumo_entregado || '—' }}</span>
+              </div>
+            </template>
+            <template v-if="selectedAtendido.area_registro === 'general'">
+              <div class="col-span-2">
+                <span class="font-semibold text-text-secondary block text-xs uppercase tracking-wide">Tipo de Atención</span>
+                <span>{{ labelTipoAtencion(selectedAtendido.tipo_atencion) }}</span>
+              </div>
+              <div class="col-span-2">
+                <span class="font-semibold text-text-secondary block text-xs uppercase tracking-wide">Requiere Referencia</span>
+                <span>{{ selectedAtendido.referido ? 'Sí' : 'No' }}</span>
+              </div>
+              <div class="col-span-2">
+                <span class="font-semibold text-text-secondary block text-xs uppercase tracking-wide">Vulnerabilidades</span>
+                <div v-if="selectedAtendido.vulnerabilidad" class="flex flex-wrap gap-1 mt-1">
+                  <span v-for="v in (selectedAtendido.vulnerabilidad ?? [])" :key="v" class="text-xs px-2 py-0.5 rounded-full bg-amber-100 text-amber-800">{{ labelVuln(v) }}</span>
+                </div>
+                <span v-else class="text-text-secondary">—</span>
+              </div>
+            </template>
             <div class="col-span-2">
               <span class="font-semibold text-text-secondary block text-xs uppercase tracking-wide">Notas</span>
               <p class="m-0 whitespace-pre-wrap">{{ selectedAtendido.notas || '—' }}</p>
@@ -607,6 +703,13 @@ onUnmounted(() => {
           :personales="personales"
           :insumos="insumosMision"
         />
+        <ReporteVeterinario
+          v-if="printing === 'vet'"
+          :misiones="[mission!]"
+          :atendidos="veterinariosMision"
+          :personales="personales"
+          titulo="Reporte Veterinario de la Misión"
+        />
       </div>
     </Teleport>
 
@@ -621,7 +724,7 @@ onUnmounted(() => {
         <FichaAtencion
           :atendido="fichaAtendido"
           :mission="mission!"
-          :personal="personales.find(p => p.cedula === fichaAtendido.cedula_personal) ?? null"
+          :personal="personales.find(p => p.cedula === fichaAtendido!.cedula_personal) ?? null"
         />
       </div>
     </Teleport>

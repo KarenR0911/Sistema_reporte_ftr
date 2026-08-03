@@ -24,7 +24,7 @@ onMounted(async () => {
   try {
     await auth.restoreSession()
     if (auth.isAuthenticated) {
-      router.replace('/dashboard')
+      router.replace(auth.isAuthorized ? '/dashboard' : '/desautorizado')
       return
     }
   } catch {
@@ -57,7 +57,7 @@ async function handleLogin() {
     const ok = await auth.login(email.value, password.value)
     if (ok) {
       toast.success(`Bienvenido, ${auth.currentUser?.nombre ?? ''}`)
-      router.replace('/dashboard')
+      router.replace(auth.isAuthorized ? '/dashboard' : '/desautorizado')
     } else {
       error.value = 'Credenciales inválidas'
     }

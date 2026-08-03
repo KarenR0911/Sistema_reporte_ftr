@@ -243,15 +243,9 @@ const vulnerabilidades = computed(() => {
   const c: Record<string, number> = {}
   for (const a of props.atendidos) {
     if (!a.vulnerabilidad) continue
-    try {
-      const arr = JSON.parse(a.vulnerabilidad)
-      if (Array.isArray(arr)) {
-        for (const v of arr) {
-          c[v] = (c[v] || 0) + 1
-        }
-      }
-    } catch {
-      // valor no es JSON array
+    const arr = Array.isArray(a.vulnerabilidad) ? a.vulnerabilidad : []
+    for (const v of arr) {
+      c[v] = (c[v] || 0) + 1
     }
   }
   const sorted = Object.entries(c).sort((a, b) => b[1] - a[1])
@@ -286,16 +280,12 @@ const atendidosPorMunicipio = computed(() => {
 })
 
 const tieneVulnerabilidades = computed(() =>
-  props.atendidos.some(a => {
-    if (!a.vulnerabilidad) return false
-    try {
-      const arr = JSON.parse(a.vulnerabilidad)
-      return Array.isArray(arr) && arr.length > 0
-    } catch {
-      return false
-    }
-  }),
-)
+    props.atendidos.some(a => {
+      if (!a.vulnerabilidad) return false
+      const arr = Array.isArray(a.vulnerabilidad) ? a.vulnerabilidad : []
+      return arr.length > 0
+    }),
+  )
 
 const hasAnyData = computed(() =>
   props.misiones.length > 0 || props.atendidos.length > 0 || props.insumos.length > 0

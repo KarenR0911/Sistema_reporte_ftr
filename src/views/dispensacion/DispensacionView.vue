@@ -11,20 +11,22 @@ import { ArrowLeft, Package, Plus, Trash2 } from '@lucide/vue'
 import { useMisionesStore } from '@/stores/misiones'
 import { useInsumosStore } from '@/stores/insumos'
 import { useSalidasInsumosStore } from '@/stores/salidasInsumos'
+import { useAtendidosStore } from '@/stores/atendidos'
 import { useAuthStore } from '@/stores/auth'
 import { useToastStore } from '@/stores/toast'
 import { useLoading } from '@/composables/useLoading'
 import { salidaInsumoSchema } from '@/lib/schemas'
-import type { InsumoLlevado, SalidaInsumo } from '@/types'
+import type { InsumoLlevado, SalidaInsumo, Atendido } from '@/types'
 
 const route = useRoute()
 const router = useRouter()
 const misionesStore = useMisionesStore()
 const insumosStore = useInsumosStore()
 const salidasStore = useSalidasInsumosStore()
+const atendidosStore = useAtendidosStore()
 const auth = useAuthStore()
 const toast = useToastStore()
-const { loading, withLoading, saving } = useLoading()
+const { withLoading, saving } = useLoading()
 
 const missionId = route.params.id as string
 const mission = computed(() => misionesStore.getById(missionId))
@@ -53,29 +55,49 @@ const insumoOptions = computed(() =>
     })),
 )
 
-const showSalidaForm = ref(false)
+const showForm = ref(false)
 const formIdInsumo = ref('')
 const formCantidad = ref<number | null>(null)
 const formMotivo = ref('')
+const formCedula = ref('')
+const formNombre = ref('')
+const formEdad = ref<number | null>(null)
+const formSexo = ref('')
+const formLugarVivia = ref('')
+const formLugarActual = ref('')
 const formErrors = ref<Record<string, string>>({})
 
 const showDeleteDialog = ref(false)
 const salidaToDelete = ref<SalidaInsumo | null>(null)
 
+const sexoOptions = [
+  { value: '', label: 'Seleccionar…' },
+  { value: 'masculino', label: 'Masculino' },
+  { value: 'femenino', label: 'Femenino' },
+  { value: 'otro', label: 'Otro' },
+]
+
 function resetForm() {
   formIdInsumo.value = ''
   formCantidad.value = null
   formMotivo.value = ''
+  formCedula.value = ''
+  formNombre.value = ''
+  formEdad.value = null
+  formSexo.value = ''
+  formLugarVivia.value = ''
+  formLugarActual.value = ''
   formErrors.value = {}
-  showSalidaForm.value = false
+  showForm.value = false
 }
 
 const insumoSeleccionado = computed(() =>
   insumosMision.value.find((i) => i.id === formIdInsumo.value),
 )
 
-async function registrarSalida() {
+async function registrarEntrega() {
   formErrors.value = {}
+
   const result = salidaInsumoSchema.safeParse({
     id_insumo: formIdInsumo.value,
     cantidad: formCantidad.value,
@@ -88,6 +110,12 @@ async function registrarSalida() {
     return
   }
 
+  if (!formCedula.value.trim() || !formNombre.value.trim()) {
+    formErrors.value.cedula = formCedula.value.trim() ? '' : 'Cédula del beneficiario es requerida'
+    formErrors.value.nombre = formNombre.value.trim() ? '' : 'Nombre del beneficiario es requerido'
+    return
+  }
+
   const ins = insumoSeleccionado.value
   if (!ins) return
   const disp = stockDisponible(ins)
@@ -96,19 +124,52 @@ async function registrarSalida() {
     return
   }
 
-  const item: SalidaInsumo = {
+  const now = new Date().toISOString()
+
+  const salidaItem: SalidaInsumo = {
     id: crypto.randomUUID(),
     id_mision: missionId,
     id_insumo: ins.id,
     cantidad: formCantidad.value!,
     motivo: formMotivo.value,
     registrado_por: auth.currentUser?.cedula ?? '',
-    created_at: new Date().toISOString(),
+    created_at: now,
   }
 
-  await withLoading(() => salidasStore.create(item), 'Registrando salida...')
+  const atendidoItem: Atendido = {
+    id: crypto.randomUUID(),
+    id_mision: missionId,
+    cedula_personal: auth.currentUser?.cedula ?? '',
+    cedula_atendido: formCedula.value,
+    nombre_atendido: formNombre.value,
+    telefono_contacto: '',
+    fecha_hora_atencion: now,
+    edad: formEdad.value,
+    sexo: formSexo.value || null,
+    tipo_atencion: null,
+    referido: false,
+    vulnerabilidad: [],
+    notas: formMotivo.value || '',
+    area_registro: 'logistica',
+    lugar_vivia: formLugarVivia.value || null,
+    lugar_actual: formLugarActual.value || null,
+    motivo_atencion: null,
+    insumo_entregado: ins.descripcion || null,
+    especie: null,
+    posee_tutor: null,
+    rescatado: null,
+    en_adopcion: null,
+    diagnostico_tentativo: null,
+    status_sync: 'pending',
+  }
+
+  await withLoading(async () => {
+    await salidasStore.create(salidaItem)
+    await atendidosStore.create(atendidoItem)
+  }, 'Registrando entrega...')
+
   resetForm()
-  toast.success('Salida registrada')
+  toast.success('Entrega registrada — inventario actualizado')
 }
 
 function confirmarEliminar(s: SalidaInsumo) {
@@ -124,11 +185,29 @@ async function ejecutarEliminar() {
   toast.success('Salida eliminada')
 }
 
+function labelSexo(val: unknown): string {
+  return val === 'masculino' ? 'Masculino'
+    : val === 'femenino' ? 'Femenino'
+    : val === 'otro' ? 'Otro' : '—'
+}
+
+function beneficiario(salida: SalidaInsumo): { nombre: string; cedula: string } | null {
+  const match = atendidosStore.list.find(
+    (a) =>
+      a.id_mision === missionId &&
+      a.area_registro === 'logistica' &&
+      a.insumo_entregado === insumosMision.value.find((i) => i.id === salida.id_insumo)?.descripcion &&
+      Math.abs(new Date(a.fecha_hora_atencion).getTime() - new Date(salida.created_at).getTime()) < 5000,
+  )
+  return match ? { nombre: match.nombre_atendido, cedula: match.cedula_atendido } : null
+}
+
 onMounted(async () => {
   await Promise.all([
     misionesStore.load(),
     insumosStore.load(),
     salidasStore.load(),
+    atendidosStore.load(),
   ])
 })
 </script>
@@ -146,8 +225,8 @@ onMounted(async () => {
         </div>
         <p class="text-text-secondary mt-1 text-sm m-0 ml-12">{{ mission.municipio }}, {{ mission.estado }}</p>
       </div>
-      <BaseButton variant="primary" @click="showSalidaForm = !showSalidaForm">
-        <Plus :size="18" /> Registrar Salida
+      <BaseButton variant="primary" @click="showForm = !showForm">
+        <Plus :size="18" /> Registrar Entrega
       </BaseButton>
     </div>
 
@@ -169,12 +248,21 @@ onMounted(async () => {
       />
     </BaseCard>
 
-    <div v-if="showSalidaForm" class="bg-white rounded-xl border border-border p-5 flex flex-col gap-4">
-      <h3 class="m-0 text-brand text-base font-semibold">Nueva Salida de Insumos</h3>
+    <div v-if="showForm" class="bg-white rounded-xl border border-border p-5 flex flex-col gap-4">
+      <h3 class="m-0 text-brand text-base font-semibold">Nueva Entrega</h3>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <BaseInput v-model="formCedula" label="Cédula del Beneficiario" required :error="formErrors.cedula" @update:model-value="formErrors.cedula = ''" />
+        <BaseInput v-model="formNombre" label="Nombre Completo" required :error="formErrors.nombre" @update:model-value="formErrors.nombre = ''" />
+        <BaseInput v-model="formEdad" label="Edad" type="number" min="0" max="150" :error="formErrors.edad" />
+        <BaseSelect v-model="formSexo" label="Sexo" :options="sexoOptions" :error="formErrors.sexo" />
+        <BaseInput v-model="formLugarVivia" label="Lugar donde vivía" :error="formErrors.lugar_vivia" />
+        <BaseInput v-model="formLugarActual" label="Lugar actual" :error="formErrors.lugar_actual" />
+      </div>
+      <hr class="border-border-light my-1" />
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
         <BaseSelect
           v-model="formIdInsumo"
-          label="Insumo"
+          label="Insumo a Entregar"
           required
           :options="insumoOptions"
           :error="formErrors.id_insumo"
@@ -215,21 +303,23 @@ onMounted(async () => {
           <p v-if="formErrors.cantidad" class="text-danger text-xs m-0">{{ formErrors.cantidad }}</p>
         </div>
         <div class="col-span-2">
-          <BaseInput v-model="formMotivo" label="Motivo" placeholder="Ej: distribución comunitaria, curación, etc." />
+          <BaseInput v-model="formMotivo" label="Motivo de la Entrega" placeholder="Ej: distribución comunitaria, emergencia familiar, etc." />
         </div>
       </div>
       <div v-if="insumoSeleccionado" class="text-sm text-text-secondary">
-        Disponible: <strong>{{ stockDisponible(insumoSeleccionado) }} {{ insumoSeleccionado.unidad }}</strong>
+        Insumo seleccionado: <strong>{{ insumoSeleccionado.descripcion }}</strong> — Disponible: <strong>{{ stockDisponible(insumoSeleccionado) }} {{ insumoSeleccionado.unidad }}</strong>
       </div>
       <div class="flex gap-2 justify-end">
-        <BaseButton variant="primary" @click="registrarSalida" :loading="saving">Guardar Salida</BaseButton>
+        <BaseButton variant="primary" @click="registrarEntrega" :loading="saving"><Package :size="16" /> Registrar Entrega</BaseButton>
         <BaseButton variant="ghost" @click="resetForm">Cancelar</BaseButton>
       </div>
     </div>
 
-    <BaseCard title="Historial de Salidas">
+    <BaseCard title="Historial de Entregas">
       <BaseTable
         :columns="[
+          { key: 'beneficiario', label: 'Beneficiario' },
+          { key: 'cedula_benef', label: 'Cédula' },
           { key: 'descripcion', label: 'Insumo' },
           { key: 'cantidad', label: 'Cantidad' },
           { key: 'unidad', label: 'Unidad' },
@@ -240,7 +330,14 @@ onMounted(async () => {
         ]"
         :rows="salidasMision.map(s => {
           const ins = insumosMision.find(i => i.id === s.id_insumo)
-          return { ...s, descripcion: ins?.descripcion ?? '—', unidad: ins?.unidad ?? '' }
+          const ben = beneficiario(s)
+          return {
+            ...s,
+            beneficiario: ben?.nombre ?? '—',
+            cedula_benef: ben?.cedula ?? '—',
+            descripcion: ins?.descripcion ?? '—',
+            unidad: ins?.unidad ?? '',
+          }
         }).reverse() as unknown as Record<string, unknown>[]"
       >
         <template #cell-acciones="{ row }">
@@ -250,14 +347,14 @@ onMounted(async () => {
         </template>
       </BaseTable>
       <p v-if="salidasMision.length === 0" class="text-text-secondary italic py-4 text-center">
-        No hay salidas registradas.
+        No hay entregas registradas.
       </p>
     </BaseCard>
 
     <ConfirmDialog
       :show="showDeleteDialog"
-      title="Eliminar salida"
-      message="¿Eliminar esta salida de insumos? Se restablecerá el stock disponible."
+      title="Eliminar entrega"
+      message="¿Eliminar esta entrega? Se restablecerá el stock disponible."
       confirm-text="Eliminar"
       variant="danger"
       @confirm="ejecutarEliminar"

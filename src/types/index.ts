@@ -6,6 +6,7 @@ export type Prioridad = 'baja' | 'media' | 'alta' | 'critica'
 export type EstatusNecesidad = 'reportado' | 'enproceso' | 'atendido'
 export type TipoAtencion = 'medica' | 'psicosocial' | 'alimento' | 'refugio' | 'higiene' | 'informacion' | 'traslado' | 'otro'
 export type Vulnerabilidad = 'embarazada' | 'discapacidad' | 'adulto_mayor' | 'menor_no_acompanado' | 'enfermedad_cronica' | 'otro'
+export type AreaRegistro = 'general' | 'medicina_humana' | 'psicologia' | 'veterinaria' | 'logistica'
 
 export const INSUMO_CATEGORIAS = [
   'Alimentos / Hidratación',
@@ -48,6 +49,7 @@ export interface Transporte {
   tipo_transporte: string
   numero_placa: string
   nombre_conductor: string
+  status_sync?: StatusSync
 }
 
 export interface PersonalMision {
@@ -73,8 +75,18 @@ export interface Atendido {
   sexo: string | null
   tipo_atencion: TipoAtencion | null
   referido: boolean
-  vulnerabilidad: string
+  vulnerabilidad: string[]
   notas: string
+  area_registro: AreaRegistro
+  lugar_vivia: string | null
+  lugar_actual: string | null
+  motivo_atencion: string | null
+  insumo_entregado: string | null
+  especie: string | null
+  posee_tutor: boolean | null
+  rescatado: boolean | null
+  en_adopcion: boolean | null
+  diagnostico_tentativo: string | null
   status_sync: StatusSync
 }
 

@@ -6,26 +6,63 @@ import BaseInput from '@/components/ui/BaseInput.vue'
 import BaseSelect from '@/components/ui/BaseSelect.vue'
 import BaseButton from '@/components/ui/BaseButton.vue'
 import BaseTable from '@/components/ui/BaseTable.vue'
-import StatusBadge from '@/components/ui/StatusBadge.vue'
-import { UserPlus, ArrowLeft, Eye } from '@lucide/vue'
+import { UserPlus, ArrowLeft, Eye, ShieldAlert } from '@lucide/vue'
 import { useMisionesStore } from '@/stores/misiones'
+import { usePersonalStore } from '@/stores/personal'
 import { useAtendidosStore } from '@/stores/atendidos'
 import { useAuthStore } from '@/stores/auth'
 import { useToastStore } from '@/stores/toast'
 import { useLoading } from '@/composables/useLoading'
-import { atencionSchema } from '@/lib/schemas'
-import type { Atendido, TipoAtencion } from '@/types'
+import { atencionSchema, atencionMedicinaSchema, atencionPsicologiaSchema, atencionVeterinariaSchema } from '@/lib/schemas'
+import { parseVuln, labelVuln } from '@/lib/vulnerabilidad'
+import type { Atendido, TipoAtencion, AreaRegistro } from '@/types'
 
 const route = useRoute()
 const router = useRouter()
 const misionesStore = useMisionesStore()
+const personalStore = usePersonalStore()
 const atendidosStore = useAtendidosStore()
 const auth = useAuthStore()
 const toast = useToastStore()
-const { loading, withLoading, saving } = useLoading()
+const { withLoading, saving } = useLoading()
 
 const missionId = route.params.id_mision as string
 const mission = computed(() => misionesStore.getById(missionId))
+const cargando = ref(true)
+
+const currentPersonal = computed(() =>
+  personalStore.list.find(
+    (p) => p.id_mision === missionId && p.cedula === auth.currentUser?.cedula,
+  ),
+)
+
+const noAutorizado = computed(
+  () => !currentPersonal.value,
+)
+
+function mapArea(raw: string | undefined | null): AreaRegistro {
+  if (!raw) return 'general'
+  const lower = raw.toLowerCase().replace(/_/g, ' ')
+  if (lower.includes('veterinaria')) return 'veterinaria'
+  if (lower.includes('medicina')) return 'medicina_humana'
+  if (lower.includes('psicosocial') || lower.includes('psicologia') || lower.includes('psicol') || lower.includes('salud mental')) return 'psicologia'
+  return 'general'
+}
+
+const userArea = computed<AreaRegistro>(() => {
+  const area = auth.currentUser?.area_voluntariado || currentPersonal.value?.area_voluntariado
+  return mapArea(area)
+})
+
+const areaLabel = computed(() => {
+  const labels: Record<string, string> = {
+    medicina_humana: 'Medicina Humana',
+    psicologia: 'Psicología',
+    veterinaria: 'Veterinaria',
+    general: 'General',
+  }
+  return labels[userArea.value] ?? 'General'
+})
 
 const formCedula = ref('')
 const formNombre = ref('')
@@ -36,6 +73,14 @@ const formReferido = ref(false)
 const formVulnerabilidades = ref<string[]>([])
 const formTelefono = ref('')
 const formNotas = ref('')
+const formMotivoAtencion = ref('')
+const formLugarVivia = ref('')
+const formLugarActual = ref('')
+const formEspecie = ref('')
+const formPoseeTutor = ref(false)
+const formRescatado = ref(false)
+const formEnAdopcion = ref(false)
+const formDiagnosticoTentativo = ref('')
 const formErrors = ref<Record<string, string>>({})
 
 const sexoOptions = [
@@ -43,6 +88,12 @@ const sexoOptions = [
   { value: 'masculino', label: 'Masculino' },
   { value: 'femenino', label: 'Femenino' },
   { value: 'otro', label: 'Otro' },
+]
+
+const sexoAnimalOptions = [
+  { value: '', label: 'Seleccionar…' },
+  { value: 'masculino', label: 'Macho' },
+  { value: 'femenino', label: 'Hembra' },
 ]
 
 const tipoAtencionOptions: { value: TipoAtencion | ''; label: string }[] = [
@@ -109,26 +160,6 @@ function labelSexo(val: unknown): string {
     : '—'
 }
 
-function parseVuln(value: unknown): string[] {
-  if (!value) return []
-  try {
-    const s = String(value)
-    return s.startsWith('[') ? JSON.parse(s) : [s]
-  } catch {
-    return [String(value)]
-  }
-}
-
-function labelVuln(v: string): string {
-  return v === 'embarazada' ? 'Embarazada'
-    : v === 'discapacidad' ? 'Discapacidad'
-    : v === 'adulto_mayor' ? 'Adulto Mayor'
-    : v === 'menor_no_acompanado' ? 'Menor solo'
-    : v === 'enfermedad_cronica' ? 'Enf. Crónica'
-    : v === 'otro' ? 'Otra'
-    : v
-}
-
 function toggleVulnerabilidad(val: string) {
   const idx = formVulnerabilidades.value.indexOf(val)
   if (idx === -1) {
@@ -138,27 +169,29 @@ function toggleVulnerabilidad(val: string) {
   }
 }
 
-async function registerAttendee() {
+function resetForm() {
+  formCedula.value = ''
+  formNombre.value = ''
+  formEdad.value = null
+  formSexo.value = ''
+  formTipoAtencion.value = ''
+  formReferido.value = false
+  formVulnerabilidades.value = []
+  formTelefono.value = ''
+  formNotas.value = ''
+  formMotivoAtencion.value = ''
+  formLugarVivia.value = ''
+  formLugarActual.value = ''
+  formEspecie.value = ''
+  formPoseeTutor.value = false
+  formRescatado.value = false
+  formEnAdopcion.value = false
+  formDiagnosticoTentativo.value = ''
   formErrors.value = {}
-  const result = atencionSchema.safeParse({
-    cedula_atendido: formCedula.value,
-    nombre_atendido: formNombre.value,
-    edad: formEdad.value,
-    sexo: formSexo.value || null,
-    tipo_atencion: formTipoAtencion.value || null,
-    referido: formReferido.value,
-    vulnerabilidad: formVulnerabilidades.value,
-    telefono_contacto: formTelefono.value,
-    notas: formNotas.value,
-  })
-  if (!result.success) {
-    for (const issue of result.error.issues) {
-      formErrors.value[issue.path[0] as string] = issue.message
-    }
-    return
-  }
+}
 
-  const item: Atendido = {
+function buildPayload(): Atendido {
+  return {
     id: crypto.randomUUID(),
     id_mision: missionId,
     cedula_personal: auth.currentUser?.cedula ?? '',
@@ -170,103 +203,229 @@ async function registerAttendee() {
     sexo: formSexo.value || null,
     tipo_atencion: (formTipoAtencion.value || null) as TipoAtencion | null,
     referido: formReferido.value,
-    vulnerabilidad: JSON.stringify(formVulnerabilidades.value),
+    vulnerabilidad: [...formVulnerabilidades.value],
     notas: formNotas.value,
+    area_registro: userArea.value,
+    lugar_vivia: formLugarVivia.value || null,
+    lugar_actual: formLugarActual.value || null,
+    motivo_atencion: formMotivoAtencion.value || null,
+    insumo_entregado: null,
+    especie: formEspecie.value || null,
+    posee_tutor: formPoseeTutor.value || null,
+    rescatado: formRescatado.value || null,
+    en_adopcion: formEnAdopcion.value || null,
+    diagnostico_tentativo: formDiagnosticoTentativo.value || null,
     status_sync: 'pending',
   }
+}
 
+function validate(): boolean {
+  formErrors.value = {}
+  const base = {
+    cedula_atendido: formCedula.value,
+    nombre_atendido: formNombre.value,
+    edad: formEdad.value,
+    sexo: formSexo.value || null,
+    telefono_contacto: formTelefono.value,
+    notas: formNotas.value,
+  }
+  let result
+  switch (userArea.value) {
+    case 'medicina_humana':
+      result = atencionMedicinaSchema.safeParse({
+        ...base,
+        motivo_atencion: formMotivoAtencion.value,
+        lugar_vivia: formLugarVivia.value,
+        lugar_actual: formLugarActual.value,
+        tipo_atencion: formTipoAtencion.value || null,
+        referido: formReferido.value,
+        vulnerabilidad: formVulnerabilidades.value,
+      })
+      break
+    case 'psicologia':
+      result = atencionPsicologiaSchema.safeParse({
+        ...base,
+        motivo_atencion: formMotivoAtencion.value,
+        lugar_vivia: formLugarVivia.value,
+        lugar_actual: formLugarActual.value,
+      })
+      break
+    case 'veterinaria':
+      result = atencionVeterinariaSchema.safeParse({
+        nombre_atendido: formNombre.value,
+        especie: formEspecie.value,
+        sexo: formSexo.value || null,
+        edad: formEdad.value,
+        posee_tutor: formPoseeTutor.value,
+        rescatado: formRescatado.value,
+        en_adopcion: formEnAdopcion.value,
+        diagnostico_tentativo: formDiagnosticoTentativo.value,
+        notas: formNotas.value,
+      })
+      break
+    default:
+      result = atencionSchema.safeParse({
+        ...base,
+        tipo_atencion: formTipoAtencion.value || null,
+        referido: formReferido.value,
+        vulnerabilidad: formVulnerabilidades.value,
+      })
+  }
+  if (!result.success) {
+    for (const issue of result.error.issues) {
+      formErrors.value[issue.path[0] as string] = issue.message
+    }
+    return false
+  }
+  return true
+}
+
+async function registerAttendee() {
+  if (noAutorizado.value) {
+    toast.error('No estás asignado a esta misión')
+    return
+  }
+  if (!validate()) return
+  const item = buildPayload()
   await withLoading(() => atendidosStore.create(item), 'Registrando atención...')
-
-  formCedula.value = ''
-  formNombre.value = ''
-  formEdad.value = null
-  formSexo.value = ''
-  formTipoAtencion.value = ''
-  formReferido.value = false
-  formVulnerabilidades.value = []
-  formTelefono.value = ''
-  formNotas.value = ''
-  toast.success('Atención registrada exitosamente')
+  resetForm()
+  toast.success('Registro guardado exitosamente')
 }
 
 onMounted(async () => {
   await Promise.all([
     misionesStore.load(),
+    personalStore.load(),
     atendidosStore.load(),
   ])
+  cargando.value = false
 })
 </script>
 
 <template>
   <div>
-    <div v-if="mission" class="flex flex-col gap-4 md:gap-6">
+    <div v-if="cargando" class="py-12 text-center text-text-secondary">
+      <div class="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+      <p>Cargando...</p>
+    </div>
+
+    <div v-else-if="noAutorizado" class="py-12 text-center">
+      <div class="flex flex-col items-center gap-4">
+        <ShieldAlert :size="48" class="text-text-muted" />
+        <h1 class="text-xl text-brand m-0">No estás asignado a esta misión</h1>
+        <p class="text-text-secondary m-0">Solo el personal registrado en la misión puede registrar atenciones.</p>
+        <BaseButton variant="primary" @click="router.push('/dashboard')"><ArrowLeft :size="18" /> Volver al panel</BaseButton>
+      </div>
+    </div>
+
+    <div v-else-if="mission" class="flex flex-col gap-4 md:gap-6">
       <div class="flex justify-between items-start">
         <div>
           <div class="flex items-center gap-3">
             <BaseButton variant="ghost" @click="router.push('/dashboard')"><ArrowLeft :size="18" /> Volver</BaseButton>
-            <h1 class="text-2xl text-brand m-0">Registrar Atención</h1>
+            <h1 class="text-2xl text-brand m-0">Registrar <span v-if="userArea !== 'general'">{{ areaLabel }}</span><span v-else>Atención</span></h1>
           </div>
           <p class="text-text-secondary mt-1 text-sm m-0 ml-12">{{ mission.municipio }}, {{ mission.estado }}</p>
+          <p v-if="userArea !== 'general'" class="text-text-secondary mt-1 text-sm m-0 ml-12">
+            Área: <strong>{{ areaLabel }}</strong>
+          </p>
         </div>
       </div>
 
-      <BaseCard title="Datos de la Persona Atendida">
+      <BaseCard v-if="userArea === 'general' || userArea === 'medicina_humana' || userArea === 'psicologia'" title="Datos de la Persona Atendida">
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
           <BaseInput v-model="formCedula" label="Cédula de Identidad" required :error="formErrors.cedula_atendido" @update:model-value="formErrors.cedula_atendido = ''" />
           <BaseInput v-model="formNombre" label="Nombre Completo" required :error="formErrors.nombre_atendido" @update:model-value="formErrors.nombre_atendido = ''" />
           <BaseInput v-model="formEdad" label="Edad" type="number" min="0" max="150" :error="formErrors.edad" />
           <BaseSelect v-model="formSexo" label="Sexo" :options="sexoOptions" :error="formErrors.sexo" />
-        </div>
-      </BaseCard>
-
-      <BaseCard title="Atención Brindada">
-        <div class="grid grid-cols-1 gap-4">
-          <BaseSelect v-model="formTipoAtencion" label="Tipo de Atención" required :options="tipoAtencionOptions" :error="formErrors.tipo_atencion" />
-
-          <div class="flex items-center gap-3">
-            <input
-              id="referido"
-              type="checkbox"
-              v-model="formReferido"
-              class="w-4.5 h-4.5 accent-primary"
-            />
-            <label for="referido" class="text-sm font-medium cursor-pointer">Requiere referencia / derivación a otro servicio</label>
-          </div>
-
-          <fieldset class="border border-border rounded-lg p-4">
-            <legend class="text-sm font-semibold text-text-secondary px-1">Vulnerabilidades (selecciona todas que apliquen)</legend>
-            <div class="flex flex-wrap gap-x-6 gap-y-1.5 mt-2">
-              <label
-                v-for="opt in vulnerabilidadOptions"
-                :key="opt.value"
-                class="flex items-center gap-2 cursor-pointer text-sm py-0.5"
-              >
-                <input
-                  type="checkbox"
-                  :value="opt.value"
-                  :checked="formVulnerabilidades.includes(opt.value)"
-                  @change="toggleVulnerabilidad(opt.value)"
-                  class="w-4 h-4 accent-primary"
-                />
-                {{ opt.label }}
-              </label>
-            </div>
-          </fieldset>
-
           <BaseInput v-model="formTelefono" label="Teléfono de Contacto" />
-          <BaseInput v-model="formNotas" label="Notas de la Atención" />
         </div>
       </BaseCard>
 
-      <BaseCard title="Atenciones Registradas en esta Misión">
+      <BaseCard v-if="userArea === 'veterinaria'" title="Datos del Animal">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+          <BaseInput v-model="formNombre" label="Nombre del Animal" required :error="formErrors.nombre_atendido" @update:model-value="formErrors.nombre_atendido = ''" />
+          <BaseInput v-model="formEspecie" label="Especie" required placeholder="Perro, gato, etc." :error="formErrors.especie" @update:model-value="formErrors.especie = ''" />
+          <BaseSelect v-model="formSexo" label="Sexo" :options="sexoAnimalOptions" :error="formErrors.sexo" />
+          <BaseInput v-model="formEdad" label="Edad (años)" type="number" min="0" max="50" :error="formErrors.edad" />
+        </div>
+        <div class="flex flex-wrap gap-x-8 gap-y-2">
+          <label class="flex items-center gap-2 cursor-pointer text-sm">
+            <input type="checkbox" v-model="formPoseeTutor" class="w-4.5 h-4.5 accent-primary" />
+            ¿Posee tutor?
+          </label>
+          <label class="flex items-center gap-2 cursor-pointer text-sm">
+            <input type="checkbox" v-model="formRescatado" class="w-4.5 h-4.5 accent-primary" />
+            Rescatado
+          </label>
+          <label class="flex items-center gap-2 cursor-pointer text-sm">
+            <input type="checkbox" v-model="formEnAdopcion" class="w-4.5 h-4.5 accent-primary" />
+            En adopción
+          </label>
+        </div>
+      </BaseCard>
+
+      <BaseCard title="Detalles de la Atención">
+        <div class="grid grid-cols-1 gap-4">
+          <template v-if="userArea === 'general'">
+            <BaseSelect v-model="formTipoAtencion" label="Tipo de Atención" required :options="tipoAtencionOptions" :error="formErrors.tipo_atencion" />
+            <div class="flex items-center gap-3">
+              <input id="referido" type="checkbox" v-model="formReferido" class="w-4.5 h-4.5 accent-primary" />
+              <label for="referido" class="text-sm font-medium cursor-pointer">Requiere referencia / derivación a otro servicio</label>
+            </div>
+            <fieldset class="border border-border rounded-lg p-4">
+              <legend class="text-sm font-semibold text-text-secondary px-1">Vulnerabilidades (selecciona todas que apliquen)</legend>
+              <div class="flex flex-wrap gap-x-6 gap-y-1.5 mt-2">
+                <label v-for="opt in vulnerabilidadOptions" :key="opt.value" class="flex items-center gap-2 cursor-pointer text-sm py-0.5">
+                  <input type="checkbox" :value="opt.value" :checked="formVulnerabilidades.includes(opt.value)" @change="toggleVulnerabilidad(opt.value)" class="w-4 h-4 accent-primary" />
+                  {{ opt.label }}
+                </label>
+              </div>
+            </fieldset>
+          </template>
+
+          <template v-if="userArea === 'medicina_humana'">
+            <BaseInput v-model="formMotivoAtencion" label="Motivo de Atención" required :error="formErrors.motivo_atencion" @update:model-value="formErrors.motivo_atencion = ''" />
+            <BaseInput v-model="formLugarVivia" label="Lugar donde vivía" required :error="formErrors.lugar_vivia" @update:model-value="formErrors.lugar_vivia = ''" />
+            <BaseInput v-model="formLugarActual" label="Lugar actual" required :error="formErrors.lugar_actual" @update:model-value="formErrors.lugar_actual = ''" />
+            <BaseSelect v-model="formTipoAtencion" label="Tipo de Atención" :options="tipoAtencionOptions" :error="formErrors.tipo_atencion" />
+            <div class="flex items-center gap-3">
+              <input id="referido" type="checkbox" v-model="formReferido" class="w-4.5 h-4.5 accent-primary" />
+              <label for="referido" class="text-sm font-medium cursor-pointer">Requiere referencia / derivación</label>
+            </div>
+            <fieldset class="border border-border rounded-lg p-4">
+              <legend class="text-sm font-semibold text-text-secondary px-1">Vulnerabilidades</legend>
+              <div class="flex flex-wrap gap-x-6 gap-y-1.5 mt-2">
+                <label v-for="opt in vulnerabilidadOptions" :key="opt.value" class="flex items-center gap-2 cursor-pointer text-sm py-0.5">
+                  <input type="checkbox" :value="opt.value" :checked="formVulnerabilidades.includes(opt.value)" @change="toggleVulnerabilidad(opt.value)" class="w-4 h-4 accent-primary" />
+                  {{ opt.label }}
+                </label>
+              </div>
+            </fieldset>
+          </template>
+
+          <template v-if="userArea === 'psicologia'">
+            <BaseInput v-model="formMotivoAtencion" label="Motivo de Atención" required :error="formErrors.motivo_atencion" @update:model-value="formErrors.motivo_atencion = ''" />
+            <BaseInput v-model="formLugarVivia" label="Lugar donde vivía" required :error="formErrors.lugar_vivia" @update:model-value="formErrors.lugar_vivia = ''" />
+            <BaseInput v-model="formLugarActual" label="Lugar actual" required :error="formErrors.lugar_actual" @update:model-value="formErrors.lugar_actual = ''" />
+          </template>
+
+          <template v-if="userArea === 'veterinaria'">
+            <BaseInput v-model="formDiagnosticoTentativo" label="Diagnóstico Tentativo" required :error="formErrors.diagnostico_tentativo" @update:model-value="formErrors.diagnostico_tentativo = ''" />
+          </template>
+
+          <BaseInput v-model="formNotas" label="Notas" />
+        </div>
+      </BaseCard>
+
+      <BaseCard title="Registros en esta Misión">
         <BaseTable
           :columns="[
             { key: 'nombre_atendido', label: 'Nombre' },
             { key: 'cedula_atendido', label: 'Cédula' },
             { key: 'edad', label: 'Edad' },
             { key: 'sexo', label: 'Sexo' },
-            { key: 'tipo_atencion', label: 'Atención' },
-            { key: 'telefono_contacto', label: 'Teléfono' },
+            { key: 'area_registro', label: 'Área' },
             { key: 'fecha_hora_atencion', label: 'Fecha' },
             { key: 'acciones', label: '' },
           ]"
@@ -275,8 +434,8 @@ onMounted(async () => {
           <template #cell-sexo="{ value }">
             {{ labelSexo(value) }}
           </template>
-          <template #cell-tipo_atencion="{ value }">
-            {{ labelTipoAtencion(value) }}
+          <template #cell-area_registro="{ value }">
+            <span class="text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary capitalize">{{ value || 'general' }}</span>
           </template>
           <template #cell-acciones="{ row }">
             <BaseButton size="sm" variant="ghost" @click="openDetail(row as unknown as Atendido)">
@@ -288,7 +447,7 @@ onMounted(async () => {
 
       <div class="flex justify-end">
         <BaseButton variant="primary" size="lg" @click="registerAttendee" :loading="saving">
-          <UserPlus :size="20" /> Registrar Atención
+          <UserPlus :size="20" /> Guardar Registro
         </BaseButton>
       </div>
     </div>
@@ -305,20 +464,48 @@ onMounted(async () => {
       >
         <div class="bg-white rounded-xl p-6 w-full max-w-lg mx-4 flex flex-col gap-4 max-h-[85vh] overflow-y-auto">
           <div class="flex items-center justify-between">
-            <h3 class="m-0 text-brand text-lg font-bold">Detalle de Atención</h3>
+            <h3 class="m-0 text-brand text-lg font-bold">Detalle del Registro</h3>
             <BaseButton variant="ghost" size="sm" @click="closeDetail">✕</BaseButton>
           </div>
 
           <div class="grid grid-cols-2 gap-x-6 gap-y-3 text-sm">
             <div class="col-span-2">
+              <span class="font-semibold text-text-secondary block text-xs uppercase tracking-wide">Área</span>
+              <span class="capitalize">{{ selectedAtendido.area_registro || 'General' }}</span>
+            </div>
+            <div class="col-span-2">
               <span class="font-semibold text-text-secondary block text-xs uppercase tracking-wide">Nombre</span>
               <span>{{ selectedAtendido.nombre_atendido }}</span>
             </div>
-            <div>
-              <span class="font-semibold text-text-secondary block text-xs uppercase tracking-wide">Cédula</span>
-              <span>{{ selectedAtendido.cedula_atendido || '—' }}</span>
-            </div>
-            <div>
+            <template v-if="selectedAtendido.area_registro !== 'veterinaria'">
+              <div>
+                <span class="font-semibold text-text-secondary block text-xs uppercase tracking-wide">Cédula</span>
+                <span>{{ selectedAtendido.cedula_atendido || '—' }}</span>
+              </div>
+            </template>
+            <template v-if="selectedAtendido.area_registro === 'veterinaria'">
+              <div>
+                <span class="font-semibold text-text-secondary block text-xs uppercase tracking-wide">Especie</span>
+                <span>{{ selectedAtendido.especie || '—' }}</span>
+              </div>
+              <div>
+                <span class="font-semibold text-text-secondary block text-xs uppercase tracking-wide">Posee tutor</span>
+                <span>{{ selectedAtendido.posee_tutor ? 'Sí' : 'No' }}</span>
+              </div>
+              <div>
+                <span class="font-semibold text-text-secondary block text-xs uppercase tracking-wide">Rescatado</span>
+                <span>{{ selectedAtendido.rescatado ? 'Sí' : 'No' }}</span>
+              </div>
+              <div>
+                <span class="font-semibold text-text-secondary block text-xs uppercase tracking-wide">En adopción</span>
+                <span>{{ selectedAtendido.en_adopcion ? 'Sí' : 'No' }}</span>
+              </div>
+              <div class="col-span-2">
+                <span class="font-semibold text-text-secondary block text-xs uppercase tracking-wide">Diagnóstico</span>
+                <span>{{ selectedAtendido.diagnostico_tentativo || '—' }}</span>
+              </div>
+            </template>
+            <div v-if="selectedAtendido.area_registro !== 'veterinaria'">
               <span class="font-semibold text-text-secondary block text-xs uppercase tracking-wide">Teléfono</span>
               <span>{{ selectedAtendido.telefono_contacto || '—' }}</span>
             </div>
@@ -330,27 +517,45 @@ onMounted(async () => {
               <span class="font-semibold text-text-secondary block text-xs uppercase tracking-wide">Sexo</span>
               <span>{{ labelSexo(selectedAtendido.sexo) }}</span>
             </div>
-            <div class="col-span-2">
-              <span class="font-semibold text-text-secondary block text-xs uppercase tracking-wide">Tipo de Atención</span>
-              <span>{{ labelTipoAtencion(selectedAtendido.tipo_atencion) }}</span>
-            </div>
-            <div class="col-span-2">
-              <span class="font-semibold text-text-secondary block text-xs uppercase tracking-wide">Requiere Referencia</span>
-              <span>{{ selectedAtendido.referido ? 'Sí' : 'No' }}</span>
-            </div>
-            <div class="col-span-2">
-              <span class="font-semibold text-text-secondary block text-xs uppercase tracking-wide">Vulnerabilidades</span>
-              <div v-if="selectedAtendido.vulnerabilidad" class="flex flex-wrap gap-1 mt-1">
-                <span
-                  v-for="v in parseVuln(selectedAtendido.vulnerabilidad)"
-                  :key="v"
-                  class="text-xs px-2 py-0.5 rounded-full bg-amber-100 text-amber-800"
-                >
-                  {{ labelVuln(v) }}
-                </span>
+            <template v-if="selectedAtendido.area_registro === 'medicina_humana' || selectedAtendido.area_registro === 'psicologia' || selectedAtendido.area_registro === 'logistica'">
+              <div class="col-span-2">
+                <span class="font-semibold text-text-secondary block text-xs uppercase tracking-wide">Lugar donde vivía</span>
+                <span>{{ selectedAtendido.lugar_vivia || '—' }}</span>
               </div>
-              <span v-else class="text-text-secondary">—</span>
-            </div>
+              <div class="col-span-2">
+                <span class="font-semibold text-text-secondary block text-xs uppercase tracking-wide">Lugar actual</span>
+                <span>{{ selectedAtendido.lugar_actual || '—' }}</span>
+              </div>
+            </template>
+            <template v-if="selectedAtendido.area_registro === 'medicina_humana' || selectedAtendido.area_registro === 'psicologia'">
+              <div class="col-span-2">
+                <span class="font-semibold text-text-secondary block text-xs uppercase tracking-wide">Motivo de Atención</span>
+                <span>{{ selectedAtendido.motivo_atencion || '—' }}</span>
+              </div>
+            </template>
+            <template v-if="selectedAtendido.area_registro === 'logistica'">
+              <div class="col-span-2">
+                <span class="font-semibold text-text-secondary block text-xs uppercase tracking-wide">Insumo Entregado</span>
+                <span>{{ selectedAtendido.insumo_entregado || '—' }}</span>
+              </div>
+            </template>
+            <template v-if="selectedAtendido.area_registro === 'general'">
+              <div class="col-span-2">
+                <span class="font-semibold text-text-secondary block text-xs uppercase tracking-wide">Tipo de Atención</span>
+                <span>{{ labelTipoAtencion(selectedAtendido.tipo_atencion) }}</span>
+              </div>
+              <div class="col-span-2">
+                <span class="font-semibold text-text-secondary block text-xs uppercase tracking-wide">Requiere Referencia</span>
+                <span>{{ selectedAtendido.referido ? 'Sí' : 'No' }}</span>
+              </div>
+              <div class="col-span-2">
+                <span class="font-semibold text-text-secondary block text-xs uppercase tracking-wide">Vulnerabilidades</span>
+                <div v-if="selectedAtendido.vulnerabilidad" class="flex flex-wrap gap-1 mt-1">
+                  <span v-for="v in parseVuln(selectedAtendido.vulnerabilidad)" :key="v" class="text-xs px-2 py-0.5 rounded-full bg-amber-100 text-amber-800">{{ labelVuln(v) }}</span>
+                </div>
+                <span v-else class="text-text-secondary">—</span>
+              </div>
+            </template>
             <div class="col-span-2">
               <span class="font-semibold text-text-secondary block text-xs uppercase tracking-wide">Notas</span>
               <p class="m-0 whitespace-pre-wrap">{{ selectedAtendido.notas || '—' }}</p>

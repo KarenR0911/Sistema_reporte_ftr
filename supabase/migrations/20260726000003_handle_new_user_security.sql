@@ -1,6 +1,7 @@
 -- ============================================================
--- Fix: handle_new_user trigger insertaba en columna email
--- que fue eliminada en 20260720_remove_email_from_perfiles.sql
+-- Security fix: handle_new_user forces rol='personal'
+-- Prevents privilege escalation from client-side signup metadata
+-- The admin panel will override the role via an upsert after signup
 -- ============================================================
 
 CREATE OR REPLACE FUNCTION public.handle_new_user()
@@ -14,7 +15,7 @@ BEGIN
     NEW.id,
     COALESCE(NEW.raw_user_meta_data->>'cedula', NEW.email),
     COALESCE(NEW.raw_user_meta_data->>'nombre', 'Usuario'),
-    COALESCE((NEW.raw_user_meta_data->>'rol')::public.rol_usuario, 'personal'::public.rol_usuario),
+    'personal',
     (NEW.raw_user_meta_data->>'categoria_voluntariado')::public.categoria_voluntariado,
     COALESCE(NEW.raw_user_meta_data->>'especialidad', ''),
     COALESCE(NEW.raw_user_meta_data->>'area_voluntariado', ''),
@@ -23,3 +24,9 @@ BEGIN
   RETURN NEW;
 END;
 $$;
+
+-- Ensure trigger exists (idempotent)
+DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
+CREATE TRIGGER on_auth_user_created
+  AFTER INSERT ON auth.users
+  FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();

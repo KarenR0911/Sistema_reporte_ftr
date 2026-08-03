@@ -13,6 +13,7 @@ const props = defineProps<{
   max?: number | string
   name?: string
   autocomplete?: string
+  disabled?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -41,6 +42,7 @@ function handleInput(e: Event) {
       :type="type ?? 'text'"
       :name="name"
       :autocomplete="autocomplete"
+      :disabled="disabled"
       class="font-sans px-3.5 py-2.5 border rounded-lg text-sm bg-white transition-colors focus:outline-none focus:ring-3 focus:ring-primary/10"
       :class="error ? 'border-danger' : 'border-border focus:border-primary'"
       :placeholder="placeholder"

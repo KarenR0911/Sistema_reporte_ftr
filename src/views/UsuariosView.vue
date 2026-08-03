@@ -15,6 +15,7 @@ import { usuarioSchema } from '@/lib/schemas'
 import type { Usuario, CategoriaVoluntariado } from '@/types'
 
 const auth = useAuthStore()
+const toast = useToastStore()
 const usuarios = ref<Usuario[]>([])
 const showUserForm = ref(false)
 const editingUser = ref<Usuario | null>(null)
@@ -27,10 +28,12 @@ const formCedula = computed({
   },
 })
 const formNombre = ref('')
+const formEmail = ref('')
 const formRol = ref('')
 const formCategoriaVoluntariado = ref<string>('')
 const formEspecialidad = ref('')
 const formAreaVoluntariado = ref('')
+const formActivo = ref(true)
 const formErrors = ref<Record<string, string>>({})
 
 function handleCedulaInput(val: string | number | null) {
@@ -48,12 +51,20 @@ watch(formRol, (val) => {
   }
 })
 
+watch(formCategoriaVoluntariado, (val) => {
+  if (val !== 'profesional') {
+    formEspecialidad.value = ''
+    formErrors.value.especialidad = ''
+  }
+})
+
 const searchQuery = ref('')
 const filtroRol = ref('')
 const filtroTipo = ref('')
 
 const showDeleteModal = ref(false)
 const userToDelete = ref<Usuario | null>(null)
+const deleting = ref(false)
 
 const showCreatedDialog = ref(false)
 const createdUser = ref<{ cedula: string; nombre: string; email: string; password: string } | null>(null)
@@ -99,7 +110,7 @@ async function loadUsuarios() {
           id: p.id as string,
           cedula: p.cedula as string,
           nombre: p.nombre as string,
-          email: `${p.cedula}@ftr.app`,
+          email: (p.email as string) || `${p.cedula}@ftr.app`,
           rol: p.rol as Usuario['rol'],
           activo: p.activo as boolean,
           categoria_voluntariado: p.categoria_voluntariado as CategoriaVoluntariado | undefined,
@@ -120,6 +131,7 @@ function validateForm(): boolean {
   const payload: Record<string, unknown> = {
     cedula: formCedula.value,
     nombre: formNombre.value,
+    email: formEmail.value,
     rol: formRol.value,
   }
   if (formRol.value === 'personal') {
@@ -143,7 +155,7 @@ function validateForm(): boolean {
     }
   }
   if (Object.keys(formErrors.value).length > 0) {
-    useToastStore().error('Corrige los errores del formulario')
+    toast.error('Corrige los errores del formulario')
     return false
   }
   return true
@@ -153,22 +165,27 @@ async function saveUser() {
   if (!validateForm()) return
   const isNew = !editingUser.value
   const esPersonal = formRol.value === 'personal'
-  const email = `${formCedula.value}@ftr.app`
+  const email = formEmail.value
   const user: Usuario = {
     id: editingUser.value?.id ?? crypto.randomUUID(),
     cedula: formCedula.value,
     nombre: formNombre.value,
     email,
     rol: formRol.value as Usuario['rol'],
-    activo: true,
+    activo: formActivo.value,
     categoria_voluntariado: esPersonal ? (formCategoriaVoluntariado.value as CategoriaVoluntariado) : undefined,
     especialidad: esPersonal ? formEspecialidad.value : '',
     area_voluntariado: esPersonal ? formAreaVoluntariado.value : '',
   }
 
+  if (!isNew && editingUser.value?.id === auth.currentUser?.id && !formActivo.value) {
+    toast.error('No puedes desactivar tu propia cuenta')
+    return
+  }
+
   if (navigator.onLine && isNew) {
     try {
-      const { error } = await getSupabase().auth.signUp({
+      const { data, error } = await getSupabase().auth.signUp({
         email: user.email,
         password: tempPassword.value,
         options: {
@@ -182,8 +199,18 @@ async function saveUser() {
           },
         },
       })
-      if (!error) {
+      if (!error && data?.user?.id) {
+        user.id = data.user.id
         await putItem('usuarios', user)
+        try {
+          await getSupabase().from('perfiles').update({
+            email: user.email,
+            rol: user.rol,
+            categoria_voluntariado: user.categoria_voluntariado ?? null,
+            especialidad: user.especialidad ?? '',
+            area_voluntariado: user.area_voluntariado ?? '',
+          }).eq('id', user.id)
+        } catch {}
         createdUser.value = { cedula: user.cedula, nombre: user.nombre, email: user.email, password: tempPassword.value }
         showCreatedDialog.value = true
       } else {
@@ -191,6 +218,7 @@ async function saveUser() {
         try {
           await getSupabase().from('perfiles').upsert({
             id: user.id,
+            email: user.email,
             cedula: user.cedula,
             nombre: user.nombre,
             rol: user.rol,
@@ -200,7 +228,7 @@ async function saveUser() {
             activo: true,
           })
         } catch {} // fallback silencioso
-        useToastStore().error('Guardado localmente. Supabase Auth: ' + error.message)
+        useToastStore().error('Guardado localmente. Supabase Auth: ' + (error?.message ?? 'No se pudo completar el alta'))
       }
     } catch {
       await putItem('usuarios', user)
@@ -211,6 +239,7 @@ async function saveUser() {
       cedula: user.cedula,
       nombre: user.nombre,
       rol: user.rol,
+      activo: user.activo,
       categoria_voluntariado: user.categoria_voluntariado ?? null,
       especialidad: user.especialidad ?? '',
       area_voluntariado: user.area_voluntariado ?? '',
@@ -234,7 +263,9 @@ function editUser(u: Usuario) {
   editingUser.value = u
   formCedula.value = u.cedula
   formNombre.value = u.nombre
+  formEmail.value = u.email
   formRol.value = u.rol
+  formActivo.value = u.activo
   formCategoriaVoluntariado.value = u.categoria_voluntariado ?? ''
   formEspecialidad.value = u.especialidad ?? ''
   formAreaVoluntariado.value = u.area_voluntariado ?? ''
@@ -261,34 +292,39 @@ function cancelDelete() {
 }
 
 async function confirmDelete() {
-  if (!userToDelete.value) return
-  const userId = userToDelete.value.id
-  if (navigator.onLine) {
-    try {
-      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
-      const resp = await fetch(`${supabaseUrl}/functions/v1/delete-user`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${auth.accessToken}`,
-        },
-        body: JSON.stringify({ userId }),
-      })
-      const data = await resp.json()
-      if (!resp.ok) {
-        useToastStore().error(data.error ?? 'Error al eliminar usuario')
+  if (!userToDelete.value || deleting.value) return
+  deleting.value = true
+  try {
+    const userId = userToDelete.value.id
+    if (navigator.onLine) {
+      try {
+        const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
+        const resp = await fetch(`${supabaseUrl}/functions/v1/delete-user`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${auth.accessToken}`,
+          },
+          body: JSON.stringify({ userId }),
+        })
+        const data = await resp.json()
+        if (!resp.ok) {
+          useToastStore().error(data.error ?? 'Error al eliminar usuario')
+          return
+        }
+      } catch (e) {
+        useToastStore().error('Error de red al eliminar usuario')
         return
       }
-    } catch (e) {
-      useToastStore().error('Error de red al eliminar usuario')
-      return
     }
+    await deleteItem('usuarios', userId)
+    showDeleteModal.value = false
+    userToDelete.value = null
+    await loadUsuarios()
+    useToastStore().success('Usuario eliminado permanentemente')
+  } finally {
+    deleting.value = false
   }
-  await deleteItem('usuarios', userId)
-  showDeleteModal.value = false
-  userToDelete.value = null
-  await loadUsuarios()
-  useToastStore().success('Usuario eliminado permanentemente')
 }
 
 function resetForm() {
@@ -296,7 +332,9 @@ function resetForm() {
   editingUser.value = null
   formCedula.value = ''
   formNombre.value = ''
+  formEmail.value = ''
   formRol.value = ''
+  formActivo.value = true
   formCategoriaVoluntariado.value = ''
   formEspecialidad.value = ''
   formAreaVoluntariado.value = ''
@@ -353,6 +391,16 @@ onMounted(async () => {
           <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
             <BaseInput v-model="formCedula" label="Cédula" required :error="formErrors.cedula" @update:model-value="handleCedulaInput" :maxlength="10" />
             <BaseInput v-model="formNombre" label="Nombre" required :error="formErrors.nombre" @update:model-value="formErrors.nombre = ''" />
+            <BaseInput
+              v-model="formEmail"
+              label="Email"
+              type="email"
+              required
+              :disabled="!!editingUser"
+              :error="formErrors.email"
+              placeholder="correo@ejemplo.com"
+              @update:model-value="formErrors.email = ''"
+            />
             <BaseSelect
               v-model="formRol"
               label="Rol"
@@ -421,10 +469,18 @@ onMounted(async () => {
                   { value: 'operaciones_rescate', label: 'Operaciones / Búsqueda y Rescate' },
                   { value: 'soporte_tecnico', label: 'Soporte Técnico' },
                   { value: 'administracion', label: 'Administración / Finanzas' },
+                  { value: 'veterinaria', label: 'Medicina Veterinaria' },
                   { value: 'otro', label: 'Otro' },
                 ]"
               />
             </template>
+            <label
+              v-if="editingUser"
+              class="flex items-center gap-2 text-sm text-text-secondary cursor-pointer select-none"
+            >
+              <input type="checkbox" v-model="formActivo" class="accent-primary w-4 h-4" />
+              {{ formActivo ? 'Usuario activo' : 'Usuario inactivo' }}
+            </label>
           </div>
           <div class="flex gap-2">
             <BaseButton variant="primary" @click="saveUser">Guardar</BaseButton>
@@ -478,6 +534,7 @@ onMounted(async () => {
       description="Se borrará de Supabase Auth y del sistema. Sus registros en misiones, atenciones y reportes se conservarán para auditoría. Esta acción no se puede deshacer."
       confirm-text="Sí, eliminar permanentemente"
       variant="danger"
+      :loading="deleting"
       @confirm="confirmDelete"
       @cancel="cancelDelete"
     />

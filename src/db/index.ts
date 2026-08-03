@@ -1,7 +1,7 @@
-import { openDB, deleteDB, type IDBPDatabase } from 'idb'
+import { openDB, type IDBPDatabase } from 'idb'
 
 const DB_NAME = 'sistema-reporte-ftr'
-const DB_VERSION = 8
+const DB_VERSION = 9
 
 type StoreName = 'atendidos' | 'necesidades' | 'usuarios' | 'salidas' | 'misiones' | 'personal' | 'insumos' | 'transporte'
 
@@ -25,32 +25,30 @@ function createStores(db: IDBPDatabase) {
   }
 }
 
-function deleteObsoleteStores(db: IDBPDatabase) {
-  const obsolete: string[] = []
-  for (const name of obsolete) {
-    if (db.objectStoreNames.contains(name)) {
-      db.deleteObjectStore(name)
-    }
-  }
-}
-
 export async function getDB(): Promise<IDBPDatabase> {
   if (dbInstance) return dbInstance
 
   try {
     dbInstance = await openDB(DB_NAME, DB_VERSION, {
       upgrade(db, _oldVersion, _newVersion) {
-        deleteObsoleteStores(db)
         createStores(db)
       },
     })
+    dbInstance.addEventListener('versionchange', () => {
+      dbInstance?.close()
+      dbInstance = null
+    })
   } catch (err) {
     if (err instanceof Error && err.name === 'VersionError') {
-      await deleteDB(DB_NAME)
+      dbInstance = null
       dbInstance = await openDB(DB_NAME, DB_VERSION, {
         upgrade(db) {
           createStores(db)
         },
+      })
+      dbInstance.addEventListener('versionchange', () => {
+        dbInstance?.close()
+        dbInstance = null
       })
     } else {
       throw err
@@ -65,14 +63,18 @@ export async function getAll<T>(store: StoreName): Promise<T[]> {
   return db.getAll(store)
 }
 
+function toPlain<T>(value: T): T {
+  return JSON.parse(JSON.stringify(value)) as T
+}
+
 export async function addItem<T>(store: StoreName, item: T): Promise<void> {
   const db = await getDB()
-  await db.add(store, item as never)
+  await db.add(store, toPlain(item) as never)
 }
 
 export async function putItem<T>(store: StoreName, item: T): Promise<void> {
   const db = await getDB()
-  await db.put(store, item as never)
+  await db.put(store, toPlain(item) as never)
 }
 
 export async function deleteItem(store: StoreName, id: string): Promise<void> {
@@ -115,4 +117,4 @@ export async function clearDeletedId(id: string): Promise<void> {
   await db.delete('_deleted', id)
 }
 
-export type { StoreName, DeletedRecord }
+export type { StoreName }

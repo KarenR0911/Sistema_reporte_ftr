@@ -15,10 +15,11 @@ const carga = computed(() => {
       const p = props.personales.find(p2 => p2.cedula === a.cedula_personal)
       map[a.cedula_personal] = { nombre: p?.nombre ?? a.cedula_personal, cedula: a.cedula_personal, misiones: new Set(), atenciones: 0, ultima: '' }
     }
-    map[a.cedula_personal].atenciones++
-    map[a.cedula_personal].misiones.add(a.id_mision)
-    if (a.fecha_hora_atencion && a.fecha_hora_atencion > map[a.cedula_personal].ultima) {
-      map[a.cedula_personal].ultima = a.fecha_hora_atencion
+    const entry = map[a.cedula_personal]!
+    entry.atenciones++
+    entry.misiones.add(a.id_mision)
+    if (a.fecha_hora_atencion && new Date(a.fecha_hora_atencion).getTime() > new Date(entry.ultima).getTime()) {
+      entry.ultima = a.fecha_hora_atencion
     }
   }
   return Object.values(map).sort((a, b) => b.atenciones - a.atenciones)
@@ -43,11 +44,13 @@ function formatDate(iso: string): string {
 
     <div class="report-section">
       <h2 class="section-title">Resumen</h2>
-      <table class="info-table">
-        <tr><td class="info-label">Voluntarios con actividad</td><td class="info-value">{{ totalVoluntarios }}</td></tr>
-        <tr><td class="info-label">Total de atenciones registradas</td><td class="info-value">{{ totalAtenciones }}</td></tr>
-        <tr><td class="info-label">Promedio por voluntario</td><td class="info-value">{{ totalVoluntarios ? (totalAtenciones / totalVoluntarios).toFixed(1) : 0 }}</td></tr>
-      </table>
+<table class="info-table">
+<tbody>
+<tr><td class="info-label">Voluntarios con actividad</td><td class="info-value">{{ totalVoluntarios }}</td></tr>
+<tr><td class="info-label">Total de atenciones registradas</td><td class="info-value">{{ totalAtenciones }}</td></tr>
+<tr><td class="info-label">Promedio por voluntario</td><td class="info-value">{{ totalVoluntarios ? (totalAtenciones / totalVoluntarios).toFixed(1) : 0 }}</td></tr>
+</tbody>
+</table>
     </div>
 
     <div class="report-section">

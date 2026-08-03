@@ -14,8 +14,6 @@ if (typeof window !== 'undefined') {
     if (!document.hidden) syncState()
   })
   setTimeout(syncState, 100)
-  requestAnimationFrame(syncState)
-  setInterval(syncState, 3000)
 }
 
 export function useOnlineStatus() {

@@ -1,11 +1,19 @@
 <script setup lang="ts">
 import type { Atendido, Mision, PersonalMision } from '@/types'
+import { parseVuln, labelVuln } from '@/lib/vulnerabilidad'
 
 const props = defineProps<{
   atendido: Atendido
   mission: Mision | null
   personal: PersonalMision | null
 }>()
+
+const area = props.atendido.area_registro || 'general'
+
+const areaLabels: Record<string, string> = {
+  general: 'General', medicina_humana: 'Medicina Humana',
+  psicologia: 'Psicología', veterinaria: 'Veterinaria', logistica: 'Logística',
+}
 
 function labelTipoAtencion(val: string | null): string {
   const labels: Record<string, string> = {
@@ -21,17 +29,8 @@ function labelSexo(val: string | null): string {
   return val === 'masculino' ? 'Masculino' : val === 'femenino' ? 'Femenino' : val === 'otro' ? 'Otro' : '—'
 }
 
-function labelVuln(v: string): string {
-  const m: Record<string, string> = {
-    embarazada: 'Embarazada', discapacidad: 'Discapacidad', adulto_mayor: 'Adulto Mayor',
-    menor_no_acompanado: 'Menor no Acompañado', enfermedad_cronica: 'Enfermedad Crónica', otro: 'Otra',
-  }
-  return m[v] ?? v
-}
-
-function parseVuln(value: string | null): string[] {
-  if (!value) return []
-  try { return value.startsWith('[') ? JSON.parse(value) : [value] } catch { return [value] }
+function labelBool(val: boolean | null | undefined): string {
+  return val == null ? '—' : val ? 'Sí' : 'No'
 }
 
 function formatDateTime(iso: string): string {
@@ -45,39 +44,73 @@ function formatDateTime(iso: string): string {
 <template>
   <div class="report">
     <div class="report-header">
-      <h1 class="report-title">Ficha de Atención</h1>
-      <p class="report-date">Generado el {{ new Date().toLocaleDateString('es-VE', { day: '2-digit', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' }) }}</p>
+      <h1 class="report-title">Ficha de {{ area === 'veterinaria' ? 'Registro Veterinario' : 'Atención' }}</h1>
+      <p class="report-date">Área: {{ areaLabels[area] || area }} — Generado el {{ new Date().toLocaleDateString('es-VE', { day: '2-digit', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' }) }}</p>
     </div>
 
     <div v-if="mission" class="report-section">
       <h2 class="section-title">Datos de la Misión</h2>
       <table class="info-table">
-        <tr><td class="info-label">Ubicación</td><td class="info-value">{{ mission.municipio }}, {{ mission.estado }}</td></tr>
-        <tr><td class="info-label">Dirección</td><td class="info-value">{{ mission.direccion }}</td></tr>
+        <tbody>
+          <tr><td class="info-label">Ubicación</td><td class="info-value">{{ mission.municipio }}, {{ mission.estado }}</td></tr>
+          <tr><td class="info-label">Dirección</td><td class="info-value">{{ mission.direccion }}</td></tr>
+        </tbody>
       </table>
     </div>
 
     <div class="report-section">
-      <h2 class="section-title">Datos de la Persona Atendida</h2>
+      <h2 class="section-title">{{ area === 'veterinaria' ? 'Datos del Animal' : 'Datos de la Persona Atendida' }}</h2>
       <table class="info-table">
-        <tr><td class="info-label">Nombre</td><td class="info-value">{{ atendido.nombre_atendido }}</td></tr>
-        <tr><td class="info-label">Cédula</td><td class="info-value">{{ atendido.cedula_atendido || '—' }}</td></tr>
-        <tr><td class="info-label">Teléfono</td><td class="info-value">{{ atendido.telefono_contacto || '—' }}</td></tr>
-        <tr><td class="info-label">Edad</td><td class="info-value">{{ atendido.edad ?? '—' }}</td></tr>
-        <tr><td class="info-label">Sexo</td><td class="info-value">{{ labelSexo(atendido.sexo) }}</td></tr>
+        <tbody>
+          <tr><td class="info-label">Nombre</td><td class="info-value">{{ atendido.nombre_atendido }}</td></tr>
+          <tr v-if="area !== 'veterinaria'"><td class="info-label">Cédula</td><td class="info-value">{{ atendido.cedula_atendido || '—' }}</td></tr>
+          <tr v-if="area === 'veterinaria'"><td class="info-label">Especie</td><td class="info-value">{{ atendido.especie || '—' }}</td></tr>
+          <tr v-if="area !== 'veterinaria'"><td class="info-label">Teléfono</td><td class="info-value">{{ atendido.telefono_contacto || '—' }}</td></tr>
+          <tr><td class="info-label">Edad</td><td class="info-value">{{ atendido.edad ?? '—' }}</td></tr>
+          <tr><td class="info-label">Sexo</td><td class="info-value">{{ labelSexo(atendido.sexo) }}</td></tr>
+          <tr v-if="area === 'veterinaria'">
+            <td class="info-label">Posee tutor</td>
+            <td class="info-value">{{ labelBool(atendido.posee_tutor) }}</td>
+          </tr>
+          <tr v-if="area === 'veterinaria'">
+            <td class="info-label">Rescatado</td>
+            <td class="info-value">{{ labelBool(atendido.rescatado) }}</td>
+          </tr>
+          <tr v-if="area === 'veterinaria'">
+            <td class="info-label">En adopción</td>
+            <td class="info-value">{{ labelBool(atendido.en_adopcion) }}</td>
+          </tr>
+        </tbody>
       </table>
     </div>
 
     <div class="report-section">
-      <h2 class="section-title">Atención Recibida</h2>
+      <h2 class="section-title">{{ area === 'veterinaria' ? 'Diagnóstico' : area === 'logistica' ? 'Registro Logístico' : 'Atención Recibida' }}</h2>
       <table class="info-table">
-        <tr><td class="info-label">Tipo de Atención</td><td class="info-value">{{ labelTipoAtencion(atendido.tipo_atencion) }}</td></tr>
-        <tr><td class="info-label">Requiere Referencia</td><td class="info-value">{{ atendido.referido ? 'Sí' : 'No' }}</td></tr>
-        <tr><td class="info-label">Fecha y Hora</td><td class="info-value">{{ formatDateTime(atendido.fecha_hora_atencion) }}</td></tr>
+        <tbody>
+          <template v-if="area === 'medicina_humana' || area === 'psicologia'">
+            <tr><td class="info-label">Motivo de Atención</td><td class="info-value">{{ atendido.motivo_atencion || '—' }}</td></tr>
+            <tr><td class="info-label">Lugar donde vivía</td><td class="info-value">{{ atendido.lugar_vivia || '—' }}</td></tr>
+            <tr><td class="info-label">Lugar actual</td><td class="info-value">{{ atendido.lugar_actual || '—' }}</td></tr>
+          </template>
+          <template v-if="area === 'logistica'">
+            <tr><td class="info-label">Lugar donde vivía</td><td class="info-value">{{ atendido.lugar_vivia || '—' }}</td></tr>
+            <tr><td class="info-label">Lugar actual</td><td class="info-value">{{ atendido.lugar_actual || '—' }}</td></tr>
+            <tr><td class="info-label">Insumo Entregado</td><td class="info-value">{{ atendido.insumo_entregado || '—' }}</td></tr>
+          </template>
+          <template v-if="area === 'veterinaria'">
+            <tr><td class="info-label">Diagnóstico Tentativo</td><td class="info-value">{{ atendido.diagnostico_tentativo || '—' }}</td></tr>
+          </template>
+          <template v-if="area === 'general'">
+            <tr><td class="info-label">Tipo de Atención</td><td class="info-value">{{ labelTipoAtencion(atendido.tipo_atencion) }}</td></tr>
+            <tr><td class="info-label">Requiere Referencia</td><td class="info-value">{{ labelBool(atendido.referido) }}</td></tr>
+          </template>
+          <tr><td class="info-label">Fecha y Hora</td><td class="info-value">{{ formatDateTime(atendido.fecha_hora_atencion) }}</td></tr>
+        </tbody>
       </table>
     </div>
 
-    <div v-if="atendido.vulnerabilidad" class="report-section">
+    <div v-if="area === 'general' && atendido.vulnerabilidad" class="report-section">
       <h2 class="section-title">Vulnerabilidades</h2>
       <div class="flex flex-wrap gap-2 mt-1">
         <span v-for="v in parseVuln(atendido.vulnerabilidad)" :key="v" class="vuln-badge">{{ labelVuln(v) }}</span>
@@ -92,8 +125,10 @@ function formatDateTime(iso: string): string {
     <div class="report-section">
       <h2 class="section-title">Registrado por</h2>
       <table class="info-table">
-        <tr><td class="info-label">Cédula</td><td class="info-value">{{ atendido.cedula_personal }}</td></tr>
-        <tr v-if="personal"><td class="info-label">Nombre</td><td class="info-value">{{ personal.nombre }}</td></tr>
+        <tbody>
+          <tr><td class="info-label">Cédula</td><td class="info-value">{{ atendido.cedula_personal }}</td></tr>
+          <tr v-if="personal"><td class="info-label">Nombre</td><td class="info-value">{{ personal.nombre }}</td></tr>
+        </tbody>
       </table>
     </div>
 

@@ -1,7 +1,6 @@
 <script setup lang="ts">
 defineProps<{
   status: string
-  type?: 'sync' | 'mision' | 'cargamento' | 'necesidad'
 }>()
 
 const statusColors: Record<string, { bg: string; color: string }> = {

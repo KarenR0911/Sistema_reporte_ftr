@@ -31,6 +31,7 @@ const rendimiento = computed(() => {
     personalMap.set(p.id_mision, (personalMap.get(p.id_mision) ?? 0) + 1)
   }
   return props.misiones.map(m => ({
+    id: m.id,
     direccion: m.direccion,
     municipio: m.municipio,
     personal: personalMap.get(m.id) ?? 0,
@@ -51,8 +52,17 @@ function formatDate(iso: string): string {
 }
 
 function labelEstatus(val: string): string {
-  return val === 'activa' ? 'Activa' : val === 'completada' ? 'Completada' : 'Cancelada'
+  return val === 'activa' ? 'Activa' : val === 'completada' ? 'Completada' : val === 'cancelada' ? 'Cancelada' : '—'
 }
+
+const periodo = computed(() => {
+  const fechas = props.misiones
+    .map(m => m.fecha_inicio)
+    .filter(Boolean)
+    .sort()
+  if (fechas.length === 0) return '—'
+  return `${formatDate(fechas[0]!)} - ${formatDate(fechas[fechas.length - 1]!)}`
+})
 </script>
 
 <template>
@@ -64,14 +74,16 @@ function labelEstatus(val: string): string {
 
     <div class="report-section">
       <h2 class="section-title">Resumen General</h2>
-      <table class="info-table">
-        <tr><td class="info-label">Total Misiones</td><td class="info-value">{{ totalMisiones }}</td></tr>
-        <tr><td class="info-label">Misiones Activas</td><td class="info-value">{{ misionesActivas }}</td></tr>
-        <tr><td class="info-label">Personas Atendidas</td><td class="info-value">{{ totalAtendidos }}</td></tr>
-        <tr><td class="info-label">Necesidades Reportadas</td><td class="info-value">{{ totalNecesidades }}</td></tr>
-        <tr><td class="info-label">Necesidades Atendidas</td><td class="info-value">{{ necesidadesAtendidas }} ({{ totalNecesidades ? Math.round(necesidadesAtendidas / totalNecesidades * 100) : 0 }}%)</td></tr>
-        <tr><td class="info-label">Período</td><td class="info-value">{{ misiones.length > 0 ? `${formatDate(misiones[misiones.length - 1].fecha_inicio)} — ${formatDate(misiones[0].fecha_inicio)}` : '—' }}</td></tr>
-      </table>
+<table class="info-table">
+<tbody>
+<tr><td class="info-label">Total Misiones</td><td class="info-value">{{ totalMisiones }}</td></tr>
+<tr><td class="info-label">Misiones Activas</td><td class="info-value">{{ misionesActivas }}</td></tr>
+<tr><td class="info-label">Personas Atendidas</td><td class="info-value">{{ totalAtendidos }}</td></tr>
+<tr><td class="info-label">Necesidades Reportadas</td><td class="info-value">{{ totalNecesidades }}</td></tr>
+<tr><td class="info-label">Necesidades Atendidas</td><td class="info-value">{{ necesidadesAtendidas }} ({{ totalNecesidades ? Math.round(necesidadesAtendidas / totalNecesidades * 100) : 0 }}%)</td></tr>
+<tr><td class="info-label">Período</td><td class="info-value">{{ periodo }}</td></tr>
+</tbody>
+</table>
     </div>
 
     <div class="report-section">
@@ -89,7 +101,7 @@ function labelEstatus(val: string): string {
           </tr>
         </thead>
         <tbody>
-          <tr v-for="r in rendimiento" :key="r.direccion">
+          <tr v-for="r in rendimiento" :key="r.id">
             <td>{{ r.direccion }}</td>
             <td>{{ r.municipio }}</td>
             <td class="text-center">{{ r.personal }}</td>

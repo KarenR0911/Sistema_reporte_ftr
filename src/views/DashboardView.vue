@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, computed, reactive } from 'vue'
 import BaseCard from '@/components/ui/BaseCard.vue'
 import BaseButton from '@/components/ui/BaseButton.vue'
 import BaseTable from '@/components/ui/BaseTable.vue'
@@ -42,6 +42,20 @@ const misionesActivas = computed(() =>
   misionesStore.list.filter((m) => m.estatus_mision === 'activa').length,
 )
 
+const areaLabels: Record<string, string> = {
+  general: 'General', medicina_humana: 'Medicina Humana',
+  psicologia: 'Psicología', veterinaria: 'Veterinaria', logistica: 'Logística',
+}
+
+const atendidosPorArea = computed(() => {
+  const c: Record<string, number> = {}
+  for (const a of atendidosStore.list) {
+    const k = a.area_registro || 'general'
+    c[k] = (c[k] || 0) + 1
+  }
+  return Object.entries(c).sort((a, b) => b[1] - a[1])
+})
+
 const rendimientoMisiones = computed(() => {
   const personalCount = new Map<string, number>()
   for (const p of personalStore.list) {
@@ -52,12 +66,8 @@ const rendimientoMisiones = computed(() => {
     atendidosCount.set(a.id_mision, (atendidosCount.get(a.id_mision) ?? 0) + 1)
   }
   const necCount = new Map<string, number>()
-  const necAtendidasCount = new Map<string, number>()
   for (const n of necesidadesStore.list) {
     necCount.set(n.id_mision, (necCount.get(n.id_mision) ?? 0) + 1)
-    if (n.estatus === 'atendido') {
-      necAtendidasCount.set(n.id_mision, (necAtendidasCount.get(n.id_mision) ?? 0) + 1)
-    }
   }
   return misionesStore.list.map(m => ({
     id: m.id,
@@ -67,7 +77,6 @@ const rendimientoMisiones = computed(() => {
     personal: personalCount.get(m.id) ?? 0,
     atendidos: atendidosCount.get(m.id) ?? 0,
     necesidades: necCount.get(m.id) ?? 0,
-    necesidadesAtendidas: necAtendidasCount.get(m.id) ?? 0,
     estatus: m.estatus_mision,
   }))
 })
@@ -78,7 +87,6 @@ const rendimientoColumns = [
   { key: 'personal', label: 'Personal' },
   { key: 'atendidos', label: 'Atendidos' },
   { key: 'necesidades', label: 'Nec. Reportadas' },
-  { key: 'necesidadesAtendidas', label: 'Nec. Atendidas' },
   { key: 'estatus', label: 'Estatus' },
 ]
 
@@ -183,7 +191,7 @@ onMounted(async () => {
         <span class="text-sm text-text-secondary">Mis Misiones Activas</span>
       </BaseCard>
       <BaseCard v-if="role === 'personal'" class="flex flex-col items-center text-center gap-1!">
-        <span class="text-4xl font-extrabold text-brand">{{ totalAtendidos }}</span>
+        <span class="text-4xl font-extrabold text-brand">{{ misAtenciones.length }}</span>
         <span class="text-sm text-text-secondary">Personas Atendidas</span>
       </BaseCard>
     </div>
@@ -195,11 +203,21 @@ onMounted(async () => {
         :rows="misionesStore.list.slice(-5).reverse() as unknown as Record<string, unknown>[]"
       >
         <template #cell-estatus_mision="{ value }">
-          <StatusBadge :status="value as string" type="mision" />
+          <StatusBadge :status="value as string" />
         </template>
       </BaseTable>
       <div class="mt-4" v-if="role === 'director' || role === 'administrador' || role === 'coordinador'">
         <BaseButton variant="primary" @click="router.push('/misiones')">Ver todas las misiones</BaseButton>
+      </div>
+    </BaseCard>
+
+    <!-- Atendidos por Área (director/admin) -->
+    <BaseCard v-if="(role === 'director' || role === 'administrador') && atendidosPorArea.length > 1" title="Registros por Área">
+      <div class="flex flex-wrap gap-3">
+        <div v-for="[area, count] in atendidosPorArea" :key="area" class="flex items-center gap-2 px-4 py-2 bg-surface rounded-lg">
+          <span class="text-lg font-bold text-brand">{{ count }}</span>
+          <span class="text-sm text-text-secondary capitalize">{{ areaLabels[area] || area }}</span>
+        </div>
       </div>
     </BaseCard>
 
@@ -242,12 +260,8 @@ onMounted(async () => {
         <template #cell-necesidades="{ value }">
           <span>{{ value }}</span>
         </template>
-        <template #cell-necesidadesAtendidas="{ value }">
-          <span v-if="(value as number) > 0" class="font-semibold text-green-600">{{ value }}</span>
-          <span v-else class="text-text-muted">0</span>
-        </template>
         <template #cell-estatus="{ value }">
-          <StatusBadge :status="value as string" type="mision" />
+          <StatusBadge :status="value as string" />
         </template>
       </BaseTable>
     </BaseCard>
@@ -259,12 +273,11 @@ onMounted(async () => {
         :rows="misionesStore.list.slice(-5) as unknown as Record<string, unknown>[]"
       >
         <template #cell-estatus_mision="{ value }">
-          <StatusBadge :status="value as string" type="mision" />
+          <StatusBadge :status="value as string" />
         </template>
       </BaseTable>
       <div class="flex gap-2 mt-4">
         <BaseButton variant="primary" @click="router.push('/misiones')">Ver todas</BaseButton>
-        <BaseButton variant="secondary" @click="router.push('/misiones/nueva')">Nueva Misión</BaseButton>
       </div>
     </BaseCard>
 
@@ -297,14 +310,17 @@ onMounted(async () => {
         :columns="[
           { key: 'nombre_atendido', label: 'Atendido' },
           { key: 'cedula_atendido', label: 'Cédula' },
-          { key: 'tipo_atencion', label: 'Tipo' },
+          { key: 'area_registro', label: 'Área' },
           { key: 'fecha_hora_atencion', label: 'Fecha' },
           { key: 'status_sync', label: 'Sync' },
         ]"
         :rows="misAtenciones.slice(-10).reverse() as unknown as Record<string, unknown>[]"
       >
+        <template #cell-area_registro="{ value }">
+          <span class="text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary capitalize">{{ value || 'general' }}</span>
+        </template>
         <template #cell-status_sync="{ value }">
-          <StatusBadge :status="value as string" type="sync" />
+          <StatusBadge :status="value as string" />
         </template>
       </BaseTable>
     </BaseCard>

@@ -1,11 +1,14 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import type { Mision, Atendido } from '@/types'
+import { parseVuln, labelVuln } from '@/lib/vulnerabilidad'
 
 const props = defineProps<{
   misiones: Mision[]
   atendidos: Atendido[]
 }>()
+
+const humanos = computed(() => props.atendidos.filter(a => a.area_registro !== 'veterinaria'))
 
 const tipoLabels: Record<string, string> = {
   medica: 'Médica', psicosocial: 'Psicosocial', alimento: 'Alimentación',
@@ -15,19 +18,39 @@ const tipoLabels: Record<string, string> = {
 
 const sexoLabels: Record<string, string> = { masculino: 'Masculino', femenino: 'Femenino', otro: 'Otro' }
 
-const porTipo = computed(() => {
+const areaLabels: Record<string, string> = {
+  general: 'General', medicina_humana: 'Medicina Humana',
+  psicologia: 'Psicología', veterinaria: 'Veterinaria', logistica: 'Logística',
+}
+
+const porArea = computed(() => {
   const c: Record<string, number> = {}
   for (const a of props.atendidos) {
-    const k = a.tipo_atencion ?? 'otro'
+    const k = a.area_registro || 'general'
     c[k] = (c[k] || 0) + 1
   }
   return Object.entries(c).sort((a, b) => b[1] - a[1])
+    .map(([k, v]) => ({ area: areaLabels[k] || k, cantidad: v }))
+})
+
+const sinClasificar = computed(() => props.atendidos.filter(a => !a.tipo_atencion).length)
+
+const porTipo = computed(() => {
+  const c: Record<string, number> = {}
+  for (const a of props.atendidos) {
+    const k = a.tipo_atencion
+    if (!k) continue
+    c[k] = (c[k] || 0) + 1
+  }
+  const rows = Object.entries(c).sort((a, b) => b[1] - a[1])
     .map(([k, v]) => ({ tipo: tipoLabels[k] ?? k, cantidad: v }))
+  if (sinClasificar.value > 0) rows.push({ tipo: 'Sin clasificar', cantidad: sinClasificar.value })
+  return rows
 })
 
 const porSexo = computed(() => {
   const c: Record<string, number> = {}
-  for (const a of props.atendidos) {
+  for (const a of humanos.value) {
     const k = a.sexo ?? 'otro'
     c[k] = (c[k] || 0) + 1
   }
@@ -36,14 +59,14 @@ const porSexo = computed(() => {
 
 const gruposEtarios = computed(() => {
   const g: Record<string, number> = { '0-12': 0, '13-17': 0, '18-30': 0, '31-50': 0, '51+': 0 }
-  for (const a of props.atendidos) {
+  for (const a of humanos.value) {
     const e = a.edad
     if (e == null) continue
-    if (e <= 12) g['0-12']++
-    else if (e <= 17) g['13-17']++
-    else if (e <= 30) g['18-30']++
-    else if (e <= 50) g['31-50']++
-    else g['51+']++
+    if (e <= 12) g['0-12']!++
+    else if (e <= 17) g['13-17']!++
+    else if (e <= 30) g['18-30']!++
+    else if (e <= 50) g['31-50']!++
+    else g['51+']!++
   }
   return Object.entries(g).map(([k, v]) => ({ grupo: k, cantidad: v }))
 })
@@ -52,12 +75,7 @@ const vulnerabilidades = computed(() => {
   const c: Record<string, number> = {}
   for (const a of props.atendidos) {
     if (!a.vulnerabilidad) continue
-    try {
-      const arr = JSON.parse(a.vulnerabilidad)
-      if (Array.isArray(arr)) {
-        for (const v of arr) c[v] = (c[v] || 0) + 1
-      }
-    } catch {}
+    for (const v of parseVuln(a.vulnerabilidad)) c[v] = (c[v] || 0) + 1
   }
   return Object.entries(c).sort((a, b) => b[1] - a[1])
     .map(([k, v]) => ({ vulnerabilidad: k, cantidad: v }))
@@ -66,14 +84,6 @@ const vulnerabilidades = computed(() => {
 const referidos = computed(() => props.atendidos.filter(a => a.referido).length)
 const total = computed(() => props.atendidos.length)
 const hasData = computed(() => props.atendidos.length > 0)
-
-function vulnLabel(v: string): string {
-  const m: Record<string, string> = {
-    embarazada: 'Embarazada', discapacidad: 'Discapacidad', adulto_mayor: 'Adulto Mayor',
-    menor_no_acompanado: 'Menor no Acompañado', enfermedad_cronica: 'Enf. Crónica', otro: 'Otro',
-  }
-  return m[v] ?? v
-}
 
 function formatDate(iso: string): string {
   if (!iso) return '—'
@@ -90,10 +100,27 @@ function formatDate(iso: string): string {
 
     <div class="report-section">
       <h2 class="section-title">Resumen</h2>
-      <table class="info-table">
-        <tr><td class="info-label">Total de personas atendidas</td><td class="info-value">{{ total }}</td></tr>
-        <tr><td class="info-label">Personas referidas</td><td class="info-value">{{ referidos }} ({{ total ? Math.round(referidos / total * 100) : 0 }}%)</td></tr>
-        <tr><td class="info-label">Misiones con atenciones</td><td class="info-value">{{ new Set(props.atendidos.map(a => a.id_mision)).size }}</td></tr>
+<table class="info-table">
+<tbody>
+<tr><td class="info-label">Total de personas atendidas</td><td class="info-value">{{ total }}</td></tr>
+<tr><td class="info-label">Personas referidas</td><td class="info-value">{{ referidos }} ({{ total ? Math.round(referidos / total * 100) : 0 }}%)</td></tr>
+<tr><td class="info-label">Misiones con atenciones</td><td class="info-value">{{ new Set(props.atendidos.map(a => a.id_mision)).size }}</td></tr>
+</tbody>
+</table>
+    </div>
+
+    <div class="report-section">
+      <h2 class="section-title">Registros por Área</h2>
+      <table class="data-table">
+        <thead>
+          <tr><th>Área</th><th class="text-center">Cantidad</th></tr>
+        </thead>
+        <tbody>
+          <tr v-for="item in porArea" :key="item.area">
+            <td>{{ item.area }}</td>
+            <td class="text-center">{{ item.cantidad }}</td>
+          </tr>
+        </tbody>
       </table>
     </div>
 
@@ -147,7 +174,7 @@ function formatDate(iso: string): string {
         </thead>
         <tbody>
           <tr v-for="r in vulnerabilidades" :key="r.vulnerabilidad">
-            <td>{{ vulnLabel(r.vulnerabilidad) }}</td><td class="text-center">{{ r.cantidad }}</td>
+            <td>{{ labelVuln(r.vulnerabilidad) }}</td><td class="text-center">{{ r.cantidad }}</td>
           </tr>
         </tbody>
       </table>

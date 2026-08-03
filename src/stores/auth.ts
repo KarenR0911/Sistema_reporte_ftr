@@ -5,12 +5,15 @@ import { getAll, addItem, clearStore } from '@/db'
 import { getSupabase } from '@/lib/supabase'
 import { withTimeout } from '@/lib/async'
 
+const LAST_USER_KEY = 'lastUserId'
+
 export const useAuthStore = defineStore('auth', () => {
   const currentUser = ref<Usuario | null>(null)
   const usuarios = ref<Usuario[]>([])
   const accessToken = ref<string | null>(null)
 
   const isAuthenticated = computed(() => currentUser.value !== null)
+  const isAuthorized = computed(() => currentUser.value !== null && currentUser.value.activo)
   const userRole = computed<RolUsuario | null>(() => currentUser.value?.rol ?? null)
 
   function mapPerfilToUser(p: Record<string, unknown>): Usuario {
@@ -44,6 +47,7 @@ export const useAuthStore = defineStore('auth', () => {
           const user = mapPerfilToUser(perfil)
           await addItem('usuarios', user).catch(() => {})
           currentUser.value = user
+          localStorage.setItem(LAST_USER_KEY, user.id)
           return true
         }
       }
@@ -61,21 +65,26 @@ export const useAuthStore = defineStore('auth', () => {
     } catch {
       // ignore offline
     }
-    // Limpiar cache offline para que restoreSession no re-autentique
+    localStorage.removeItem(LAST_USER_KEY)
     await clearStore('usuarios')
   }
 
   async function restoreSession() {
-    // Siempre cargar de IndexedDB primero (instantáneo)
-    const users = await getAll<Usuario>('usuarios')
-    const cached = users[0] ?? null
+    await loadUsuarios()
 
     if (!navigator.onLine) {
-      currentUser.value = cached
+      const lastId = localStorage.getItem(LAST_USER_KEY)
+      if (lastId) {
+        const found = usuarios.value.find((u) => u.id === lastId)
+        if (found) {
+          currentUser.value = found
+          return
+        }
+      }
+      currentUser.value = usuarios.value[0] ?? null
       return
     }
 
-    // Intentar refrescar desde Supabase (con timeout corto)
     try {
       const sb = getSupabase()
       const { data: { session } } = await withTimeout(sb.auth.getSession(), 3000)
@@ -87,6 +96,7 @@ export const useAuthStore = defineStore('auth', () => {
           const user = mapPerfilToUser(perfil)
           await addItem('usuarios', user).catch(() => {})
           currentUser.value = user
+          localStorage.setItem(LAST_USER_KEY, user.id)
           return
         }
       }
@@ -94,9 +104,16 @@ export const useAuthStore = defineStore('auth', () => {
       // timeout o error de red — usar cache
     }
 
-    currentUser.value = cached
+    const lastId = localStorage.getItem(LAST_USER_KEY)
+    if (lastId) {
+      const found = usuarios.value.find((u) => u.id === lastId)
+      if (found) {
+        currentUser.value = found
+        return
+      }
+    }
+    currentUser.value = usuarios.value[0] ?? null
 
-    // Migración: sesión guardada con formato anterior
     const stored = localStorage.getItem('auth_session')
     if (!stored || currentUser.value) return
     try {
@@ -111,6 +128,7 @@ export const useAuthStore = defineStore('auth', () => {
         const user = old.user as Usuario
         await addItem('usuarios', user).catch(() => {})
         currentUser.value = user
+        localStorage.setItem(LAST_USER_KEY, user.id)
         localStorage.removeItem('auth_session')
       }
     } catch {
@@ -118,5 +136,5 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
-  return { currentUser, usuarios, accessToken, isAuthenticated, userRole, login, logout, loadUsuarios, restoreSession }
+  return { currentUser, usuarios, accessToken, isAuthenticated, isAuthorized, userRole, login, logout, loadUsuarios, restoreSession }
 })

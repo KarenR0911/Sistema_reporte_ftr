@@ -67,10 +67,11 @@ function toggleAllPersonal() {
 }
 
 async function loadFromSupabase() {
-  const sb = getSupabase()
-  const { data } = await sb.from('perfiles').select('*').eq('rol', 'personal')
-  if (!data) return
-  const users: Usuario[] = data.map((p: Record<string, unknown>) => ({
+  try {
+    const sb = getSupabase()
+    const { data } = await sb.from('perfiles').select('*').eq('rol', 'personal')
+    if (!data) return
+    const users: Usuario[] = data.map((p: Record<string, unknown>) => ({
     id: p.id as string,
     cedula: p.cedula as string,
     nombre: p.nombre as string,
@@ -81,9 +82,12 @@ async function loadFromSupabase() {
     especialidad: (p.especialidad as string) ?? '',
     area_voluntariado: (p.area_voluntariado as string) ?? '',
   }))
-  personalDisponible.value = users
-  for (const u of users) {
-    await addItem('usuarios', u).catch(() => {})
+    personalDisponible.value = users
+    for (const u of users) {
+      await addItem('usuarios', u).catch(() => {})
+    }
+  } catch {
+    // fallback silencioso
   }
 }
 
