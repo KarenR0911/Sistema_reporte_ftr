@@ -66,12 +66,8 @@ const rendimientoMisiones = computed(() => {
     atendidosCount.set(a.id_mision, (atendidosCount.get(a.id_mision) ?? 0) + 1)
   }
   const necCount = new Map<string, number>()
-  const necAtendidasCount = new Map<string, number>()
   for (const n of necesidadesStore.list) {
     necCount.set(n.id_mision, (necCount.get(n.id_mision) ?? 0) + 1)
-    if (n.estatus === 'atendido') {
-      necAtendidasCount.set(n.id_mision, (necAtendidasCount.get(n.id_mision) ?? 0) + 1)
-    }
   }
   return misionesStore.list.map(m => ({
     id: m.id,
@@ -81,7 +77,6 @@ const rendimientoMisiones = computed(() => {
     personal: personalCount.get(m.id) ?? 0,
     atendidos: atendidosCount.get(m.id) ?? 0,
     necesidades: necCount.get(m.id) ?? 0,
-    necesidadesAtendidas: necAtendidasCount.get(m.id) ?? 0,
     estatus: m.estatus_mision,
   }))
 })
@@ -92,7 +87,6 @@ const rendimientoColumns = [
   { key: 'personal', label: 'Personal' },
   { key: 'atendidos', label: 'Atendidos' },
   { key: 'necesidades', label: 'Nec. Reportadas' },
-  { key: 'necesidadesAtendidas', label: 'Nec. Atendidas' },
   { key: 'estatus', label: 'Estatus' },
 ]
 
@@ -265,10 +259,6 @@ onMounted(async () => {
         </template>
         <template #cell-necesidades="{ value }">
           <span>{{ value }}</span>
-        </template>
-        <template #cell-necesidadesAtendidas="{ value }">
-          <span v-if="(value as number) > 0" class="font-semibold text-green-600">{{ value }}</span>
-          <span v-else class="text-text-muted">0</span>
         </template>
         <template #cell-estatus="{ value }">
           <StatusBadge :status="value as string" />
