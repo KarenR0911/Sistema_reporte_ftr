@@ -63,14 +63,18 @@ export async function getAll<T>(store: StoreName): Promise<T[]> {
   return db.getAll(store)
 }
 
+function toPlain<T>(value: T): T {
+  return JSON.parse(JSON.stringify(value)) as T
+}
+
 export async function addItem<T>(store: StoreName, item: T): Promise<void> {
   const db = await getDB()
-  await db.add(store, item as never)
+  await db.add(store, toPlain(item) as never)
 }
 
 export async function putItem<T>(store: StoreName, item: T): Promise<void> {
   const db = await getDB()
-  await db.put(store, item as never)
+  await db.put(store, toPlain(item) as never)
 }
 
 export async function deleteItem(store: StoreName, id: string): Promise<void> {

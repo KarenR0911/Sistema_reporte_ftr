@@ -30,6 +30,13 @@ export const useAtendidosStore = defineStore('atendidos', () => {
         }
       }
 
+      const serverIds = new Set(data.map((r) => r.id))
+      for (const local of localItems) {
+        if (local.status_sync !== 'pending' && !serverIds.has(local.id)) {
+          await deleteItem('atendidos', local.id)
+        }
+      }
+
       const synced = data.map((r) => ({
         ...r,
         vulnerabilidad: typeof r.vulnerabilidad === 'string' ? JSON.parse(r.vulnerabilidad) : r.vulnerabilidad ?? [],

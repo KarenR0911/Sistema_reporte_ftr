@@ -203,7 +203,7 @@ function buildPayload(): Atendido {
     sexo: formSexo.value || null,
     tipo_atencion: (formTipoAtencion.value || null) as TipoAtencion | null,
     referido: formReferido.value,
-    vulnerabilidad: formVulnerabilidades.value,
+    vulnerabilidad: [...formVulnerabilidades.value],
     notas: formNotas.value,
     area_registro: userArea.value,
     lugar_vivia: formLugarVivia.value || null,

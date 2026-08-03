@@ -25,6 +25,13 @@ export const useTransporteStore = defineStore('transporte', () => {
         }
       }
 
+      const serverIds = new Set(data.map((r) => r.id))
+      for (const local of localItems) {
+        if (local.status_sync !== 'pending' && !serverIds.has(local.id)) {
+          await deleteItem('transporte', local.id)
+        }
+      }
+
       const synced = data.map((r) => ({ ...r, status_sync: 'synced' as const })) as Transporte[]
       const pending = localItems.filter((r) => r.status_sync === 'pending')
       const merged = [...synced, ...pending]
