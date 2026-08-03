@@ -9,6 +9,7 @@ defineProps<{
   confirmText?: string
   cancelText?: string
   variant?: 'primary' | 'secondary' | 'danger' | 'ghost'
+  loading?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -29,10 +30,10 @@ const emit = defineEmits<{
         <p class="m-0">{{ message }}</p>
         <p v-if="description" class="text-sm text-text-secondary m-0">{{ description }}</p>
         <div class="flex gap-2 justify-end mt-2">
-          <BaseButton :variant="variant ?? 'danger'" @click="emit('confirm')">
+          <BaseButton :variant="variant ?? 'danger'" :loading="loading" :disabled="loading" @click="emit('confirm')">
             {{ confirmText ?? 'Eliminar' }}
           </BaseButton>
-          <BaseButton variant="ghost" @click="emit('cancel')">
+          <BaseButton variant="ghost" :disabled="loading" @click="emit('cancel')">
             {{ cancelText ?? 'Cancelar' }}
           </BaseButton>
         </div>

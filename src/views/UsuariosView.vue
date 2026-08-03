@@ -64,6 +64,7 @@ const filtroTipo = ref('')
 
 const showDeleteModal = ref(false)
 const userToDelete = ref<Usuario | null>(null)
+const deleting = ref(false)
 
 const showCreatedDialog = ref(false)
 const createdUser = ref<{ cedula: string; nombre: string; email: string; password: string } | null>(null)
@@ -291,34 +292,39 @@ function cancelDelete() {
 }
 
 async function confirmDelete() {
-  if (!userToDelete.value) return
-  const userId = userToDelete.value.id
-  if (navigator.onLine) {
-    try {
-      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
-      const resp = await fetch(`${supabaseUrl}/functions/v1/delete-user`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${auth.accessToken}`,
-        },
-        body: JSON.stringify({ userId }),
-      })
-      const data = await resp.json()
-      if (!resp.ok) {
-        useToastStore().error(data.error ?? 'Error al eliminar usuario')
+  if (!userToDelete.value || deleting.value) return
+  deleting.value = true
+  try {
+    const userId = userToDelete.value.id
+    if (navigator.onLine) {
+      try {
+        const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
+        const resp = await fetch(`${supabaseUrl}/functions/v1/delete-user`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${auth.accessToken}`,
+          },
+          body: JSON.stringify({ userId }),
+        })
+        const data = await resp.json()
+        if (!resp.ok) {
+          useToastStore().error(data.error ?? 'Error al eliminar usuario')
+          return
+        }
+      } catch (e) {
+        useToastStore().error('Error de red al eliminar usuario')
         return
       }
-    } catch (e) {
-      useToastStore().error('Error de red al eliminar usuario')
-      return
     }
+    await deleteItem('usuarios', userId)
+    showDeleteModal.value = false
+    userToDelete.value = null
+    await loadUsuarios()
+    useToastStore().success('Usuario eliminado permanentemente')
+  } finally {
+    deleting.value = false
   }
-  await deleteItem('usuarios', userId)
-  showDeleteModal.value = false
-  userToDelete.value = null
-  await loadUsuarios()
-  useToastStore().success('Usuario eliminado permanentemente')
 }
 
 function resetForm() {
@@ -528,6 +534,7 @@ onMounted(async () => {
       description="Se borrará de Supabase Auth y del sistema. Sus registros en misiones, atenciones y reportes se conservarán para auditoría. Esta acción no se puede deshacer."
       confirm-text="Sí, eliminar permanentemente"
       variant="danger"
+      :loading="deleting"
       @confirm="confirmDelete"
       @cancel="cancelDelete"
     />
