@@ -46,6 +46,10 @@ const areaOptions = [
   { value: 'logistica', label: 'Logística' },
 ]
 
+const areasConReportes = computed(() =>
+  areaOptions.filter((a) => a.value === '' || reportesDisponibles.some((r) => r.area === a.value))
+)
+
 const atendidosFiltrados = computed(() => {
   if (!areaFiltro.value) return atendidosStore.list
   return atendidosStore.list.filter((a) => a.area_registro === areaFiltro.value)
@@ -56,22 +60,24 @@ interface ReporteInfo {
   titulo: string
   desc: string
   icon: any
+  area: string
 }
 
 const reportesDisponibles: ReporteInfo[] = [
-  { id: 'director', titulo: 'Reporte General del Director', desc: 'KPIs globales, resumen de rendimiento por misión y estadísticas generales del sistema.', icon: FileText },
-  { id: 'geografico', titulo: 'Cobertura Geográfica', desc: 'Personas atendidas por municipio, distribución geográfica de las misiones y porcentajes por zona.', icon: MapPin },
-  { id: 'efectividad', titulo: 'Efectividad — Necesidades', desc: 'Necesidades reportadas vs atendidas, tasa de atención, brechas críticas y prioridades pendientes.', icon: Target },
-  { id: 'insumos', titulo: 'Inventario de Insumos', desc: 'Insumos llevados vs dispensados, stock disponible por categoría y salidas por motivo.', icon: Package },
-  { id: 'personal', titulo: 'Personal Desplegado', desc: 'Personal asignado por misión, composición por categoría, especialidades y carga de trabajo.', icon: Users },
-  { id: 'atenciones', titulo: 'Atenciones Consolidado', desc: 'Atenciones por tipo, distribución por sexo y edad, vulnerabilidades identificadas y referencias.', icon: Heart },
-  { id: 'actividad-personal', titulo: 'Actividad del Personal', desc: 'Volumen de atenciones por voluntario, misiones en las que participó y última actividad registrada.', icon: Activity },
-  { id: 'veterinario', titulo: 'Reporte Veterinario', desc: 'Animales atendidos: especies, sexo y edad, diagnósticos, tutoría/adopción, casos por misión y listado detallado.', icon: PawPrint },
+  { id: 'director', titulo: 'Reporte General del Director', desc: 'KPIs globales, resumen de rendimiento por misión y estadísticas generales del sistema.', icon: FileText, area: 'general' },
+  { id: 'geografico', titulo: 'Cobertura Geográfica', desc: 'Personas atendidas por municipio, distribución geográfica de las misiones y porcentajes por zona.', icon: MapPin, area: 'general' },
+  { id: 'efectividad', titulo: 'Efectividad — Necesidades', desc: 'Necesidades reportadas vs atendidas, tasa de atención, brechas críticas y prioridades pendientes.', icon: Target, area: 'general' },
+  { id: 'insumos', titulo: 'Inventario de Insumos', desc: 'Insumos llevados vs dispensados, stock disponible por categoría y salidas por motivo.', icon: Package, area: 'general' },
+  { id: 'personal', titulo: 'Personal Desplegado', desc: 'Personal asignado por misión, composición por categoría, especialidades y carga de trabajo.', icon: Users, area: 'general' },
+  { id: 'atenciones', titulo: 'Atenciones Consolidado', desc: 'Atenciones por tipo, distribución por sexo y edad, vulnerabilidades identificadas y referencias.', icon: Heart, area: 'general' },
+  { id: 'actividad-personal', titulo: 'Actividad del Personal', desc: 'Volumen de atenciones por voluntario, misiones en las que participó y última actividad registrada.', icon: Activity, area: 'general' },
+  { id: 'veterinario', titulo: 'Reporte Veterinario', desc: 'Animales atendidos: especies, sexo y edad, diagnósticos, tutoría/adopción, casos por misión y listado detallado.', icon: PawPrint, area: 'veterinaria' },
 ]
 
 const reportesVisibles = computed(() => {
-  if (esAdmin.value) return reportesDisponibles
-  return reportesDisponibles.filter((r) => r.id === 'veterinario')
+  if (!esAdmin.value) return reportesDisponibles.filter((r) => r.id === 'veterinario')
+  if (!areaFiltro.value) return reportesDisponibles
+  return reportesDisponibles.filter((r) => r.area === areaFiltro.value)
 })
 
 function iniciarReporte(id: string) {
@@ -103,10 +109,14 @@ onMounted(async () => {
       <p class="text-text-secondary text-sm">Selecciona un reporte para generar un documento PDF imprimible.</p>
 
       <div v-if="esAdmin" class="max-w-xs">
-        <BaseSelect v-model="areaFiltro" :options="areaOptions" label="Área" />
+        <BaseSelect v-model="areaFiltro" :options="areasConReportes" label="Área" />
       </div>
 
-      <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 md:gap-6">
+      <div v-if="!reportesVisibles.length" class="py-10 text-center text-text-secondary text-sm">
+        No hay reportes disponibles para el área seleccionada.
+      </div>
+
+      <div v-else class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 md:gap-6">
         <BaseCard v-for="r in reportesVisibles" :key="r.id" class="flex flex-col gap-3">
           <div class="flex items-center gap-3">
             <span class="text-primary flex items-center"><component :is="r.icon" :size="24" /></span>
@@ -156,7 +166,7 @@ onMounted(async () => {
           v-if="reporteActivo === 'personal'"
           :misiones="misionesStore.list"
           :personales="personalStore.list"
-          :atendidos="atendidosStore.list"
+          :atendidos="atendidosFiltrados"
         />
         <ReporteAtenciones
           v-if="reporteActivo === 'atenciones'"
@@ -172,7 +182,7 @@ onMounted(async () => {
         <ReporteVeterinario
           v-if="reporteActivo === 'veterinario'"
           :misiones="misionesStore.list"
-          :atendidos="atendidosStore.list"
+          :atendidos="atendidosFiltrados"
           :personales="personalStore.list"
         />
       </div>
