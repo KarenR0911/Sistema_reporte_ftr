@@ -4,6 +4,7 @@ import type { Necesidad, StatusSync } from '@/types'
 import { getAll, addItem, putItem, deleteItem, addDeletedId } from '@/db'
 import { getSupabase } from '@/lib/supabase'
 import { markNeedsSync } from '@/lib/syncTrigger'
+import { audit } from '@/lib/audit'
 import { withTimeout } from '@/lib/async'
 
 export const useNecesidadesStore = defineStore('necesidades', () => {
@@ -66,6 +67,7 @@ export const useNecesidadesStore = defineStore('necesidades', () => {
   }
 
   async function create(item: Necesidad) {
+    void audit('necesidad', 'crear', item.id, `Descripción: ${item.descripcion} (${item.prioridad})`)
     const clone = { ...item, status_sync: 'pending' as StatusSync }
 
     if (navigator.onLine) {
@@ -100,6 +102,7 @@ export const useNecesidadesStore = defineStore('necesidades', () => {
   }
 
   async function update(item: Necesidad) {
+    void audit('necesidad', 'actualizar', item.id, `Descripción: ${item.descripcion} (${item.prioridad})`)
     const clone = { ...item, status_sync: 'pending' as StatusSync }
 
     if (navigator.onLine) {
@@ -134,6 +137,8 @@ export const useNecesidadesStore = defineStore('necesidades', () => {
   }
 
   async function remove(id: string) {
+    const target = list.value.find((n) => n.id === id)
+    void audit('necesidad', 'eliminar', id, target ? `Descripción: ${target.descripcion}` : null)
     if (navigator.onLine) {
       try {
         const sb = getSupabase()

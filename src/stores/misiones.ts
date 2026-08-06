@@ -4,6 +4,7 @@ import type { Mision, StatusSync } from '@/types'
 import { getAll, addItem, putItem, deleteItem, addDeletedId } from '@/db'
 import { getSupabase } from '@/lib/supabase'
 import { markNeedsSync } from '@/lib/syncTrigger'
+import { audit } from '@/lib/audit'
 import { withTimeout } from '@/lib/async'
 
 export const useMisionesStore = defineStore('misiones', () => {
@@ -62,6 +63,7 @@ export const useMisionesStore = defineStore('misiones', () => {
   }
 
   async function create(mision: Mision) {
+    void audit('mision', 'crear', mision.id, `Dirección: ${mision.direccion}, ${mision.municipio} (${mision.estado})`)
     const clone = { ...mision, status_sync: 'pending' as StatusSync }
 
     if (navigator.onLine) {
@@ -93,6 +95,7 @@ export const useMisionesStore = defineStore('misiones', () => {
   }
 
   async function update(mision: Mision) {
+    void audit('mision', 'actualizar', mision.id, `Dirección: ${mision.direccion}, ${mision.municipio} (${mision.estado}) — ${mision.estatus_mision}`)
     const clone = { ...mision, status_sync: 'pending' as StatusSync }
 
     if (navigator.onLine) {
@@ -125,6 +128,8 @@ export const useMisionesStore = defineStore('misiones', () => {
   }
 
   async function remove(id: string) {
+    const target = list.value.find((m) => m.id === id)
+    void audit('mision', 'eliminar', id, target ? `Dirección: ${target.direccion}, ${target.municipio}` : null)
     if (navigator.onLine) {
       try {
         const sb = getSupabase()

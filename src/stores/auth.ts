@@ -3,6 +3,7 @@ import { defineStore } from 'pinia'
 import type { Usuario, RolUsuario, CategoriaVoluntariado } from '@/types'
 import { getAll, addItem, clearStore } from '@/db'
 import { getSupabase } from '@/lib/supabase'
+import { audit } from '@/lib/audit'
 import { withTimeout } from '@/lib/async'
 
 const LAST_USER_KEY = 'lastUserId'
@@ -48,6 +49,7 @@ export const useAuthStore = defineStore('auth', () => {
           await addItem('usuarios', user).catch(() => {})
           currentUser.value = user
           localStorage.setItem(LAST_USER_KEY, user.id)
+          void audit('sesion', 'login', user.id, `${user.nombre} (${user.cedula})`)
           return true
         }
       }
@@ -58,6 +60,8 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   async function logout() {
+    const user = currentUser.value
+    void audit('sesion', 'logout', user?.id ?? null, user ? `${user.nombre} (${user.cedula})` : null)
     currentUser.value = null
     accessToken.value = null
     try {

@@ -4,6 +4,7 @@ import type { PersonalMision, StatusSync } from '@/types'
 import { getAll, addItem, putItem, deleteItem, addDeletedId } from '@/db'
 import { getSupabase } from '@/lib/supabase'
 import { markNeedsSync } from '@/lib/syncTrigger'
+import { audit } from '@/lib/audit'
 import { withTimeout } from '@/lib/async'
 
 export const usePersonalStore = defineStore('personal', () => {
@@ -66,6 +67,7 @@ export const usePersonalStore = defineStore('personal', () => {
   }
 
   async function create(item: PersonalMision) {
+    void audit('personal', 'crear', item.id, `${item.nombre} (${item.cedula})`)
     const clone = { ...item, status_sync: 'pending' as StatusSync }
 
     if (navigator.onLine) {
@@ -98,6 +100,8 @@ export const usePersonalStore = defineStore('personal', () => {
   }
 
   async function remove(id: string) {
+    const target = list.value.find((p) => p.id === id)
+    void audit('personal', 'eliminar', id, target ? `${target.nombre} (${target.cedula})` : null)
     if (navigator.onLine) {
       try {
         const sb = getSupabase()

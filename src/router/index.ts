@@ -78,6 +78,12 @@ const router = createRouter({
           meta: { roles: ['director', 'administrador', 'coordinador'] },
         },
         {
+          path: 'logs',
+          name: 'logs',
+          component: () => import('@/views/LogsView.vue'),
+          meta: { roles: ['director', 'administrador'] },
+        },
+        {
           path: 'perfil',
           name: 'perfil',
           component: () => import('@/views/perfil/MiPerfilView.vue'),

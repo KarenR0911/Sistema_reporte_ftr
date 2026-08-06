@@ -4,6 +4,7 @@ import type { Atendido, StatusSync } from '@/types'
 import { getAll, addItem, putItem, deleteItem, addDeletedId } from '@/db'
 import { getSupabase } from '@/lib/supabase'
 import { markNeedsSync } from '@/lib/syncTrigger'
+import { audit } from '@/lib/audit'
 import { withTimeout } from '@/lib/async'
 
 export const useAtendidosStore = defineStore('atendidos', () => {
@@ -75,6 +76,7 @@ export const useAtendidosStore = defineStore('atendidos', () => {
   }
 
   async function create(item: Atendido) {
+    void audit('atendido', 'crear', item.id, `Nombre: ${item.nombre_atendido}`)
     const clone = { ...item, status_sync: 'pending' as StatusSync }
 
     if (navigator.onLine) {
@@ -123,6 +125,7 @@ export const useAtendidosStore = defineStore('atendidos', () => {
   }
 
   async function update(item: Atendido) {
+    void audit('atendido', 'actualizar', item.id, `Nombre: ${item.nombre_atendido}`)
     const clone = { ...item, status_sync: 'pending' as StatusSync }
 
     if (navigator.onLine) {
@@ -169,6 +172,8 @@ export const useAtendidosStore = defineStore('atendidos', () => {
   }
 
   async function remove(id: string) {
+    const target = list.value.find((a) => a.id === id)
+    void audit('atendido', 'eliminar', id, target ? `Nombre: ${target.nombre_atendido}` : null)
     if (navigator.onLine) {
       try {
         const sb = getSupabase()

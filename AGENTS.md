@@ -27,6 +27,7 @@ Sistema de reporte por zonas / "grupos de apoyo" para brigadas de voluntarios y 
 - **atendidos** — registros de atención (humanos y animales): `id`, `id_mision`, `cedula_personal`, `cedula_atendido`, `nombre_atendido`, `telefono_contacto`, `fecha_hora_atencion`, `edad`, `sexo`, `tipo_atencion`, `referido`, `vulnerabilidad` (array JSON), `notas`, `area_registro` (general/medicina_humana/psicologia/veterinaria/logistica), `lugar_vivia`, `lugar_actual`, `motivo_atencion`, `insumo_entregado`, `especie`, `posee_tutor`, `rescatado`, `en_adopcion`, `diagnostico_tentativo`, `status_sync`.
 - **necesidades** — insumos en necesidad levantados en campo: `id`, `id_mision`, `categoria`, `descripcion`, `cantidad_requerida`, `unidad`, `observaciones`, `prioridad` (baja/media/alta/critica), `estatus` (reportado/enproceso/atendido), `status_sync`.
 - **salidas_insumos** — dispensación de insumos: `id`, `id_mision`, `id_insumo`, `cantidad`, `motivo`, `registrado_por`, `created_at`, `status_sync`.
+- **registro_logs** — auditoría (append-only): `id`, `usuario_id` (de auth), `usuario_cedula`, `usuario_nombre`, `usuario_rol` (snapshot al momento), `entidad` (mision/atendido/necesidad/insumo/personal/salida/usuario/sesion), `accion` (crear/actualizar/eliminar/login/logout), `registro_id`, `resumen`, `created_at`. RLS: SELECT solo director/administrador; INSERT solo con `auth.uid() = usuario_id` (anti-suplantación); sin UPDATE/DELETE.
 
 El store de IndexedDB `usuarios` guarda una copia local de `perfiles` para funcionar offline. `salidas` en IndexedDB corresponde a la tabla `salidas_insumos`.
 
@@ -34,8 +35,8 @@ El store de IndexedDB `usuarios` guarda una copia local de `perfiles` para funci
 
 Cada rol tiene su dashboard según sus funciones:
 
-- **Director General**: acceso total — usuarios (crear/editar/eliminar/inactivar), insumos, misiones, reportes. Sin ámbito por área.
-- **Administrador**: puede ver reportes e información del personal. Por decisión vigente también puede crear y eliminar usuarios. Sin ámbito por área.
+- **Director General**: acceso total — usuarios (crear/editar/eliminar/inactivar), insumos, misiones, reportes, logs del sistema. Sin ámbito por área.
+- **Administrador**: puede ver reportes, logs e información del personal. Por decisión vigente también puede crear y eliminar usuarios. Sin ámbito por área.
 - **Coordinador**: crea misiones, carga insumos y personal. **Ámbito por área**: solo ve misiones y reportes de su área.
 - **Personal** (voluntarios/profesionales): registra atenciones. **Ámbito por área**: solo ve registros de su área.
 
@@ -48,6 +49,12 @@ Cada rol tiene su dashboard según sus funciones:
 
 - **`/reportes`** (`ReportesView.vue`): 8 reportes globales imprimibles (Director, Cobertura Geográfica, Efectividad-Necesidades, Inventario de Insumos, Personal Desplegado, Atenciones Consolidado, Actividad del Personal, Veterinario). Solo director/administrador ven los 8; coordinador/personal ven únicamente el veterinario. Filtro de área solo para admin.
 - **Por misión** (desde el detalle de misión): `MisionReport` (reporte completo de la misión), `PlanMision` (hoja de ruta pre-salida con checklist) y `FichaAtencion` (ficha imprimible de un solo registro, con firma y sello).
+
+## Logs del sistema (auditoría)
+
+- **`/logs`** (`LogsView.vue`): solo director/administrador. Filtros por usuario/acción/entidad/rango de fechas/búsqueda + tabla con fecha, usuario (nombre+cédula), rol, acción, entidad y detalle; imprimible.
+- **Registro**: `src/lib/audit.ts` (`audit(entidad, accion, registroId?, resumen?)`) se llama desde los stores (`create/update/remove` de misiones, atendidos, necesidades, insumos, personal, salidasInsumos), desde `UsuariosView` (crear/editar/activar/desactivar/eliminar usuario) y desde `auth.ts` (login/logout). Es fire-and-forget: guarda en IndexedDB (`logs`, `status_sync`) e inserta en `registro_logs` si hay conexión; se sincroniza vía `useSync.ts`.
+- **Append-only**: los logs no se editan ni borran desde la app (RLS lo impide). La purga manual solo sería por SQL.
 - Todos son componentes de impresión puros: reciben datos por props desde la vista y agregan con `computed`.
 
 ## Seguridad
@@ -60,10 +67,10 @@ Cada rol tiene su dashboard según sus funciones:
 
 ## Estructura del proyecto
 
-- `src/stores/` — stores Pinia por entidad (misiones, atendidos, necesidades, insumos, personal, salidasInsumos, auth, toast, loading). Patrón: `load()` desde IndexedDB + `refresh()` contra Supabase; `create/update/remove` escriben local (pending) y tratan de persistir en línea.
+- `src/stores/` — stores Pinia por entidad (misiones, atendidos, necesidades, insumos, personal, salidasInsumos, logs, auth, toast, loading). Patrón: `load()` desde IndexedDB + `refresh()` contra Supabase; `create/update/remove` escriben local (pending) y tratan de persistir en línea.
 - `src/db/` — helpers de IndexedDB (getAll, addItem, putItem, deleteItem, getPending, markAsSynced, _deleted).
-- `src/lib/` — supabase client, schemas (zod), área, sync trigger, utilidades.
-- `src/views/` — Login, Dashboard, Usuarios, Misiones (lista, nueva, detalle, necesidades), Atención, Dispensación, Reportes, Perfil, Desautorizado.
+- `src/lib/` — supabase client, schemas (zod), área, sync trigger, auditoría (`audit.ts`), utilidades.
+- `src/views/` — Login, Dashboard, Usuarios, Misiones (lista, nueva, detalle, necesidades), Atención, Dispensación, Reportes, Logs, Perfil, Desautorizado.
 - `src/router/` — guard de navegación: restaura sesión y aplica `meta.roles` por ruta; usuarios inactivos ven "Desautorizado".
 
 ## Comandos

@@ -116,3 +116,32 @@ export interface Usuario {
   especialidad?: string
   area_voluntariado?: string
 }
+
+export type EntidadLog = 'mision' | 'atendido' | 'necesidad' | 'insumo' | 'personal' | 'salida' | 'usuario' | 'sesion'
+
+export type AccionLog = 'crear' | 'actualizar' | 'eliminar' | 'login' | 'logout'
+
+export const ENTIDADES_LOG: Record<EntidadLog, string> = {
+  mision: 'Misión',
+  atendido: 'Atención',
+  necesidad: 'Necesidad',
+  insumo: 'Insumo',
+  personal: 'Personal',
+  salida: 'Salida de insumo',
+  usuario: 'Usuario',
+  sesion: 'Sesión',
+}
+
+export interface RegistroLog {
+  id: string
+  usuario_id: string
+  usuario_cedula: string
+  usuario_nombre: string
+  usuario_rol: RolUsuario
+  entidad: EntidadLog
+  accion: AccionLog
+  registro_id?: string | null
+  resumen?: string | null
+  created_at: string
+  status_sync: StatusSync
+}

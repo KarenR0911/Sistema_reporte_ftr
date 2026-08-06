@@ -9,6 +9,7 @@ import ConfirmDialog from '@/components/ui/ConfirmDialog.vue'
 import StatusBadge from '@/components/ui/StatusBadge.vue'
 import { getAll, addItem, putItem, deleteItem } from '@/db'
 import { getSupabase } from '@/lib/supabase'
+import { audit } from '@/lib/audit'
 import { useAuthStore } from '@/stores/auth'
 import { useToastStore } from '@/stores/toast'
 import { usuarioSchema } from '@/lib/schemas'
@@ -240,6 +241,7 @@ async function saveUser() {
   }
   resetForm()
   await loadUsuarios()
+  void audit('usuario', isNew ? 'crear' : 'actualizar', user.id, `${user.nombre} (${user.cedula}) — rol ${user.rol}`)
 }
 
 function editUser(u: Usuario) {
@@ -262,6 +264,7 @@ async function toggleActivo(u: Usuario) {
   }
   await putItem('usuarios', updated)
   await loadUsuarios()
+  void audit('usuario', 'actualizar', u.id, `${u.nombre} — ${updated.activo ? 'activado' : 'desactivado'}`)
 }
 
 function openDeleteModal(u: Usuario) {
@@ -301,9 +304,11 @@ async function confirmDelete() {
       }
     }
     await deleteItem('usuarios', userId)
+    const deletedUser = userToDelete.value
     showDeleteModal.value = false
     userToDelete.value = null
     await loadUsuarios()
+    void audit('usuario', 'eliminar', userId, deletedUser ? `${deletedUser.nombre} (${deletedUser.cedula})` : null)
     useToastStore().success('Usuario eliminado permanentemente')
   } finally {
     deleting.value = false

@@ -4,6 +4,7 @@ import type { InsumoLlevado, StatusSync } from '@/types'
 import { getAll, addItem, putItem, deleteItem, addDeletedId } from '@/db'
 import { getSupabase } from '@/lib/supabase'
 import { markNeedsSync } from '@/lib/syncTrigger'
+import { audit } from '@/lib/audit'
 import { withTimeout } from '@/lib/async'
 
 export const useInsumosStore = defineStore('insumos', () => {
@@ -65,6 +66,7 @@ export const useInsumosStore = defineStore('insumos', () => {
   }
 
   async function create(item: InsumoLlevado) {
+    void audit('insumo', 'crear', item.id, `Descripción: ${item.descripcion} — ${item.cantidad} ${item.unidad}`)
     const clone = { ...item, status_sync: 'pending' as StatusSync }
 
     if (navigator.onLine) {
@@ -96,6 +98,7 @@ export const useInsumosStore = defineStore('insumos', () => {
   }
 
   async function update(item: InsumoLlevado) {
+    void audit('insumo', 'actualizar', item.id, `Descripción: ${item.descripcion} — ${item.cantidad} ${item.unidad}`)
     const clone = { ...item, status_sync: 'pending' as StatusSync }
 
     if (navigator.onLine) {
@@ -127,6 +130,8 @@ export const useInsumosStore = defineStore('insumos', () => {
   }
 
   async function remove(id: string) {
+    const target = list.value.find((i) => i.id === id)
+    void audit('insumo', 'eliminar', id, target ? `${target.descripcion} — ${target.cantidad} ${target.unidad}` : null)
     if (navigator.onLine) {
       try {
         const sb = getSupabase()
