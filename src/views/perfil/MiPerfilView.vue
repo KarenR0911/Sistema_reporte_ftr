@@ -6,14 +6,6 @@ import { useAuthStore } from '@/stores/auth'
 
 const auth = useAuthStore()
 const user = computed(() => auth.currentUser)
-
-function labelRol(r: string | undefined): string {
-  return r === 'director' ? 'Director'
-    : r === 'administrador' ? 'Administrador'
-    : r === 'coordinador' ? 'Coordinador'
-    : r === 'personal' ? 'Personal'
-    : '—'
-}
 </script>
 
 <template>

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { Mision, PersonalMision, InsumoLlevado } from '@/types'
 
-const props = defineProps<{
+defineProps<{
   mission: Mision
   personales: PersonalMision[]
   insumos: InsumoLlevado[]

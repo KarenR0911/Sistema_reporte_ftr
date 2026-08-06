@@ -36,11 +36,6 @@ const hasData = computed(() => props.necesidades.length > 0)
 function labelPrioridad(val: string): string {
   return val === 'critica' ? 'Crítica' : val === 'alta' ? 'Alta' : val === 'media' ? 'Media' : val === 'baja' ? 'Baja' : '—'
 }
-
-function formatDate(iso: string): string {
-  if (!iso) return '—'
-  return new Date(iso).toLocaleDateString('es-VE', { day: '2-digit', month: 'long', year: 'numeric' })
-}
 </script>
 
 <template>

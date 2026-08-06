@@ -185,12 +185,6 @@ async function ejecutarEliminar() {
   toast.success('Salida eliminada')
 }
 
-function labelSexo(val: unknown): string {
-  return val === 'masculino' ? 'Masculino'
-    : val === 'femenino' ? 'Femenino'
-    : val === 'otro' ? 'Otro' : '—'
-}
-
 function beneficiario(salida: SalidaInsumo): { nombre: string; cedula: string } | null {
   const match = atendidosStore.list.find(
     (a) =>

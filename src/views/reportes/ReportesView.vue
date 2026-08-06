@@ -11,7 +11,7 @@ import { useInsumosStore } from '@/stores/insumos'
 import { usePersonalStore } from '@/stores/personal'
 import { useSalidasInsumosStore } from '@/stores/salidasInsumos'
 import { useAuthStore } from '@/stores/auth'
-import { FileText, MapPin, Target, Package, Users, Heart, Activity, PawPrint } from '@lucide/vue'
+import { FileText, MapPin, Target, Package, Users, Heart, Activity, PawPrint, type LucideIcon } from '@lucide/vue'
 import ReporteDirector from '@/components/reports/ReporteDirector.vue'
 import ReporteGeografico from '@/components/reports/ReporteGeografico.vue'
 import ReporteEfectividad from '@/components/reports/ReporteEfectividad.vue'
@@ -59,7 +59,7 @@ interface ReporteInfo {
   id: string
   titulo: string
   desc: string
-  icon: any
+  icon: LucideIcon
   area: string
 }
 

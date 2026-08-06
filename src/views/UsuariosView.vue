@@ -7,7 +7,7 @@ import BaseSelect from '@/components/ui/BaseSelect.vue'
 import BaseTable from '@/components/ui/BaseTable.vue'
 import ConfirmDialog from '@/components/ui/ConfirmDialog.vue'
 import StatusBadge from '@/components/ui/StatusBadge.vue'
-import { getAll, addItem, putItem, deleteItem } from '@/db'
+import { getAll, putItem, deleteItem } from '@/db'
 import { getSupabase } from '@/lib/supabase'
 import { audit } from '@/lib/audit'
 import { useAuthStore } from '@/stores/auth'
@@ -298,7 +298,7 @@ async function confirmDelete() {
           useToastStore().error(data.error ?? 'Error al eliminar usuario')
           return
         }
-      } catch (e) {
+      } catch {
         useToastStore().error('Error de red al eliminar usuario')
         return
       }

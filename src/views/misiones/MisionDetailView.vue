@@ -29,7 +29,7 @@ import { useLoading } from '@/composables/useLoading'
 import { insumoSchema } from '@/lib/schemas'
 import { mapAreaToRegistro } from '@/lib/area'
 import { INSUMO_CATEGORIAS } from '@/types'
-import type { Mision, PersonalMision, InsumoLlevado, Usuario, Atendido, SalidaInsumo } from '@/types'
+import type { Mision, PersonalMision, InsumoLlevado, Usuario, Atendido } from '@/types'
 
 const route = useRoute()
 const router = useRouter()

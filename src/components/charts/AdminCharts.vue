@@ -67,8 +67,9 @@ const actividadReciente = computed(() => {
     if (diff >= 0 && diff < 9) counts.misiones[8 - diff]!++
   }
   for (const n of props.necesidades) {
-    if (!(n as any).created_at && !(n as any).fecha_reporte) continue
-    const d = new Date((n as any).created_at ?? (n as any).fecha_reporte)
+    const n2 = n as Necesidad & { created_at?: string; fecha_reporte?: string }
+    if (!n2.created_at && !n2.fecha_reporte) continue
+    const d = new Date(n2.created_at ?? n2.fecha_reporte ?? new Date().toISOString())
     const diff = Math.floor((now.getTime() - d.getTime()) / (7 * 86400000))
     if (diff >= 0 && diff < 9) counts.necesidades[8 - diff]!++
   }

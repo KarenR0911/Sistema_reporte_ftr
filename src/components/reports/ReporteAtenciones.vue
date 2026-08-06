@@ -84,11 +84,6 @@ const vulnerabilidades = computed(() => {
 const referidos = computed(() => props.atendidos.filter(a => a.referido).length)
 const total = computed(() => props.atendidos.length)
 const hasData = computed(() => props.atendidos.length > 0)
-
-function formatDate(iso: string): string {
-  if (!iso) return '—'
-  return new Date(iso).toLocaleDateString('es-VE', { day: '2-digit', month: 'long', year: 'numeric' })
-}
 </script>
 
 <template>

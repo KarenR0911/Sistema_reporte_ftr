@@ -36,11 +36,6 @@ const porMotivo = computed(() => {
 })
 
 const hasData = computed(() => props.insumos.length > 0)
-
-function formatDate(iso: string): string {
-  if (!iso) return '—'
-  return new Date(iso).toLocaleDateString('es-VE', { day: '2-digit', month: 'long', year: 'numeric' })
-}
 </script>
 
 <template>
