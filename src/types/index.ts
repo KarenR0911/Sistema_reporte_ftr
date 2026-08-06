@@ -43,15 +43,6 @@ export interface InsumoLlevado {
   status_sync?: StatusSync
 }
 
-export interface Transporte {
-  id: string
-  id_mision: string
-  tipo_transporte: string
-  numero_placa: string
-  nombre_conductor: string
-  status_sync?: StatusSync
-}
-
 export interface PersonalMision {
   id: string
   id_mision: string

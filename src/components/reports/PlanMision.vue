@@ -1,9 +1,8 @@
 <script setup lang="ts">
-import type { Mision, Transporte, PersonalMision, InsumoLlevado } from '@/types'
+import type { Mision, PersonalMision, InsumoLlevado } from '@/types'
 
 const props = defineProps<{
   mission: Mision
-  transportes: Transporte[]
   personales: PersonalMision[]
   insumos: InsumoLlevado[]
 }>()
@@ -35,22 +34,6 @@ function labelCategoria(val: string): string {
           <tr><td class="info-label">Dirección</td><td class="info-value">{{ mission.direccion }}</td></tr>
           <tr><td class="info-label">Fecha de inicio</td><td class="info-value">{{ formatDate(mission.fecha_inicio) }}</td></tr>
           <tr><td class="info-label">Estatus</td><td class="info-value">{{ mission.estatus_mision === 'activa' ? 'Activa' : mission.estatus_mision === 'completada' ? 'Completada' : 'Cancelada' }}</td></tr>
-        </tbody>
-      </table>
-    </div>
-
-    <div v-if="transportes.length > 0" class="report-section">
-      <h2 class="section-title">Transporte Asignado</h2>
-      <table class="data-table">
-        <thead>
-          <tr><th>Tipo</th><th>Placa</th><th>Conductor</th></tr>
-        </thead>
-        <tbody>
-          <tr v-for="t in transportes" :key="t.id">
-            <td>{{ t.tipo_transporte }}</td>
-            <td>{{ t.numero_placa }}</td>
-            <td>{{ t.nombre_conductor }}</td>
-          </tr>
         </tbody>
       </table>
     </div>
@@ -92,7 +75,6 @@ function labelCategoria(val: string): string {
     <div class="report-section checklist">
       <h2 class="section-title">Lista de Verificación</h2>
       <div class="check-item"> Personal completo ______________________________________</div>
-      <div class="check-item"> Transporte verificado ___________________________________</div>
       <div class="check-item"> Insumos cargados _______________________________________</div>
       <div class="check-item"> Equipos de comunicación ________________________________</div>
       <div class="check-item"> Botiquín de primeros auxilios _____________________________</div>

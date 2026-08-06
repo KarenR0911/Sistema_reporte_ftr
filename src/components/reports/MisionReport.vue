@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { Mision, Atendido, InsumoLlevado, Necesidad, PersonalMision, SalidaInsumo, Transporte } from '@/types'
+import type { Mision, Atendido, InsumoLlevado, Necesidad, PersonalMision, SalidaInsumo } from '@/types'
 
 const props = defineProps<{
   mission: Mision
@@ -8,7 +8,6 @@ const props = defineProps<{
   necesidades: Necesidad[]
   personales: PersonalMision[]
   salidas: SalidaInsumo[]
-  transportes: Transporte[]
 }>()
 
 function labelTipoAtencion(val: string | null): string {
@@ -96,26 +95,6 @@ function formatDateTime(iso: string): string {
           <tr>
             <td class="info-label">Estatus</td>
             <td class="info-value">{{ mission.estatus_mision === 'activa' ? 'Activa' : mission.estatus_mision === 'completada' ? 'Completada' : mission.estatus_mision === 'cancelada' ? 'Cancelada' : '—' }}</td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
-
-    <div v-if="transportes.length > 0" class="report-section">
-      <h2 class="section-title">Transporte</h2>
-      <table class="data-table">
-        <thead>
-          <tr>
-            <th>Tipo</th>
-            <th>Placa</th>
-            <th>Conductor</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="t in transportes" :key="t.id">
-            <td>{{ t.tipo_transporte }}</td>
-            <td>{{ t.numero_placa }}</td>
-            <td>{{ t.nombre_conductor }}</td>
           </tr>
         </tbody>
       </table>

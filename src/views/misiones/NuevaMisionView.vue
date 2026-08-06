@@ -7,21 +7,19 @@ import BaseCard from '@/components/ui/BaseCard.vue'
 import BaseSelect from '@/components/ui/BaseSelect.vue'
 import BaseTable from '@/components/ui/BaseTable.vue'
 import PersonalSelector from '@/components/ui/PersonalSelector.vue'
-import { MapPin, Truck, Users, Package, Plus, ArrowLeft, Save } from '@lucide/vue'
+import { MapPin, Users, Package, Plus, ArrowLeft, Save } from '@lucide/vue'
 import { useMisionesStore } from '@/stores/misiones'
-import { useTransporteStore } from '@/stores/transporte'
 import { usePersonalStore } from '@/stores/personal'
 import { useInsumosStore } from '@/stores/insumos'
 import { useToastStore } from '@/stores/toast'
 import { useLoading } from '@/composables/useLoading'
-import { misionSchema, transporteSchema, insumoSchema } from '@/lib/schemas'
+import { misionSchema, insumoSchema } from '@/lib/schemas'
 import { INSUMO_CATEGORIAS } from '@/types'
 import { ESTADOS_OPCIONES, municipiosDeEstado } from '@/lib/geoVenezuela'
-import type { Mision, Transporte, PersonalMision, InsumoLlevado, Usuario } from '@/types'
+import type { Mision, PersonalMision, InsumoLlevado, Usuario } from '@/types'
 
 const router = useRouter()
 const misionesStore = useMisionesStore()
-const transporteStore = useTransporteStore()
 const personalStore = usePersonalStore()
 const insumosStore = useInsumosStore()
 const toast = useToastStore()
@@ -47,10 +45,6 @@ function onEstadoChange(estado: string) {
   misionErrors.value.municipio = ''
 }
 
-const transportes = ref<Omit<Transporte, 'id' | 'id_mision'>[]>([])
-const transportForm = ref({ tipo_transporte: '', numero_placa: '', nombre_conductor: '' })
-const transportErrors = ref<Record<string, string>>({})
-
 const insumos = ref<Omit<InsumoLlevado, 'id' | 'id_mision'>[]>([])
 const insumoForm = ref({ categoria: '', descripcion: '', cantidad: '', unidad: '', observaciones: '' })
 const insumoErrors = ref<Record<string, string>>({})
@@ -68,7 +62,7 @@ function validateStep(): boolean {
     }
     return true
   }
-  if (step.value === 3 && selectedPersonal.value.length === 0) {
+  if (step.value === 2 && selectedPersonal.value.length === 0) {
     toast.error('Selecciona al menos un voluntario o profesional para la misión.')
     return false
   }
@@ -106,25 +100,6 @@ function prevStep() {
   step.value--
 }
 
-function addTransporte() {
-  transportErrors.value = {}
-  const result = transporteSchema.safeParse(transportForm.value)
-  if (!result.success) {
-    for (const issue of result.error.issues) {
-      transportErrors.value[issue.path[0] as string] = issue.message
-    }
-    toast.error('Completa todos los datos del transporte.')
-    return
-  }
-  transportes.value.push({ ...transportForm.value })
-  transportForm.value = { tipo_transporte: '', numero_placa: '', nombre_conductor: '' }
-  transportErrors.value = {}
-}
-
-function removeTransporte(idx: number) {
-  transportes.value.splice(idx, 1)
-}
-
 function addInsumo() {
   insumoErrors.value = {}
   const cantidad = Number(insumoForm.value.cantidad) || 0
@@ -155,11 +130,6 @@ async function saveMision() {
   }
   await withLoading(async () => {
     await misionesStore.create(mision)
-
-    for (const t of transportes.value) {
-      const item: Transporte = { id: crypto.randomUUID(), id_mision, ...t }
-      await transporteStore.create(item)
-    }
 
     for (const p of selectedPersonal.value) {
       const item: PersonalMision = {
@@ -219,9 +189,9 @@ async function saveMision() {
           class="flex items-center justify-center w-6 h-6 rounded-full text-xs font-bold"
           :class="step === 2 ? 'bg-primary text-white' : step > 2 ? 'bg-success text-white' : 'bg-border-light'"
         >
-          <Truck :size="16" />
+          <Users :size="16" />
         </span>
-        Transporte
+        Personal
       </div>
       <div
         class="flex items-center gap-2 px-5 py-2.5 bg-white rounded-lg border-2 cursor-pointer text-sm font-semibold transition-all"
@@ -231,19 +201,6 @@ async function saveMision() {
         <span
           class="flex items-center justify-center w-6 h-6 rounded-full text-xs font-bold"
           :class="step === 3 ? 'bg-primary text-white' : step > 3 ? 'bg-success text-white' : 'bg-border-light'"
-        >
-          <Users :size="16" />
-        </span>
-        Personal
-      </div>
-      <div
-        class="flex items-center gap-2 px-5 py-2.5 bg-white rounded-lg border-2 cursor-pointer text-sm font-semibold transition-all"
-        :class="step === 4 ? 'border-primary text-primary' : step > 4 ? 'border-success text-success' : 'border-border-light text-text-secondary'"
-        @click="goToStep(4)"
-      >
-        <span
-          class="flex items-center justify-center w-6 h-6 rounded-full text-xs font-bold"
-          :class="step === 4 ? 'bg-primary text-white' : step > 4 ? 'bg-success text-white' : 'bg-border-light'"
         >
           <Package :size="16" />
         </span>
@@ -260,35 +217,7 @@ async function saveMision() {
       <BaseButton variant="primary" @click="nextStep">Siguiente</BaseButton>
     </BaseCard>
 
-    <BaseCard v-if="step === 2" title="Transporte">
-      <p class="text-sm text-text-secondary mb-3">Opcional — registra el transporte de la misión o continúa sin agregar ninguno.</p>
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-        <BaseInput v-model="transportForm.tipo_transporte" label="Tipo de Transporte" placeholder="Camioneta, Autobús..." :error="transportErrors.tipo_transporte" @update:model-value="transportErrors.tipo_transporte = ''" />
-        <BaseInput v-model="transportForm.numero_placa" label="Número de Placa" :error="transportErrors.numero_placa" @update:model-value="transportErrors.numero_placa = ''" />
-        <BaseInput v-model="transportForm.nombre_conductor" label="Nombre del Conductor" :error="transportErrors.nombre_conductor" @update:model-value="transportErrors.nombre_conductor = ''" />
-      </div>
-      <BaseButton variant="secondary" @click="addTransporte" class="mb-3"><Plus :size="18" /> Agregar Transporte</BaseButton>
-      <BaseTable
-        v-if="transportes.length"
-        :columns="[
-          { key: 'tipo_transporte', label: 'Tipo' },
-          { key: 'numero_placa', label: 'Placa' },
-          { key: 'nombre_conductor', label: 'Conductor' },
-          { key: 'acciones', label: '' },
-        ]"
-        :rows="transportes as unknown as Record<string, unknown>[]"
-      >
-        <template #cell-acciones="{ row }">
-          <BaseButton size="sm" variant="danger" @click="removeTransporte(transportes.indexOf(row as any))">X</BaseButton>
-        </template>
-      </BaseTable>
-      <div class="flex justify-between mt-4">
-        <BaseButton variant="ghost" @click="prevStep"><ArrowLeft :size="18" /> Atrás</BaseButton>
-        <BaseButton variant="primary" @click="nextStep">Siguiente</BaseButton>
-      </div>
-    </BaseCard>
-
-    <BaseCard v-if="step === 3" title="Seleccionar Personal / Voluntarios">
+    <BaseCard v-if="step === 2" title="Seleccionar Personal / Voluntarios">
       <PersonalSelector v-model="selectedPersonal" />
       <div class="flex justify-between mt-4">
         <BaseButton variant="ghost" @click="prevStep"><ArrowLeft :size="18" /> Atrás</BaseButton>
@@ -296,7 +225,7 @@ async function saveMision() {
       </div>
     </BaseCard>
 
-    <BaseCard v-if="step === 4" title="Insumos Llevados">
+    <BaseCard v-if="step === 3" title="Insumos Llevados">
       <p class="text-sm text-text-secondary mb-3">Opcional — registra los insumos que se llevan a la misión o guárdala sin agregar ninguno. El estatus se definirá al finalizar.</p>
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
         <BaseSelect v-model="insumoForm.categoria" label="Categoría" required :options="INSUMO_CATEGORIAS.map(c => ({ value: c, label: c }))" :error="insumoErrors.categoria" />

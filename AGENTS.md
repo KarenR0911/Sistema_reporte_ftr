@@ -1,96 +1,88 @@
-Arquitectura planteada para el desarrollo de un sistema de reporte por zonas o por “grupos de apoyo”
-El sistema debe ser una Progressive Web App Offline-First por las condiciones en las que se encuentran los entornos donde van a apoyar los grupos de voluntarios y profesionales. Para ello, debemos tomar en cuenta que:
-Para que una PWA funcione 100% offline, el almacenamiento local no puede ser localStorage (es muy limitado). Debemos usar IndexedDB.
+# Sistema de Reporte FTR
 
-Esquema de base de datos planteada
-Zonas/Misión
-Id_misión
-Dirección
-Municipio
-Estado
-Fecha_Inicio
-Estatus_Misión
-Estatus_sincronización
+Sistema de reporte por zonas / "grupos de apoyo" para brigadas de voluntarios y profesionales. Es una **Progressive Web App Offline-First**: los entornos donde operan no siempre tienen conexión, por lo que todo el registro de campo funciona sin internet y se sincroniza cuando hay señal.
 
-Insumos llevados
-Id_insumo_llevado
-Id_misión
-Categoría
-Descripción
-Cantidad
-Unidad
-Observaciones
-Categoría
-Estatus_cargamento (Entregado/Retorno)
-Estatus_sincronización
+## Stack y arquitectura
 
-Transporte
-Id_transporte
-Id_misión
-Tipo_transporte
-Número de placa
-Nombre_conductor
-Estatus_sincronización
+- **Frontend**: Vue 3 (Composition API, `<script setup>`) + TypeScript + Pinia + Vue Router + Tailwind CSS v4.
+- **Persistencia local**: IndexedDB vía `idb` (base `sistema-reporte-ftr`, versión 9). **No se usa localStorage** para datos (muy limitado).
+- **Backend**: Supabase — Postgres con RLS, Auth (email/contraseña) y Edge Functions (Deno) para operaciones con `service_role`.
+- **PWA**: `vite-plugin-pwa` (service worker) para arrancar 100% offline.
+- **Generación de reportes**: componentes de impresión puros que usan `window.print()` (CSS `@media print`).
 
-Personal/Voluntarios/Profesionales
-Id_personal_misión
-Id_misión
-Cédula
-Nombre
-Categoría del voluntariado (Estudiante/profesional/voluntario)
-Especialidad
-Estatus_sincronización
+## Estrategia de sincronización
 
-Atendidos
-Id_Atención
-Id_misión
-Cédula_personal
-Cédula_atendido
-Nombre_Atendido
-Teléfono_contacto
-Fecha_Hora_Atención
-Notas de la atención
-Insumos dados (Array/JSON)
-Estatus_sincronización
+- **IDs**: está prohibido usar IDs numéricos autoincrementables. Todos los registros usan **UUID v4 generados en el cliente** (`crypto.randomUUID()`), así múltiples teléfonos offline jamás colisionan al sincronizar.
+- **Estado de sincronización**: cada registro tiene `status_sync` (`'pending'` → `'synced'`).
+- **Operación offline**: todo se guarda en IndexedDB con `status_sync: 'pending'`. El usuario ve el estado de conexión (En línea / Offline) en la interfaz.
+- **Sincronización automática** (`src/composables/useSync.ts`): al recuperar conexión (`navigator.onLine`) hace *pull* de Supabase (respetando pendientes locales), *upsert* de lo pendiente, y replica los borrados registrados en el store `_deleted`. El orden de sincronización es: atendidos, necesidades, salidas, insumos, misiones, personal.
+- El desencadenador de resincronización por cambios locales es `src/lib/syncTrigger.ts` (`markNeedsSync`).
 
-Insumos en necesidad
-Id_reporte_necesidad
-Id_misión
-Categoría
-Descripción
-Cantidad Requerida
-Unidad
-Observaciones
-Prioridad
-Estatus (Reportado/Enproceso/Atendido)
-Estatus_sincronización
+## Modelo de datos (tablas en Supabase)
 
-Estrategia de Sincronización:
-•	Identificadores (IDs): Queda estrictamente prohibido usar IDs numéricos autoincrementables (1, 2, 3...). Si dos usuarios en zonas distintas crean un reporte offline, ambos generarán el ID 1 y todo colapsará al sincronizar. Usaremos UUIDs (v4) generados en el teléfono.
-•	Estado de Sincronización: Cada registro tendrá un campo status_sync que puede ser "pending" (pendiente) o "synced" (sincronizado).
-Flujo de Funcionamiento Técnico
-Paso 1: Preparación (Online)
-Antes de salir al campo, el equipo abre la PWA en la base o con datos móviles. El Service Worker descarga los archivos de la app (HTML, JS, CSS) para que funcione sin internet. Opcionalmente, se descarga el catálogo de insumos estándar.
-Paso 2: Operación en el Campo (Offline)
-El coordinador crea la Nueva Misión y registra los transportes y el personal. A medida que llegan los afectados, los estudiantes y profesionales registran las Atenciones y las Necesidades desde sus teléfonos o tabletas.Todo se guarda inmediatamente en IndexedDB con status_sync: "pending". El usuario ve un ícono de una nube con una línea diagonal (Modo Offline).
-Paso 3: Retorno y Sincronización (Online)
-Al detectar que el dispositivo recupera conexión a internet (usando el evento navigator.onLine), la PWA activa el proceso de fondo
-¿Cómo funcionará esto en la PWA para el Coordinador y los Voluntarios?
-1.	Pantalla del Coordinador (Inicio de Misión): Al llegar a la zona (aún con señal o antes de salir), el coordinador le da a "Nueva Misión". Registra la zona, los transportes (Tabla 2) y el personal que va en el viaje (Tabla 4). Toda esta info se guarda en el IndexedDB del teléfono del coordinador.
-2.	Distribución del Trabajo (Modo Offline): Si hay varios voluntarios con la PWA, cada uno en su teléfono puede registrar "Atendidos" (Tabla 5). Como cada atención genera su propio Id_Atención con un UUID aleatorio, no importa que 5 voluntarios estén registrando personas al mismo tiempo sin internet, los datos nunca se van a pisar ni a duplicar.
-3.	Cierre de la visita (El reporte de Necesidades): Antes de irse de la zona, el coordinador abre el módulo "Levantamiento de Necesidades" en su PWA. Evalúa qué falta y llena la Tabla 6.
-4.	La Sincronización: Al regresar a una zona con Wifi o datos móviles, la aplicación detecta la red de forma automática. Envía primero la Misión, luego los Transportes y el Personal, después las Atenciones y por último las Necesidades. El servidor central procesa todo y cambia el Estatus_Sincro a "Sincronizado".
+- **perfiles** — usuarios del sistema: `id` (UUID de auth), `cedula`, `nombre`, `email`, `rol` (director/administrador/coordinador/personal), `activo`, `categoria_voluntariado` (estudiante/profesional/voluntario), `especialidad`, `area_voluntariado`.
+- **misiones** — zonas de trabajo: `id`, `direccion`, `municipio`, `estado`, `fecha_inicio`, `estatus_mision` (activa/completada/cancelada), `status_sync`.
+- **insumos** — insumos llevados a la misión: `id`, `id_mision`, `categoria`, `descripcion`, `cantidad`, `unidad`, `observaciones`, `status_sync`.
+- **personal_mision** — personal/voluntarios/profesionales asignados: `id`, `id_mision`, `cedula`, `nombre`, `categoria_voluntariado`, `especialidad`, `area_voluntariado`, `status_sync`.
+- **atendidos** — registros de atención (humanos y animales): `id`, `id_mision`, `cedula_personal`, `cedula_atendido`, `nombre_atendido`, `telefono_contacto`, `fecha_hora_atencion`, `edad`, `sexo`, `tipo_atencion`, `referido`, `vulnerabilidad` (array JSON), `notas`, `area_registro` (general/medicina_humana/psicologia/veterinaria/logistica), `lugar_vivia`, `lugar_actual`, `motivo_atencion`, `insumo_entregado`, `especie`, `posee_tutor`, `rescatado`, `en_adopcion`, `diagnostico_tentativo`, `status_sync`.
+- **necesidades** — insumos en necesidad levantados en campo: `id`, `id_mision`, `categoria`, `descripcion`, `cantidad_requerida`, `unidad`, `observaciones`, `prioridad` (baja/media/alta/critica), `estatus` (reportado/enproceso/atendido), `status_sync`.
+- **salidas_insumos** — dispensación de insumos: `id`, `id_mision`, `id_insumo`, `cantidad`, `motivo`, `registrado_por`, `created_at`, `status_sync`.
 
-Identidad Visual y UI
-Tipografía Principal: Inria Sans
-Paleta de Colores (Aplicación técnica sugerida):
-Fondos & Superficies: Light Gray (#F5F5F5, #F0F0F0), Blanco (#FFFFFF)
-Textos: Dark Gray (#333333, #666666), Negro (#000000)
-Color de Marca / Énfasis Primario: Azul Corporativo (#00244D)
-Elementos Interactivos (Botones/Links): Azul Vivo (#145CAD, #1FAAE1, #127BA4)
-Estados / Alertas: Celeste Claro (#68B1ED), Menta/Neutral (#8FBFBF)
-Bordes y Deshabilitados: Gris (#BEBEBE, #E3E3E3)
+El store de IndexedDB `usuarios` guarda una copia local de `perfiles` para funcionar offline. `salidas` en IndexedDB corresponde a la tabla `salidas_insumos`.
 
-#Características
-•	Debe haber un dashboard según el tipo de usuario que ingrese, uno es el director general, que puede acceder a la información de todos los usuarios, insumos, reportes, y modificar o eliminar datos, e inactivar personal. El de administrador que podrá, al igual que el director, ver los reportes e info del personal, pero solo ver, no modificar, el coordinador, que será encargado de crear las misiones, cargar los insumos, transporte y personal que irá, y el personal que pueden ser profesionales o voluntarios que podrán registrar a las personas atendidas. Cada quien debe tener su dashboard según los privilegios y funciones a las que pueda acceder.
-•	Debe generar estadísticas y reportes que recopilen la información relevante.
+## Roles, privilegios y dashboards
+
+Cada rol tiene su dashboard según sus funciones:
+
+- **Director General**: acceso total — usuarios (crear/editar/eliminar/inactivar), insumos, misiones, reportes. Sin ámbito por área.
+- **Administrador**: puede ver reportes e información del personal. Por decisión vigente también puede crear y eliminar usuarios. Sin ámbito por área.
+- **Coordinador**: crea misiones, carga insumos y personal. **Ámbito por área**: solo ve misiones y reportes de su área.
+- **Personal** (voluntarios/profesionales): registra atenciones. **Ámbito por área**: solo ve registros de su área.
+
+**Ámbito por área** (feature reciente):
+- `src/lib/area.ts` — mapeo entre el vocabulario del perfil (`area_voluntariado`, 14 valores) y el del registro (`area_registro`, 5 valores) vía `mapAreaToRegistro`.
+- `src/composables/useAreaScope.ts` — expone `scopeArea` (null para director/administrador) y listas filtradas `scopedAtendidos`, `scopedPersonal`, `scopedMisiones`, `scopedNecesidades`. Las misiones/necesidades no tienen columna de área: la misión se considera del área si tiene atendidos o personal de esa área.
+- Se aplica en Dashboard, lista/detalle de misiones y registro de atenciones. El Centro de Reportes aún usa su propio filtro de área (refactor pendiente).
+
+## Centro de reportes
+
+- **`/reportes`** (`ReportesView.vue`): 8 reportes globales imprimibles (Director, Cobertura Geográfica, Efectividad-Necesidades, Inventario de Insumos, Personal Desplegado, Atenciones Consolidado, Actividad del Personal, Veterinario). Solo director/administrador ven los 8; coordinador/personal ven únicamente el veterinario. Filtro de área solo para admin.
+- **Por misión** (desde el detalle de misión): `MisionReport` (reporte completo de la misión), `PlanMision` (hoja de ruta pre-salida con checklist) y `FichaAtencion` (ficha imprimible de un solo registro, con firma y sello).
+- Todos son componentes de impresión puros: reciben datos por props desde la vista y agregan con `computed`.
+
+## Seguridad
+
+- **RLS en Supabase**: `perfiles_select` (todos los autenticados leen), `perfiles_update_own` (cada quien su fila), `perfiles_delete_director`. Las demás tablas permiten CRUD a autenticados; DELETE solo director/administrador.
+- **Trigger `handle_new_user`** (`20260726000003`): al crearse un usuario en Auth inserta su fila en `perfiles` forzando `rol='personal'` (evita escalada de privilegios vía metadata); el panel lo sobreescribe con el rol elegido.
+- **Edge functions** (`supabase/functions/`):
+  - `create-user`: crea usuarios con `auth.admin.createUser` (service role) validando que el llamador sea director/administrador. **No cambia la sesión del creador** (a diferencia de `signUp`).
+  - `delete-user`: elimina usuario de Auth y de `perfiles` validando rol de director.
+
+## Estructura del proyecto
+
+- `src/stores/` — stores Pinia por entidad (misiones, atendidos, necesidades, insumos, personal, salidasInsumos, auth, toast, loading). Patrón: `load()` desde IndexedDB + `refresh()` contra Supabase; `create/update/remove` escriben local (pending) y tratan de persistir en línea.
+- `src/db/` — helpers de IndexedDB (getAll, addItem, putItem, deleteItem, getPending, markAsSynced, _deleted).
+- `src/lib/` — supabase client, schemas (zod), área, sync trigger, utilidades.
+- `src/views/` — Login, Dashboard, Usuarios, Misiones (lista, nueva, detalle, necesidades), Atención, Dispensación, Reportes, Perfil, Desautorizado.
+- `src/router/` — guard de navegación: restaura sesión y aplica `meta.roles` por ruta; usuarios inactivos ven "Desautorizado".
+
+## Comandos
+
+- `npm run dev` — servidor de desarrollo (Vite).
+- `npm run type-check` — `vue-tsc --build`.
+- `npm run lint` / `lint:oxlint` / `lint:eslint` — linters.
+- `npm run build` — type-check + build.
+- `supabase functions deploy <nombre>` — desplegar edge function.
+- `supabase db push` — aplicar migraciones.
+
+## Identidad visual y UI
+
+- **Tipografía principal**: Inria Sans.
+- **Paleta**:
+  - Fondos/superficies: Light Gray `#F5F5F5` / `#F0F0F0`, Blanco `#FFFFFF`.
+  - Textos: Dark Gray `#333333` / `#666666`, Negro `#000000`.
+  - Marca/énfasis primario: Azul Corporativo `#00244D`.
+  - Interactivos (botones/links): Azul Vivo `#145CAD`, `#1FAAE1`, `#127BA4`.
+  - Estados/alertas: Celeste Claro `#68B1ED`, Menta/Neutral `#8FBFBF`.
+  - Bordes/deshabilitados: Gris `#BEBEBE`, `#E3E3E3`.
+- Componentes UI base en `src/components/ui/` (BaseButton, BaseCard, BaseInput, BaseSelect, BaseTable, StatusBadge, ConfirmDialog, PersonalSelector, etc.).

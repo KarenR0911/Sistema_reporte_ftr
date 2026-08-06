@@ -8,7 +8,6 @@ import { useSalidasInsumosStore } from '@/stores/salidasInsumos'
 import { useMisionesStore } from '@/stores/misiones'
 import { usePersonalStore } from '@/stores/personal'
 import { useInsumosStore } from '@/stores/insumos'
-import { useTransporteStore } from '@/stores/transporte'
 import { useNeedsSync } from '@/lib/syncTrigger'
 import type { StoreName } from '@/db'
 import { ref, watch, onUnmounted } from 'vue'
@@ -20,10 +19,9 @@ const STORES: { store: StoreName; table: string }[] = [
   { store: 'insumos', table: 'insumos' },
   { store: 'misiones', table: 'misiones' },
   { store: 'personal', table: 'personal_mision' },
-  { store: 'transporte', table: 'transporte' },
 ]
 
-const ALL_STORES: StoreName[] = ['atendidos', 'necesidades', 'salidas', 'insumos', 'misiones', 'personal', 'transporte']
+const ALL_STORES: StoreName[] = ['atendidos', 'necesidades', 'salidas', 'insumos', 'misiones', 'personal']
 
 const STORE_TABLE_MAP = new Map(STORES.map((s) => [s.store, s.table]))
 
@@ -124,7 +122,6 @@ export function useSync() {
       useMisionesStore(),
       usePersonalStore(),
       useInsumosStore(),
-      useTransporteStore(),
     ]
     await Promise.allSettled(stores.map((s) => s.load()))
   }

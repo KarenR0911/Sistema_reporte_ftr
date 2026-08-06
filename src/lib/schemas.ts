@@ -27,12 +27,6 @@ export const misionSchema = z.object({
   estado: z.string().min(1, 'Estado es requerido'),
 })
 
-export const transporteSchema = z.object({
-  tipo_transporte: z.string().min(1, 'Tipo de transporte es requerido'),
-  numero_placa: z.string().min(1, 'Número de placa es requerido'),
-  nombre_conductor: z.string().min(1, 'Nombre del conductor es requerido'),
-})
-
 export const personalSchema = z.object({
   cedula: z.string().min(1, 'Cédula es requerida'),
   nombre: z.string().min(1, 'Nombre es requerido'),

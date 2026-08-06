@@ -16,7 +16,6 @@ import PlanMision from '@/components/reports/PlanMision.vue'
 import FichaAtencion from '@/components/reports/FichaAtencion.vue'
 import ReporteVeterinario from '@/components/reports/ReporteVeterinario.vue'
 import { useMisionesStore } from '@/stores/misiones'
-import { useTransporteStore } from '@/stores/transporte'
 import { usePersonalStore } from '@/stores/personal'
 import { useInsumosStore } from '@/stores/insumos'
 import { useAtendidosStore } from '@/stores/atendidos'
@@ -30,7 +29,7 @@ import { useLoading } from '@/composables/useLoading'
 import { insumoSchema } from '@/lib/schemas'
 import { mapAreaToRegistro } from '@/lib/area'
 import { INSUMO_CATEGORIAS } from '@/types'
-import type { Mision, Transporte, PersonalMision, InsumoLlevado, Usuario, Atendido, SalidaInsumo } from '@/types'
+import type { Mision, PersonalMision, InsumoLlevado, Usuario, Atendido, SalidaInsumo } from '@/types'
 
 const route = useRoute()
 const router = useRouter()
@@ -40,7 +39,6 @@ const { isOnline } = useOnlineStatus()
 const { withLoading, saving } = useLoading()
 
 const misionesStore = useMisionesStore()
-const transporteStore = useTransporteStore()
 const personalStore = usePersonalStore()
 const insumosStore = useInsumosStore()
 const atendidosStore = useAtendidosStore()
@@ -49,7 +47,7 @@ const salidasStore = useSalidasInsumosStore()
 const scope = useAreaScope()
 
 const storesReady = computed(() =>
-  misionesStore.loaded && transporteStore.loaded && personalStore.loaded
+  misionesStore.loaded && personalStore.loaded
   && insumosStore.loaded && atendidosStore.loaded && necesidadesStore.loaded && salidasStore.loaded
 )
 
@@ -59,7 +57,6 @@ const canManageInsumos = computed(() =>
 
 const missionId = route.params.id as string
 const mission = computed(() => misionesStore.getById(missionId))
-const transportes = computed(() => transporteStore.getByMision(missionId))
 const personales = computed(() => {
   const list = personalStore.getByMision(missionId)
   if (!scope.scopeArea.value) return list
@@ -149,9 +146,7 @@ async function agregarPersonalSeleccionado() {
   showPersonalForm.value = false
 }
 
-const showTransportForm = ref(false)
 const showPersonalForm = ref(false)
-const transportForm = ref({ tipo_transporte: '', numero_placa: '', nombre_conductor: '' })
 
 const showCompleteModal = ref(false)
 const showRemovePersonalDialog = ref(false)
@@ -163,19 +158,6 @@ function confirmRemovePersonal() {
   }
   showRemovePersonalDialog.value = false
   personalToRemove.value = null
-}
-
-async function addTransporte() {
-  await withLoading(async () => {
-    const item: Transporte = {
-      id: crypto.randomUUID(),
-      id_mision: missionId,
-      ...transportForm.value,
-    }
-    await transporteStore.create(item)
-  }, 'Guardando transporte...')
-  transportForm.value = { tipo_transporte: '', numero_placa: '', nombre_conductor: '' }
-  showTransportForm.value = false
 }
 
 function openCompleteModal() {
@@ -283,7 +265,6 @@ onMounted(async () => {
   window.addEventListener('afterprint', onAfterPrint)
   await Promise.all([
     misionesStore.load(),
-    transporteStore.load(),
     personalStore.load(),
     insumosStore.load(),
     atendidosStore.load(),
@@ -360,28 +341,6 @@ onUnmounted(() => {
         />
       </div>
     </div>
-
-    <BaseCard title="Transporte">
-      <template #default>
-        <BaseButton v-if="canEdit" variant="primary" size="sm" @click="showTransportForm = !showTransportForm" class="mb-3">
-          <Plus :size="16" /> Agregar Transporte
-        </BaseButton>
-        <div v-if="showTransportForm && canEdit" class="flex gap-2 items-end mb-3 flex-wrap">
-          <BaseInput v-model="transportForm.tipo_transporte" placeholder="Tipo" />
-          <BaseInput v-model="transportForm.numero_placa" placeholder="Placa" />
-          <BaseInput v-model="transportForm.nombre_conductor" placeholder="Conductor" />
-          <BaseButton variant="primary" size="sm" @click="addTransporte" :loading="saving">Guardar</BaseButton>
-        </div>
-        <BaseTable
-          :columns="[
-            { key: 'tipo_transporte', label: 'Tipo' },
-            { key: 'numero_placa', label: 'Placa' },
-            { key: 'nombre_conductor', label: 'Conductor' },
-          ]"
-          :rows="transportes as unknown as Record<string, unknown>[]"
-        />
-      </template>
-    </BaseCard>
 
     <BaseCard title="Personal">
       <template #default>
@@ -705,12 +664,10 @@ onUnmounted(() => {
           :necesidades="necesidades"
           :personales="personales"
           :salidas="salidasMision"
-          :transportes="transportes"
         />
         <PlanMision
           v-if="printing === 'plan'"
           :mission="mission!"
-          :transportes="transportes"
           :personales="personales"
           :insumos="insumosMision"
         />

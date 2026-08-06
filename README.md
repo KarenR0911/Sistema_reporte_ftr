@@ -43,7 +43,7 @@ La app almacena datos localmente en IndexedDB para permitir el registro de atenc
 |---|---|
 | **Director** | CRUD completo, eliminar usuarios, estadísticas globales |
 | **Administrador** | Ver todos los reportes e información del personal (solo lectura) |
-| **Coordinador** | Crear misiones, asignar transporte y personal, cargar insumos |
+| **Coordinador** | Crear misiones, asignar personal, cargar insumos |
 | **Personal** | Registrar personas atendidas en una misión |
 
 ## Esquema de base de datos
@@ -54,7 +54,6 @@ La app almacena datos localmente en IndexedDB para permitir el registro de atenc
 |---|---|
 | `perfiles` | Usuarios del sistema (cedula, nombre, rol, especialidad) |
 | `misiones` | Misiones/zonas atendidas (dirección, municipio, estado, estatus) |
-| `transporte` | Transporte asignado a cada misión |
 | `personal_mision` | Personal asignado a cada misión |
 | `insumos` | Insumos llevados a cada misión |
 | `atendidos` | Personas atendidas en cada misión |
@@ -72,12 +71,11 @@ La app almacena datos localmente en IndexedDB para permitir el registro de atenc
 2. **Offline:** Todos los datos se guardan en IndexedDB con `status_sync: 'pending'`.
 3. **Auto-sync:** Al detectar conexión (`navigator.onLine`), se envía a Supabase en orden:
    1. Misiones
-   2. Transporte
-   3. Personal
-   4. Insumos
-   5. Atendidos
-   6. Necesidades
-   7. Salidas de insumos
+   2. Personal
+   3. Insumos
+   4. Atendidos
+   5. Necesidades
+   6. Salidas de insumos
 4. **Status remoto:** Tras sincronizar, se actualiza `status_sync = 'synced'` en IndexedDB.
 
 ## Configuración del proyecto
