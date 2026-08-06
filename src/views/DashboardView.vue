@@ -14,6 +14,7 @@ import { useNecesidadesStore } from '@/stores/necesidades'
 import { useInsumosStore } from '@/stores/insumos'
 import { usePersonalStore } from '@/stores/personal'
 import { useSalidasInsumosStore } from '@/stores/salidasInsumos'
+import { useAreaScope } from '@/composables/useAreaScope'
 import { useRouter } from 'vue-router'
 
 const auth = useAuthStore()
@@ -24,6 +25,7 @@ const insumosStore = useInsumosStore()
 const personalStore = usePersonalStore()
 const salidasInsumosStore = useSalidasInsumosStore()
 const router = useRouter()
+const scope = useAreaScope()
 
 const role = computed(() => auth.userRole)
 const cargando = ref(true)
@@ -35,11 +37,11 @@ const misAtenciones = computed(() =>
 const misMisionesActivas = computed(() =>
   misionesStore.list.filter((m) => misMisionIds.value.has(m.id) && m.estatus_mision === 'activa'),
 )
-const totalMisiones = computed(() => misionesStore.list.length)
-const totalAtendidos = computed(() => atendidosStore.list.length)
-const totalNecesidades = computed(() => necesidadesStore.list.length)
+const totalMisiones = computed(() => scope.scopedMisiones.value.length)
+const totalAtendidos = computed(() => scope.scopedAtendidos.value.length)
+const totalNecesidades = computed(() => scope.scopedNecesidades.value.length)
 const misionesActivas = computed(() =>
-  misionesStore.list.filter((m) => m.estatus_mision === 'activa').length,
+  scope.scopedMisiones.value.filter((m) => m.estatus_mision === 'activa').length,
 )
 
 const areaLabels: Record<string, string> = {
@@ -102,10 +104,13 @@ onMounted(async () => {
 
   if (role.value === 'director' || role.value === 'administrador') {
     loads.push(
-      necesidadesStore.load(),
       insumosStore.load(),
       salidasInsumosStore.load(),
     )
+  }
+
+  if (role.value === 'director' || role.value === 'administrador' || role.value === 'coordinador') {
+    loads.push(necesidadesStore.load())
   }
 
   loads.push(atendidosStore.load(), personalStore.load())
@@ -191,7 +196,7 @@ onMounted(async () => {
         <span class="text-sm text-text-secondary">Mis Misiones Activas</span>
       </BaseCard>
       <BaseCard v-if="role === 'personal'" class="flex flex-col items-center text-center gap-1!">
-        <span class="text-4xl font-extrabold text-brand">{{ misAtenciones.length }}</span>
+        <span class="text-4xl font-extrabold text-brand">{{ scope.scopedAtendidos.value.length }}</span>
         <span class="text-sm text-text-secondary">Personas Atendidas</span>
       </BaseCard>
     </div>
@@ -270,7 +275,7 @@ onMounted(async () => {
     <BaseCard v-if="role === 'coordinador'" title="Misiones">
       <BaseTable
         :columns="misionColumns"
-        :rows="misionesStore.list.slice(-5) as unknown as Record<string, unknown>[]"
+        :rows="(scope.scopedMisiones.value.slice(-5)) as unknown as Record<string, unknown>[]"
       >
         <template #cell-estatus_mision="{ value }">
           <StatusBadge :status="value as string" />

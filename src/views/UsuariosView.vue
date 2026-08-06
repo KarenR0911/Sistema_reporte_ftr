@@ -44,7 +44,7 @@ function handleCedulaInput(val: string | number | null) {
 }
 
 watch(formRol, (val) => {
-  if (val !== 'personal') {
+  if (val !== 'personal' && val !== 'coordinador') {
     formCategoriaVoluntariado.value = ''
     formEspecialidad.value = ''
     formAreaVoluntariado.value = ''
@@ -134,7 +134,7 @@ function validateForm(): boolean {
     email: formEmail.value,
     rol: formRol.value,
   }
-  if (formRol.value === 'personal') {
+  if (formRol.value === 'personal' || formRol.value === 'coordinador') {
     if (!formCategoriaVoluntariado.value) {
       formErrors.value.categoria_voluntariado = 'Selecciona un tipo'
     }
@@ -164,7 +164,7 @@ function validateForm(): boolean {
 async function saveUser() {
   if (!validateForm()) return
   const isNew = !editingUser.value
-  const esPersonal = formRol.value === 'personal'
+  const conArea = formRol.value === 'personal' || formRol.value === 'coordinador'
   const email = formEmail.value
   const user: Usuario = {
     id: editingUser.value?.id ?? crypto.randomUUID(),
@@ -173,9 +173,9 @@ async function saveUser() {
     email,
     rol: formRol.value as Usuario['rol'],
     activo: formActivo.value,
-    categoria_voluntariado: esPersonal ? (formCategoriaVoluntariado.value as CategoriaVoluntariado) : undefined,
-    especialidad: esPersonal ? formEspecialidad.value : '',
-    area_voluntariado: esPersonal ? formAreaVoluntariado.value : '',
+    categoria_voluntariado: conArea ? (formCategoriaVoluntariado.value as CategoriaVoluntariado) : undefined,
+    especialidad: conArea ? formEspecialidad.value : '',
+    area_voluntariado: conArea ? formAreaVoluntariado.value : '',
   }
 
   if (!isNew && editingUser.value?.id === auth.currentUser?.id && !formActivo.value) {
@@ -413,7 +413,7 @@ onMounted(async () => {
               ]"
               required
             />
-            <template v-if="formRol === 'personal'">
+            <template v-if="formRol === 'personal' || formRol === 'coordinador'">
               <BaseSelect
                 v-model="formCategoriaVoluntariado"
                 label="Tipo"

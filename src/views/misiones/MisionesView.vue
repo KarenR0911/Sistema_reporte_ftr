@@ -6,11 +6,13 @@ import BaseTable from '@/components/ui/BaseTable.vue'
 import StatusBadge from '@/components/ui/StatusBadge.vue'
 import { useMisionesStore } from '@/stores/misiones'
 import { useAuthStore } from '@/stores/auth'
+import { useAreaScope } from '@/composables/useAreaScope'
 import { useRouter } from 'vue-router'
 
 const misionesStore = useMisionesStore()
 const auth = useAuthStore()
 const router = useRouter()
+const scope = useAreaScope()
 
 const role = computed(() => auth.userRole)
 const cargando = ref(true)
@@ -48,7 +50,7 @@ onMounted(async () => {
     </div>
 
     <BaseCard title="Todas las Misiones">
-      <BaseTable :columns="misionColumns" :rows="misionesStore.list as unknown as Record<string, unknown>[]">
+      <BaseTable :columns="misionColumns" :rows="scope.scopedMisiones.value as unknown as Record<string, unknown>[]">
         <template #cell-estatus_mision="{ value }">
           <StatusBadge :status="value as string" />
         </template>

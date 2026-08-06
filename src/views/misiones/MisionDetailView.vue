@@ -24,9 +24,11 @@ import { useNecesidadesStore } from '@/stores/necesidades'
 import { useSalidasInsumosStore } from '@/stores/salidasInsumos'
 import { useAuthStore } from '@/stores/auth'
 import { useOnlineStatus } from '@/composables/useOnlineStatus'
+import { useAreaScope } from '@/composables/useAreaScope'
 import { useToastStore } from '@/stores/toast'
 import { useLoading } from '@/composables/useLoading'
 import { insumoSchema } from '@/lib/schemas'
+import { mapAreaToRegistro } from '@/lib/area'
 import { INSUMO_CATEGORIAS } from '@/types'
 import type { Mision, Transporte, PersonalMision, InsumoLlevado, Usuario, Atendido, SalidaInsumo } from '@/types'
 
@@ -44,6 +46,7 @@ const insumosStore = useInsumosStore()
 const atendidosStore = useAtendidosStore()
 const necesidadesStore = useNecesidadesStore()
 const salidasStore = useSalidasInsumosStore()
+const scope = useAreaScope()
 
 const storesReady = computed(() =>
   misionesStore.loaded && transporteStore.loaded && personalStore.loaded
@@ -57,9 +60,17 @@ const canManageInsumos = computed(() =>
 const missionId = route.params.id as string
 const mission = computed(() => misionesStore.getById(missionId))
 const transportes = computed(() => transporteStore.getByMision(missionId))
-const personales = computed(() => personalStore.getByMision(missionId))
+const personales = computed(() => {
+  const list = personalStore.getByMision(missionId)
+  if (!scope.scopeArea.value) return list
+  return list.filter((p) => mapAreaToRegistro(p.area_voluntariado) === scope.scopeArea.value)
+})
 const insumosMision = computed(() => insumosStore.getByMision(missionId))
-const atendidos = computed(() => atendidosStore.getByMision(missionId))
+const atendidos = computed(() => {
+  const list = atendidosStore.getByMision(missionId)
+  if (!scope.scopeArea.value) return list
+  return list.filter((a) => a.area_registro === scope.scopeArea.value)
+})
 const necesidades = computed(() => necesidadesStore.getByMision(missionId))
 const salidasMision = computed(() => salidasStore.getByMision(missionId))
 

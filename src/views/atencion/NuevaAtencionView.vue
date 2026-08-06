@@ -15,6 +15,7 @@ import { useToastStore } from '@/stores/toast'
 import { useLoading } from '@/composables/useLoading'
 import { atencionSchema, atencionMedicinaSchema, atencionPsicologiaSchema, atencionVeterinariaSchema } from '@/lib/schemas'
 import { parseVuln, labelVuln } from '@/lib/vulnerabilidad'
+import { mapAreaToRegistro, areaLabel as labelAreaRegistro } from '@/lib/area'
 import type { Atendido, TipoAtencion, AreaRegistro } from '@/types'
 
 const route = useRoute()
@@ -40,29 +41,16 @@ const noAutorizado = computed(
   () => !currentPersonal.value,
 )
 
-function mapArea(raw: string | undefined | null): AreaRegistro {
-  if (!raw) return 'general'
-  const lower = raw.toLowerCase().replace(/_/g, ' ')
-  if (lower.includes('veterinaria')) return 'veterinaria'
-  if (lower.includes('medicina')) return 'medicina_humana'
-  if (lower.includes('psicosocial') || lower.includes('psicologia') || lower.includes('psicol') || lower.includes('salud mental')) return 'psicologia'
-  return 'general'
-}
-
 const userArea = computed<AreaRegistro>(() => {
   const area = auth.currentUser?.area_voluntariado || currentPersonal.value?.area_voluntariado
-  return mapArea(area)
+  return mapAreaToRegistro(area)
 })
 
-const areaLabel = computed(() => {
-  const labels: Record<string, string> = {
-    medicina_humana: 'Medicina Humana',
-    psicologia: 'Psicología',
-    veterinaria: 'Veterinaria',
-    general: 'General',
-  }
-  return labels[userArea.value] ?? 'General'
-})
+const areaLabel = computed(() => labelAreaRegistro(userArea.value))
+
+const registrosMision = computed(() =>
+  atendidosStore.getByMision(missionId).filter((a) => a.area_registro === userArea.value),
+)
 
 const formCedula = ref('')
 const formNombre = ref('')
@@ -429,7 +417,7 @@ onMounted(async () => {
             { key: 'fecha_hora_atencion', label: 'Fecha' },
             { key: 'acciones', label: '' },
           ]"
-          :rows="atendidosStore.getByMision(missionId) as unknown as Record<string, unknown>[]"
+          :rows="registrosMision as unknown as Record<string, unknown>[]"
         >
           <template #cell-sexo="{ value }">
             {{ labelSexo(value) }}
