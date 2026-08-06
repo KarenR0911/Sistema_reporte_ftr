@@ -185,54 +185,37 @@ async function saveUser() {
 
   if (navigator.onLine && isNew) {
     try {
-      const { data, error } = await getSupabase().auth.signUp({
-        email: user.email,
-        password: tempPassword.value,
-        options: {
-          data: {
-            cedula: user.cedula,
-            nombre: user.nombre,
-            rol: user.rol,
-            categoria_voluntariado: user.categoria_voluntariado ?? null,
-            especialidad: user.especialidad ?? '',
-            area_voluntariado: user.area_voluntariado ?? '',
-          },
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
+      const resp = await fetch(`${supabaseUrl}/functions/v1/create-user`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${auth.accessToken}`,
         },
+        body: JSON.stringify({
+          email: user.email,
+          password: tempPassword.value,
+          cedula: user.cedula,
+          nombre: user.nombre,
+          rol: user.rol,
+          categoria_voluntariado: user.categoria_voluntariado ?? null,
+          especialidad: user.especialidad ?? '',
+          area_voluntariado: user.area_voluntariado ?? '',
+          activo: true,
+        }),
       })
-      if (!error && data?.user?.id) {
-        user.id = data.user.id
-        await putItem('usuarios', user)
-        try {
-          await getSupabase().from('perfiles').update({
-            email: user.email,
-            rol: user.rol,
-            categoria_voluntariado: user.categoria_voluntariado ?? null,
-            especialidad: user.especialidad ?? '',
-            area_voluntariado: user.area_voluntariado ?? '',
-          }).eq('id', user.id)
-        } catch {}
-        createdUser.value = { cedula: user.cedula, nombre: user.nombre, email: user.email, password: tempPassword.value }
-        showCreatedDialog.value = true
-      } else {
-        await putItem('usuarios', user)
-        try {
-          await getSupabase().from('perfiles').upsert({
-            id: user.id,
-            email: user.email,
-            cedula: user.cedula,
-            nombre: user.nombre,
-            rol: user.rol,
-            categoria_voluntariado: user.categoria_voluntariado ?? null,
-            especialidad: user.especialidad ?? '',
-            area_voluntariado: user.area_voluntariado ?? '',
-            activo: true,
-          })
-        } catch {} // fallback silencioso
-        useToastStore().error('Guardado localmente. Supabase Auth: ' + (error?.message ?? 'No se pudo completar el alta'))
+      const data = await resp.json()
+      if (!resp.ok) {
+        useToastStore().error(data.error ?? 'Error al crear usuario')
+        return
       }
-    } catch {
+      user.id = data.userId
       await putItem('usuarios', user)
-      useToastStore().error('Guardado localmente. Error de red al crear en Supabase Auth.')
+      createdUser.value = { cedula: user.cedula, nombre: user.nombre, email: user.email, password: tempPassword.value }
+      showCreatedDialog.value = true
+    } catch {
+      useToastStore().error('Error de red al crear usuario. Inténtalo de nuevo.')
+      return
     }
   } else if (navigator.onLine && !isNew) {
     await getSupabase().from('perfiles').update({
